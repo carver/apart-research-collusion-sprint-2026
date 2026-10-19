@@ -1,0 +1,40 @@
+[project]
+name = "tradingcartel"
+version = "0.1.0"
+description = "LLM agents trading on a simulated stock market, for studying collusion. Every message goes through one event queue."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic-ai-slim[openrouter]==2.51.0",
+    "pydantic==2.13.5",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.1.1",
+    "ruff==0.16.9",
+]
+
+[build-system]
+requires = ["uv_build==0.12.19"]
+build-backend = "uv_build"
+
+[tool.uv]
+# Supply-chain policy: resolve only releases uploaded before this date, at least three weeks before
+# they were added (2026-10-19). Direct dependencies are pinned with ==, and uv.lock pins the rest.
+# To upgrade: move this date forward (keeping it >= 3 weeks in the past), then update the pins.
+exclude-newer = "2026-09-28T00:00:00Z"
+
+[tool.uv.build-backend]
+module-root = ""  # the package lives in ./tradingcartel, no src/ folder
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
