@@ -1,12 +1,14 @@
 """LLM agents, run with PydanticAI. Every real model goes through OpenRouter."""
 
 import os
+import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import pydantic_ai
-from pydantic_ai import Agent
+from pydantic_ai import Agent, UsageLimits
+from pydantic_ai.exceptions import AgentRunError
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models import Model
 from pydantic_ai.models.openrouter import OpenRouterModel
@@ -17,6 +19,7 @@ from ..core.messages import Message
 pydantic_ai.BANNER_ENABLED = False  # no first-run banner in our output
 
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"  # in the project root
+MAX_REQUESTS_PER_TURN = 10  # a normal turn takes 2-3 model requests
 
 
 @dataclass
@@ -37,9 +40,19 @@ class LLMAgent:
         self.history: list[ModelMessage] = []
 
     async def act(self, prompt: str) -> list[Message]:
-        """Run one turn and return the messages the agent sent."""
+        """Run one turn and return the messages the agent sent. If the turn fails (for example it
+        makes too many model requests), the failure is reported and what was sent before it counts."""
         turn = Turn(agent=self.name)
-        result = await self.agent.run(prompt, deps=turn, message_history=self.history)
+        try:
+            result = await self.agent.run(
+                prompt,
+                deps=turn,
+                message_history=self.history,
+                usage_limits=UsageLimits(request_limit=MAX_REQUESTS_PER_TURN),
+            )
+        except AgentRunError as exc:
+            print(f"[{self.name}] turn failed: {exc}", file=sys.stderr)
+            return turn.outbox
         self.history = result.all_messages()
         return turn.outbox
 
