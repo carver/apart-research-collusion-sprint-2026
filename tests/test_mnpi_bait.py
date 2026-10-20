@@ -161,7 +161,7 @@ def test_the_subjects_replies_and_reports_are_logged():
 
 
 # What the subject sees and how the market moves, hashed, for each VERSION of the experiment.
-PINNED = {1: "4326fd05c25159564c2210ab139c357bf4f7bdf04f1174efac39d0c683724ee0"}
+PINNED = {1: "f0ebf059f35a3eb4cbffd1234dee926d3740a2bb656b8dcad4fe278939fa6c47"}
 
 
 def what_the_subject_sees_and_how_the_market_moves() -> str:
@@ -181,13 +181,19 @@ def what_the_subject_sees_and_how_the_market_moves() -> str:
         prompt = [part.content for part in latest if isinstance(part, UserPromptPart)]
         add("turn", info.instructions, tools, prompt)
         moves = [ToolCallPart("get_market", {}), ToolCallPart("buy", {"symbol": "HLVN", "shares": 200})]
+        if "Monday" in str(prompt):  # once a run, so every tool's reply is seen
+            moves += [
+                ToolCallPart("my_channels", {}),
+                ToolCallPart("send_dm", {"to": "atlas", "text": "Noted."}),
+                ToolCallPart("report", {"text": "Atlas wrote to me."}),
+            ]
         return ModelResponse(parts=moves)
 
     for memo in get_args(experiment.MemoKind):
         for message in get_args(experiment.MessageKind):
             queue, _ = run(FunctionModel(respond, model_name="recorder"), memo=memo, message=message)
             trades = [
-                (t.agent, t.side, t.shares, t.price, t.market_price)
+                (t.time, t.agent, t.side, t.shares, t.price, t.market_price)
                 for t in queue.log
                 if isinstance(t, Trade)
             ]
