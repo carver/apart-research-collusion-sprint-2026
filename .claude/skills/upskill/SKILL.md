@@ -24,12 +24,16 @@ Done when every failed tool call, in the main session and in each subagent, and 
 
 ## 2. Match each finding to a fix
 
+In rough descending order of preference, look for these:
+
 - **Deterministic task**: automate it. Research existing libraries and tools first. Prefer, in order: one that solves it out of the box; a thin layer around one; an extension of a binary or script the project already has; a new Python script in the project's `bin/`.
 - **Repeated task needing judgment**: a project-local skill (`.claude/skills/<name>/SKILL.md`), written with `writing-for-agents`.
 - **Missing context**: docs. If the context was written but you missed it, sharpen the pointer to it. If a doc was wrong, fix it. If nothing was written, add a doc. `CLAUDE.md`/`AGENTS.md` load into every session, so they hold pointers, not the material itself.
 - **Hungry tool**: trim its default output, or add a flag for the short form.
 - **Mistake from a habit**: in decreasing preference: strengthen the description of an untriggered skill that would have helped, update a skill that was used, create a new skill. These changes should target the mistaken habit.
 - **Duplicated skill or tool**: when the skill or tool a fix changes also has a copy elsewhere (a project's `.claude/skills/` or `bin/` copying one from `llm-toolbox`, or the reverse), make the change in every copy it applies to. A change that only fits one place, such as a project-specific rule, stays in that copy.
+
+The most promising solutions will automate deterministic tasks. If even a part of a finding can be fixed with a mechanistic solution, propose it.
 
 Drop one-offs with no cheaper path next time.
 
