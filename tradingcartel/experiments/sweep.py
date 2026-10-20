@@ -15,7 +15,6 @@ import argparse
 import asyncio
 import importlib
 import itertools
-import json
 import sys
 from collections import defaultdict
 from collections.abc import Sequence
@@ -25,7 +24,7 @@ from types import ModuleType
 from typing import Any, Literal, get_args, get_origin
 
 from tradingcartel.core import record
-from tradingcartel.core.record import RunLog
+from tradingcartel.core.record import RunLog, UsageTotal
 
 
 @dataclass(frozen=True)
@@ -42,12 +41,13 @@ class Cell:
 
 @dataclass
 class Outcome:
-    """What happened to one cell: run, skipped because its log was finished, or failed."""
+    """What happened to one cell: run, skipped because its log was finished, or failed. A run fails
+    when it raises, or when one of its agents' turns failed (a model call that errored, say)."""
 
     cell: Cell
     status: Literal["ran", "skipped", "failed"]
     error: str | None = None
-    totals: dict[str, Any] | None = None  # the run's RunFinished totals, if it ran
+    usage: UsageTotal | None = None  # what the run's model requests used, if it started
 
 
 def make_cells(models: list[str], seeds: list[int], grid: dict[str, list[Any]]) -> list[Cell]:
@@ -62,13 +62,18 @@ def make_cells(models: list[str], seeds: list[int], grid: dict[str, list[Any]]) 
     return cells
 
 
+def failed_turns(lines: list[dict[str, Any]]) -> list[str]:
+    """Why each failed agent turn in a run log's ``lines`` failed."""
+    return [line["error"] for line in lines if line.get("type") == "AgentTurn" and line.get("error")]
+
+
 def finished_runs(folder: Path) -> list[dict[str, Any]]:
-    """The first lines (settings) of the logs in ``folder`` that end with ``RunFinished``."""
+    """The first lines (settings) of the logs in ``folder`` whose runs finished with no failed turns."""
     headers = []
     for path in sorted(folder.glob("*.jsonl")):
-        lines = path.read_text().splitlines()
-        if lines and json.loads(lines[-1]).get("type") == "RunFinished":
-            headers.append(json.loads(lines[0]))
+        lines = record.read_log(path)
+        if record.is_finished(lines) and not failed_turns(lines):
+            headers.append(lines[0])
     return headers
 
 
@@ -96,15 +101,22 @@ async def run_cells(
         if is_finished(cell, finished):
             return Outcome(cell, "skipped")
         async with by_model[cell.settings["model"]], everyone:
-            settings = experiment.Settings(**cell.settings)
-            run_log = RunLog(name, folder, label=cell.label, **settings.log_header())
+            run_log = None
             try:
+                settings = experiment.Settings(**cell.settings)
+                run_log = RunLog(name, folder, label=cell.label, **settings.log_header())
                 await experiment.run(settings, run_log)
             except Exception as exc:
-                error = f"{type(exc).__name__}: {exc}"
-                print(f"[{cell.label}] failed: {error}", file=sys.stderr)
-                return Outcome(cell, "failed", error=error)
-            return Outcome(cell, "ran", totals=run_log.finish())
+                return failed(cell, f"{type(exc).__name__}: {exc}", run_log)
+            if errors := failed_turns(record.read_log(run_log.path)):
+                # No RunFinished, so the next sweep runs the cell again.
+                return failed(cell, f"{len(errors)} failed turns, the first: {errors[0]}", run_log)
+            run_log.finish()
+            return Outcome(cell, "ran", usage=run_log.total)
+
+    def failed(cell: Cell, error: str, run_log: RunLog | None) -> Outcome:
+        print(f"[{cell.label}] failed: {error}", file=sys.stderr)
+        return Outcome(cell, "failed", error=error, usage=run_log.total if run_log else None)
 
     return list(await asyncio.gather(*(one(cell) for cell in cells)))
 
@@ -114,11 +126,12 @@ def describe_costs(outcomes: list[Outcome]) -> str:
     rows = []
     for model in dict.fromkeys(o.cell.settings["model"] for o in outcomes):
         mine = [o for o in outcomes if o.cell.settings["model"] == model]
-        ran = [o.totals["total"] for o in mine if o.status == "ran" and o.totals]
+        spent = [o.usage for o in mine if o.usage]  # runs that ran or failed
+        ran = [o.usage for o in mine if o.status == "ran" and o.usage]
         counts = {status: sum(o.status == status for o in mine) for status in ("ran", "skipped", "failed")}
-        cost = sum(total["cost"] or 0.0 for total in ran)
-        each = f", ${cost / len(ran):.4f} a run" if ran else ""
-        uncosted = sum(total["turns_without_cost"] for total in ran)
+        cost = sum(usage.cost or 0.0 for usage in spent)
+        each = f", ${sum(usage.cost or 0.0 for usage in ran) / len(ran):.4f} a run" if ran else ""
+        uncosted = sum(usage.turns_without_cost for usage in spent)
         tally = f"{counts['ran']} ran, {counts['skipped']} skipped, {counts['failed']} failed"
         row = f"{model}: {tally}; ${cost:.2f}{each}"
         rows.append(row + (f" ({uncosted} turns reported no cost)" if uncosted else ""))

@@ -115,6 +115,22 @@ class RunLog:
             file.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
+def read_log(path: Path) -> list[dict[str, Any]]:
+    """A run log's lines. A last line cut off mid-write, as when a run is killed, is left out."""
+    lines = []
+    for text in path.read_text().splitlines():
+        try:
+            lines.append(json.loads(text))
+        except json.JSONDecodeError:
+            break
+    return lines
+
+
+def is_finished(lines: list[dict[str, Any]]) -> bool:
+    """Whether a run log's ``lines`` end with ``RunFinished``: the run got to the end."""
+    return bool(lines) and lines[-1].get("type") == "RunFinished"
+
+
 def safe_name(text: str) -> str:
     """``text`` with every character a file name shouldn't hold (such as the ``/`` in model ids)
     replaced by ``_``."""

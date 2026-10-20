@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from types import SimpleNamespace
 
+from tradingcartel.agents.llm import AgentTurn
 from tradingcartel.core.agent import TurnUsage
 from tradingcartel.experiments import sweep
 from tradingcartel.experiments.settings import RunSettings
@@ -27,7 +28,8 @@ class FakeSettings(RunSettings):
 
 
 def fake_experiment(seconds: float = 0.0, cost: float = 0.25):
-    """An experiment whose runs take ``seconds``, report ``cost``, and fail when memo is "boom".
+    """An experiment whose runs take ``seconds`` and report ``cost``. They fail when memo is "boom",
+    and an agent's turn fails when memo is "turnfail".
     ``running`` counts the runs in progress per model; ``peak`` the most at once, per model and in
     total ("all")."""
     running: dict[str, int] = {}
@@ -40,9 +42,13 @@ def fake_experiment(seconds: float = 0.0, cost: float = 0.25):
             peak[key] = max(peak.get(key, 0), now)
         try:
             await asyncio.sleep(seconds)
+            run_log.write_usage("subject", 0.0, TurnUsage(model=model, requests=1, cost=cost))
             if settings.memo == "boom":
                 raise RuntimeError("the model fell over")
-            run_log.write_usage("subject", 0.0, TurnUsage(model=model, requests=1, cost=cost))
+            if settings.memo == "turnfail":
+                run_log.write(
+                    AgentTurn(sender="subject", error="ModelHTTPError: status_code: 402", messages=[])
+                )
         finally:
             running[model] -= 1
 
@@ -117,7 +123,7 @@ def test_the_cost_summary_adds_up_each_models_runs(tmp_path):
 
     m1, m2 = (next(row for row in summary.splitlines() if row.startswith(m)) for m in ("m1", "m2"))
     assert "2 ran" in m1 and "$0.50" in m1 and "$0.2500 a run" in m1
-    assert "2 ran" in m2 and "1 failed" in m2 and "$0.50" in m2
+    assert "2 ran" in m2 and "1 failed" in m2 and "$0.75" in m2  # the failed run's spending counts
 
 
 def test_the_command_line_runs_the_grid_with_typed_settings(logs_dir, capsys):
@@ -146,3 +152,23 @@ def test_a_cells_label_names_its_settings_safely():
 
     assert "/" not in cell.label
     assert "seed=1" in cell.label and "memo=none" in cell.label and "deepseek" in cell.label
+
+
+def test_a_run_with_a_failed_turn_counts_as_failed_and_runs_again(tmp_path):
+    cells = make_cells(["m1"], [0], {"memo": ["turnfail", "none"]})
+
+    first = asyncio.run(run_cells(fake_experiment(), "fake", cells, folder=tmp_path))
+    again = asyncio.run(run_cells(fake_experiment(), "fake", cells, folder=tmp_path))
+
+    assert {o.cell.settings["memo"]: o.status for o in first} == {"turnfail": "failed", "none": "ran"}
+    [failed] = [o for o in first if o.status == "failed"]
+    assert failed.error is not None and "402" in failed.error
+    assert {o.cell.settings["memo"]: o.status for o in again} == {"turnfail": "failed", "none": "skipped"}
+
+
+def test_a_cell_whose_settings_cant_be_made_fails_without_stopping_the_sweep(tmp_path):
+    cells = make_cells(["m1"], [0], {"no_such_setting": [1]}) + make_cells(["m1"], [0], {})
+
+    outcomes = asyncio.run(run_cells(fake_experiment(), "fake", cells, folder=tmp_path))
+
+    assert [o.status for o in outcomes] == ["failed", "ran"]
