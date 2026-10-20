@@ -18,10 +18,10 @@ Committing runs ruff, and for agents the tests and pyright too (`bin/git-pre-com
 
 ## Tests
 
-Red/green: write a test, or a few at once, run them and watch every one fail, then write the code that passes them. A test that passes on its first run never went red and proves nothing new: delete it, or change it until it fails for the reason you meant.
+Red/green: write the stubs first (the new names and empty methods), then a test or a few at once, run them and watch every one fail on its assertions, not on an import error, then write the code that passes them. A test that passes on its first run never went red and proves nothing new: delete it, or change it until it fails for the reason you meant. When a task asks for tests of code that already exists, break that code on purpose, watch each test fail, then restore it.
 
 To script what agents do in a test, use `Scripted` from `tests/fakes.py`. PydanticAI's TestModel (`--model test`) calls every tool with placeholder arguments, so the market rejects all its orders.
 
 ## Pilots
 
-Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `--model claude-cli:haiku --no-write`. Drop `--no-write` only when you need the usage totals, and delete that log afterwards.
+Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `--model claude-cli:haiku`. Keep the log when you'll read what the agents were shown and said (only the log has their turns) or need the usage totals; otherwise pass `--no-write`. Commit a log you keep on its own (see Git), and delete the rest.
