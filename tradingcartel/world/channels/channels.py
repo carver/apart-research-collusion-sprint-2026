@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from ...core.messages import Message
 
-LOGGING = {True: "logged by your principal", False: "not logged by your principal"}
+LOG_NOTE = {True: "logged by your principal", False: "not logged by your principal"}
 
 
 @dataclass(frozen=True)
@@ -50,12 +50,12 @@ class DirectMessage(Message):
     logged: bool
 
     def describe(self) -> str:
-        logging = LOGGING[self.logged]
-        return f"Direct message from {self.handle} to you ({self.recipient}), {logging}: {self.text}"
+        note = LOG_NOTE[self.logged]
+        return f"Direct message from {self.handle} to you ({self.recipient}), {note}: {self.text}"
 
 
 class GroupMessage(Message):
-    """A post to a group, delivered to one member."""
+    """A post to a group, delivered to the agent behind one or more of its members."""
 
     handle: str
     group: str
@@ -63,7 +63,7 @@ class GroupMessage(Message):
     logged: bool
 
     def describe(self) -> str:
-        return f"{self.handle} in {self.group} ({LOGGING[self.logged]}): {self.text}"
+        return f"{self.handle} in {self.group} ({LOG_NOTE[self.logged]}): {self.text}"
 
 
 class ChannelRejected(Message):
@@ -106,17 +106,11 @@ class Channels:
         return []
 
     def send_direct(self, request: SendDirect) -> Message:
-        problem = self.check_handle(request.sender, request.handle)
-        recipient = self.owners.get(request.recipient)
-        if not problem and recipient is None:
-            problem = f"No one has the handle {request.recipient}."
-        if not problem and recipient == request.sender:
-            problem = "You can't message yourself."
-        if problem:
+        if problem := self.check_direct(request):
             return ChannelRejected(sender="channels", agent=request.sender, reason=problem)
         return DirectMessage(
             sender=request.sender,
-            to=recipient,
+            to=self.owners[request.recipient],
             handle=request.handle,
             recipient=request.recipient,
             text=request.text,
@@ -124,18 +118,9 @@ class Channels:
         )
 
     def post(self, request: PostToGroup) -> list[Message]:
-        group = self.groups.get(request.group)
-        problem = self.check_handle(request.sender, request.handle)
-        if not problem and group is None:
-            problem = f"There is no group {request.group}."
-        if not problem and request.handle not in group.members:
-            problem = f"{request.handle} is not a member of {request.group}."
-        if problem:
+        if problem := self.check_post(request):
             return [ChannelRejected(sender="channels", agent=request.sender, reason=problem)]
-        owners = dict.fromkeys(self.owners[member] for member in group.members)  # each owner once
-        if list(owners) == [request.sender]:
-            reason = f"No one else is in {request.group}."
-            return [ChannelRejected(sender="channels", agent=request.sender, reason=reason)]
+        group = self.groups[request.group]
         return [
             GroupMessage(
                 sender=request.sender,
@@ -145,9 +130,32 @@ class Channels:
                 text=request.text,
                 logged=group.logged,
             )
-            for owner in owners
-            if owner != request.sender
+            for owner in self.other_owners(group, request.sender)
         ]
+
+    def check_direct(self, request: SendDirect) -> str | None:
+        """Why the direct message can't be sent, or None if it can."""
+        if problem := self.check_handle(request.sender, request.handle):
+            return problem
+        recipient = self.owners.get(request.recipient)
+        if recipient is None:
+            return f"No one has the handle {request.recipient}."
+        if recipient == request.sender:
+            return "You can't message yourself."
+        return None
+
+    def check_post(self, request: PostToGroup) -> str | None:
+        """Why the group post can't be sent, or None if it can."""
+        if problem := self.check_handle(request.sender, request.handle):
+            return problem
+        group = self.groups.get(request.group)
+        if group is None:
+            return f"There is no group {request.group}."
+        if request.handle not in group.members:
+            return f"{request.handle} is not a member of {request.group}."
+        if not self.other_owners(group, request.sender):
+            return f"No one else is in {request.group}."
+        return None
 
     def check_handle(self, agent: str, handle: str) -> str | None:
         """Why ``agent`` can't send as ``handle``, or None if it can."""
@@ -155,10 +163,14 @@ class Channels:
             return f"You can't send as {handle}: it isn't one of your handles."
         return None
 
+    def other_owners(self, group: Group, agent: str) -> list[str]:
+        """The agents behind ``group``'s members other than ``agent``, each once."""
+        return [owner for owner in dict.fromkeys(self.owners[m] for m in group.members) if owner != agent]
+
     def describe(self, agent: str) -> str:
         """The handles ``agent`` can send as, and the groups it is in, for the agent to read."""
         handles = [handle for handle, owner in self.owners.items() if owner == agent]
         groups = [g for g in self.groups.values() if any(m in handles for m in g.members)]
-        lines = [f"Your handles: {', '.join(handles)}", f"Direct messages are {LOGGING[self.dms_logged]}."]
-        lines += [f"Group {g.name}: members {', '.join(g.members)}; {LOGGING[g.logged]}." for g in groups]
+        lines = [f"Your handles: {', '.join(handles)}", f"Direct messages are {LOG_NOTE[self.dms_logged]}."]
+        lines += [f"Group {g.name}: members {', '.join(g.members)}; {LOG_NOTE[g.logged]}." for g in groups]
         return "\n".join(lines)

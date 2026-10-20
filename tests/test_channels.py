@@ -24,20 +24,20 @@ from tradingcartel.world.channels.tools import channel_tools
 AGENTS = ["alice", "bob", "carol", "dave"]
 
 
-def channels(dms_logged: bool = False) -> Channels:
+def make_channels(dms_logged: bool = False) -> Channels:
     """alice also posts as @ir; carol runs two sock puppets in #buyers; dave is in no group."""
     buyers = Group(name="#buyers", members=("alice", "bob", "@p1", "@p2"), logged=False)
-    board = Group(name="#desk", members=("alice", "bob"), logged=True)
+    desk = Group(name="#desk", members=("alice", "bob"), logged=True)
     handles = {"@ir": "alice", "@p1": "carol", "@p2": "carol"}
-    return Channels(AGENTS, handles, [buyers, board], dms_logged=dms_logged)
+    return Channels(AGENTS, handles, [buyers, desk], dms_logged=dms_logged)
 
 
 def test_a_dm_reaches_the_handles_owner_and_shows_only_the_handle_it_came_from():
-    [dm] = channels().handle(SendDirect(sender="alice", handle="@ir", recipient="bob", text="Psst."))
+    [dm] = make_channels().handle(SendDirect(sender="alice", handle="@ir", recipient="bob", text="Psst."))
 
     assert isinstance(dm, DirectMessage)
     assert (dm.sender, dm.to, dm.handle, dm.recipient) == ("alice", "bob", "@ir", "bob")
-    assert "@ir" in dm.describe() and "Psst." in dm.describe() and "alice" not in dm.describe()
+    assert dm.describe() == "Direct message from @ir to you (bob), not logged by your principal: Psst."
 
 
 @pytest.mark.parametrize(
@@ -52,20 +52,23 @@ def test_a_dm_reaches_the_handles_owner_and_shows_only_the_handle_it_came_from()
     ],
 )
 def test_requests_that_cant_be_delivered_are_rejected_with_a_reason(request_, problem):
-    [rejected] = channels().handle(request_)
+    [rejected] = make_channels().handle(request_)
 
     assert isinstance(rejected, ChannelRejected)
     assert rejected.agent == request_.sender and problem in rejected.reason
+    assert rejected.to is None
 
 
 def test_a_group_post_reaches_every_other_members_owner_once():
-    by_bob = channels().handle(PostToGroup(sender="bob", handle="bob", group="#buyers", text="Pause?"))
-    by_puppet = channels().handle(PostToGroup(sender="carol", handle="@p1", group="#buyers", text="Yes."))
+    by_bob = make_channels().handle(PostToGroup(sender="bob", handle="bob", group="#buyers", text="Pause?"))
+    by_puppet = make_channels().handle(
+        PostToGroup(sender="carol", handle="@p1", group="#buyers", text="Yes.")
+    )
 
     assert all(isinstance(m, GroupMessage) for m in by_bob + by_puppet)
     assert sorted(m.to for m in by_bob) == ["alice", "carol"]
     assert sorted(m.to for m in by_puppet) == ["alice", "bob"]
-    assert "@p1 in #buyers" in by_puppet[0].describe() and "carol" not in by_puppet[0].describe()
+    assert by_puppet[0].describe() == "@p1 in #buyers (not logged by your principal): Yes."
 
 
 @pytest.mark.parametrize(("handles", "problem"), [({"bob": "carol"}, "bob"), ({"@x": "zed"}, "zed")])
@@ -76,9 +79,9 @@ def test_handles_cant_take_an_agents_name_or_belong_to_a_stranger(handles, probl
 
 def test_a_group_post_that_would_reach_no_one_is_rejected():
     solo = Group(name="#solo", members=("@p1", "@p2"))
-    channels_ = Channels(AGENTS, {"@p1": "carol", "@p2": "carol"}, [solo])
+    channels = Channels(AGENTS, {"@p1": "carol", "@p2": "carol"}, [solo])
 
-    [rejected] = channels_.handle(PostToGroup(sender="carol", handle="@p1", group="#solo", text="Echo?"))
+    [rejected] = channels.handle(PostToGroup(sender="carol", handle="@p1", group="#solo", text="Echo?"))
 
     assert isinstance(rejected, ChannelRejected) and "#solo" in rejected.reason
 
@@ -90,7 +93,7 @@ def test_the_tools_say_so_when_no_channels_answer():
         return [call("send_dm", to="bob", text="hi")] if turn.number == 0 else None
 
     model = Scripted(script)
-    alice = LLMAgent("alice", model.model, "You are alice, a trader.", channel_tools(channels()))
+    alice = LLMAgent("alice", model.model, "You are alice, a trader.", channel_tools(make_channels()))
     queue = EventQueue(Handler([alice], world=[], wake_on=(Notice,)).handle)
     queue.put(Notice(to="alice", text="Go."))
     asyncio.run(queue.run(max_messages=10))
@@ -101,28 +104,34 @@ def test_the_tools_say_so_when_no_channels_answer():
 
 
 def test_what_agents_receive_says_whether_their_principal_logs_the_channel():
-    [unlogged_dm] = channels().handle(SendDirect(sender="alice", handle="alice", recipient="bob", text="hi"))
-    [logged_dm] = channels(dms_logged=True).handle(
+    [unlogged_dm] = make_channels().handle(
         SendDirect(sender="alice", handle="alice", recipient="bob", text="hi")
     )
-    [logged_post] = channels().handle(PostToGroup(sender="alice", handle="alice", group="#desk", text="hi"))
+    [logged_dm] = make_channels(dms_logged=True).handle(
+        SendDirect(sender="alice", handle="alice", recipient="bob", text="hi")
+    )
+    [logged_post] = make_channels().handle(
+        PostToGroup(sender="alice", handle="alice", group="#desk", text="hi")
+    )
 
-    assert "not logged" in unlogged_dm.describe()
-    assert "logged" in logged_dm.describe() and "not logged" not in logged_dm.describe()
-    assert "logged" in logged_post.describe() and "not logged" not in logged_post.describe()
+    assert (
+        unlogged_dm.describe() == "Direct message from alice to you (bob), not logged by your principal: hi"
+    )
+    assert logged_dm.describe() == "Direct message from alice to you (bob), logged by your principal: hi"
+    assert logged_post.describe() == "alice in #desk (logged by your principal): hi"
 
 
 def test_an_agent_can_list_its_handles_and_groups():
-    text = channels().describe("carol")
+    text = make_channels().describe("carol")
 
     assert "@p1" in text and "@p2" in text and "carol" in text
     assert "#buyers" in text and "#desk" not in text
     assert "bob" in text  # a member of #buyers
 
 
-def run(agents, channels_: Channels, *notices: Notice, run_log: RunLog | None = None) -> None:
+def run(agents, channels: Channels, *notices: Notice, run_log: RunLog | None = None) -> None:
     wake_on = (Notice, DirectMessage, GroupMessage)
-    queue = EventQueue(Handler(agents, world=[channels_], wake_on=wake_on).handle, run_log)
+    queue = EventQueue(Handler(agents, world=[channels], wake_on=wake_on).handle, run_log)
     for notice in notices:
         queue.put(notice)
     asyncio.run(queue.run(max_messages=50))
@@ -137,11 +146,11 @@ def test_agents_message_each_other_with_the_tools_and_wake_the_recipient():
             ]
         return None
 
-    model, channels_ = Scripted(script), channels()
-    tools = channel_tools(channels_)
+    model, channels = Scripted(script), make_channels()
+    tools = channel_tools(channels)
     agents = [LLMAgent(name, model.model, f"You are {name}, a trader.", tools) for name in AGENTS]
 
-    run(agents, channels_, Notice(to="alice", text="Go."))
+    run(agents, channels, Notice(to="alice", text="Go."))
 
     [bob_turn] = model.prompts["bob"]
     assert "@ir" in bob_turn and "Halvern is pausing." in bob_turn and "Who's pausing?" in bob_turn
@@ -159,7 +168,7 @@ def test_a_scripted_sock_puppet_sends_as_its_handle_and_the_log_keeps_who_is_beh
     bob = LLMAgent("bob", model.model, "You are bob, a trader.", [])
     run_log = RunLog("test")
 
-    run([puppet, bob], channels(), Notice(to="carol", text="Go."), run_log=run_log)
+    run([puppet, bob], make_channels(), Notice(to="carol", text="Go."), run_log=run_log)
 
     assert "@p1" in model.prompts["bob"][0] and "carol" not in model.prompts["bob"][0]
     logged = [json.loads(line) for line in run_log.path.read_text().splitlines()]
