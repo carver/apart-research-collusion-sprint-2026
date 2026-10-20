@@ -27,7 +27,8 @@ class Scripted:
     """A fake model that any number of agents can share. On each turn, ``script(turn)`` gives the
     agent's tool calls (none: it does nothing); once their results come back, the agent says it's
     done. Every response reports ``usage``, and ``cost`` if given. ``prompts[agent]`` holds what each
-    agent was shown, turn by turn."""
+    agent was shown, turn by turn; ``instructions[agent]`` and ``tools[agent]`` its instructions and
+    the names of its tools."""
 
     def __init__(
         self,
@@ -40,6 +41,8 @@ class Scripted:
         self.usage = usage or RequestUsage()
         self.cost = cost
         self.prompts: dict[str | None, list[str]] = {}
+        self.instructions: dict[str | None, str] = {}
+        self.tools: dict[str | None, list[str]] = {}
         self.model = FunctionModel(self.respond, model_name=model_name)
 
     def respond(self, messages, info) -> ModelResponse:
@@ -50,6 +53,8 @@ class Scripted:
             named = re.match(r"You are (\w+),", info.instructions or "")
             agent = named.group(1) if named else None
             prompt = "\n".join(str(part.content) for part in latest if isinstance(part, UserPromptPart))
+            self.instructions[agent] = info.instructions or ""
+            self.tools[agent] = [tool.name for tool in info.function_tools]
             turns = self.prompts.setdefault(agent, [])
             turns.append(prompt)
             parts = self.script(Turn(agent, prompt, len(turns) - 1)) or [TextPart("nothing to do")]

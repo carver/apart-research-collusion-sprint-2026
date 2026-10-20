@@ -1,19 +1,18 @@
 import asyncio
 import importlib
 import json
-import re
 import sys
 
+import pytest
 from fakes import Scripted, Turn, call
-from pydantic_ai.messages import ModelResponse, TextPart
-from pydantic_ai.models.function import FunctionModel
 
+from tradingcartel.agents.llm import AgentTurn
 from tradingcartel.core import record
 from tradingcartel.world.market.market import EarningsReport, Trade
 from tradingcartel.world.messageboard.board import BoardPost
 
 experiment = importlib.import_module("tradingcartel.experiments.01_buyer_cartel.run")
-BUYERS = ["halvern", "atlas", "brightline"]
+BUYERS = list(experiment.BUYERS)
 
 
 def idle() -> Scripted:
@@ -99,32 +98,19 @@ def test_without_a_memo_nobody_gets_one():
     assert not any("CONFIDENTIAL" in p for prompts in model.prompts.values() for p in prompts)
 
 
-class Seen:
-    """A fake model that records each agent's instructions and tool names, and does nothing."""
-
-    def __init__(self) -> None:
-        self.instructions: dict[str, str] = {}
-        self.tools: dict[str, list[str]] = {}
-        self.model = FunctionModel(self.respond)
-
-    def respond(self, messages, info) -> ModelResponse:
-        name = re.match(r"You are (\w+),", info.instructions).group(1)
-        self.instructions[name] = info.instructions
-        self.tools[name] = [tool.name for tool in info.function_tools]
-        return ModelResponse(parts=[TextPart("nothing to do")])
-
-
-def test_legal_rule_goes_to_halverns_agent_only_with_earnings_rule():
+@pytest.mark.parametrize(("memo", "ruled"), [("none", False), ("earnings", False), ("earnings_rule", True)])
+def test_legal_rule_goes_to_halverns_agent_only_with_earnings_rule(memo, ruled):
     rule = "without considering the upcoming earnings results"
-    for memo, expected in [("none", False), ("earnings", False), ("earnings_rule", True)]:
-        seen = Seen()
-        run(seen.model, memo=memo, recruiter="llm")
-        assert (rule in seen.instructions["halvern"]) is expected
-        assert not any(rule in seen.instructions[agent] for agent in ("atlas", "brightline", "ridgeline"))
+    model = idle()
+
+    run(model.model, memo=memo, recruiter="llm")
+
+    assert (rule in model.instructions["halvern"]) is ruled
+    assert not any(rule in model.instructions[agent] for agent in ("atlas", "brightline", "ridgeline"))
 
 
 def test_profit_framing_reaches_every_buyer():
-    plain, profit, at_all_costs = Seen(), Seen(), Seen()
+    plain, profit, at_all_costs = idle(), idle(), idle()
 
     run(plain.model)
     run(profit.model, framing="profit")
@@ -155,23 +141,22 @@ def test_llm_recruiter_posts_before_the_buyers_each_day_and_cannot_trade():
             return [call("post_to_board", text=f"Day {turn.number + 1}: let's all pause.")]
         return None
 
-    model, seen = Scripted(script), Seen()
+    model = Scripted(script)
 
     run(model.model, recruiter="llm")
-    run(seen.model, recruiter="llm")
 
     assert len(model.prompts["ridgeline"]) == 5
     for buyer in BUYERS:
         assert all(f"Day {day}: let's all pause." in model.prompts[buyer][day - 1] for day in range(1, 6))
-    assert "post_to_board" in seen.tools["ridgeline"]
-    assert not {"buy", "sell"} & set(seen.tools["ridgeline"])
-    assert "persuade" in seen.instructions["ridgeline"]
+    assert "post_to_board" in model.tools["ridgeline"]
+    assert not {"buy", "sell"} & set(model.tools["ridgeline"])
+    assert "persuade" in model.instructions["ridgeline"]
 
 
 def test_the_log_header_records_the_settings(tmp_path, monkeypatch):
     monkeypatch.setattr(record, "LOGS_DIR", tmp_path)
-    argv = ["run", "--recruiter", "llm", "--memo", "earnings_rule", "--framing", "profit", "--seed", "7"]
-    monkeypatch.setattr(sys, "argv", [*argv, "--max-messages", "1"])
+    flags = "--recruiter llm --memo earnings_rule --framing profit --seed 7 --max-messages 1"
+    monkeypatch.setattr(sys, "argv", ["run", *flags.split()])
 
     experiment.main()
 
@@ -189,9 +174,9 @@ def test_the_buyers_turn_order_rotates_daily():
     queue, _ = run(idle().model)
 
     first = {}
-    for turn in (m for m in queue.log if type(m).__name__ == "AgentTurn"):
-        first.setdefault(int(turn.time // experiment.DAY), turn.sender)
-    assert [first[day] for day in range(5)] == ["halvern", "atlas", "brightline", "halvern", "atlas"]
+    for turn in (m for m in queue.log if isinstance(m, AgentTurn)):
+        first.setdefault(experiment.day_of(turn.time), turn.sender)
+    assert [first[day] for day in range(1, 6)] == ["halvern", "atlas", "brightline", "halvern", "atlas"]
 
 
 def test_a_buyer_can_wait_out_the_results_within_its_daily_limit():
@@ -200,9 +185,9 @@ def test_a_buyer_can_wait_out_the_results_within_its_daily_limit():
 
 
 def test_the_recruiter_knows_who_buys_but_not_how_much():
-    seen = Seen()
+    model = idle()
 
-    run(seen.model, recruiter="llm")
+    run(model.model, recruiter="llm")
 
-    assert all(buyer in seen.instructions["ridgeline"] for buyer in BUYERS)
-    assert f"{experiment.TARGET:,}" not in seen.instructions["ridgeline"]
+    assert all(buyer in model.instructions["ridgeline"] for buyer in BUYERS)
+    assert f"{experiment.TARGET:,}" not in model.instructions["ridgeline"]
