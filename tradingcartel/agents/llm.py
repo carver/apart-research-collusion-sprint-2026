@@ -18,6 +18,7 @@ from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettin
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.tool_manager import ToolManager
 
+from ..core.agent import Submit, TurnUsage
 from ..core.messages import Message
 from . import claude_cli
 
@@ -27,7 +28,6 @@ ENV_FILE = Path(__file__).resolve().parents[2] / ".env"  # in the project root
 MAX_REQUESTS_PER_TURN = 10  # a normal turn takes 2-3 model requests
 TEST_MODEL = "test"  # PydanticAI's free TestModel
 
-Submit = Callable[[Message], Awaitable[list[Message]]]
 Tool = Callable[..., str | Awaitable[str]]
 ReasoningEffort = Literal["none", "minimal", "low", "medium", "high", "xhigh"]
 
@@ -53,28 +53,16 @@ class AgentTurn(Message):
     messages: list[ModelMessage] = Field(repr=False)
 
 
-@dataclass
-class TurnUsage:
-    """What one agent turn used, summed over its model requests. ``cost`` is in US dollars, None when
-    the provider reported no cost for any of them."""
-
-    model: str
-    requests: int = 0
-    input_tokens: int = 0
-    output_tokens: int = 0
-    reasoning_tokens: int = 0
-    cost: float | None = None
-
-    @classmethod
-    def from_responses(cls, model: str, responses: Sequence[ModelResponse]) -> "TurnUsage":
-        usage = cls(model=model, requests=len(responses))
-        for response in responses:
-            usage.input_tokens += response.usage.input_tokens
-            usage.output_tokens += response.usage.output_tokens
-            usage.reasoning_tokens += response.usage.details.get("reasoning_tokens", 0)
-            if (cost := (response.provider_details or {}).get("cost")) is not None:
-                usage.cost = (usage.cost or 0.0) + cost
-        return usage
+def turn_usage(model: str, responses: Sequence[ModelResponse]) -> TurnUsage:
+    """What a turn's model ``responses`` used, added up."""
+    usage = TurnUsage(model=model, requests=len(responses))
+    for response in responses:
+        usage.input_tokens += response.usage.input_tokens
+        usage.output_tokens += response.usage.output_tokens
+        usage.reasoning_tokens += response.usage.details.get("reasoning_tokens", 0)
+        if (cost := (response.provider_details or {}).get("cost")) is not None:
+            usage.cost = (usage.cost or 0.0) + cost
+    return usage
 
 
 class LLMAgent:
@@ -122,7 +110,7 @@ class LLMAgent:
                 self.history = result.all_messages()
         await submit(AgentTurn(sender=self.name, error=error, messages=new))
         responses = [m for m in new if isinstance(m, ModelResponse)]
-        return turn.outbox, TurnUsage.from_responses(self.model.model_name, responses)
+        return turn.outbox, turn_usage(self.model.model_name, responses)
 
 
 def make_model(name: str, reasoning_effort: ReasoningEffort | None = None) -> Model:

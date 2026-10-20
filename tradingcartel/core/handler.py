@@ -13,7 +13,7 @@ replies back.
 from collections.abc import Sequence
 from typing import Protocol
 
-from ..agents.llm import Submit, TurnUsage
+from .agent import Agent
 from .messages import ALL, Message, Wake
 from .queue import EventQueue
 
@@ -25,20 +25,9 @@ class Component(Protocol):
     def handle(self, message: Message) -> list[Message]: ...
 
 
-class Agent(Protocol):
-    """A participant that takes turns: an LLM (``LLMAgent``) or a script (``ScriptedAgent``). A
-    turn sees the agent's inbox as ``prompt``, can ``submit`` messages to be processed right away,
-    and returns the messages to queue after it and what its model requests used, None if it used
-    no model."""
-
-    name: str
-
-    async def act(self, prompt: str, submit: Submit) -> tuple[list[Message], TurnUsage | None]: ...
-
-
 class Handler:
     def __init__(
-        self, agents: Sequence[Agent], world: list[Component], wake_on: tuple[type[Message], ...] = ()
+        self, agents: Sequence[Agent], world: Sequence[Component], wake_on: tuple[type[Message], ...] = ()
     ) -> None:
         self.agents = {agent.name: agent for agent in agents}
         self.world = world

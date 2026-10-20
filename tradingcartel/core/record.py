@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from ..agents.llm import TurnUsage
+from .agent import TurnUsage
 from .messages import Message
 
 ROOT = Path(__file__).resolve().parents[2]  # the project root

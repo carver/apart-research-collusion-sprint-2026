@@ -24,7 +24,7 @@ EventQueue ──► Handler.handle(message) ──► world components update t
 
 ```
 tradingcartel/
-  core/          messages, the event queue, the handler (no market code)
+  core/          messages, the event queue, the handler, what an agent is (no market code)
   agents/        the PydanticAI agent and scripted agents (no market code)
   world/         one folder per world component: messageboard/ (later orderbook/, ...)
   experiments/   one folder per experiment

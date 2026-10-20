@@ -20,7 +20,8 @@ from typing import Literal, get_args
 
 from tradingcartel.agents.llm import LLMAgent, Tool
 from tradingcartel.agents.scripted import ScriptedAgent
-from tradingcartel.core.handler import Agent, Handler
+from tradingcartel.core.agent import Agent
+from tradingcartel.core.handler import Handler
 from tradingcartel.core.messages import Notice
 from tradingcartel.core.queue import EventQueue
 from tradingcartel.core.record import RunLog

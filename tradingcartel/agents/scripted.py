@@ -4,8 +4,8 @@ persuaders and sock-puppet accounts, and, sending nothing, no-attacker baselines
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from ..core.agent import Submit, TurnUsage
 from ..core.messages import Message
-from .llm import Submit, TurnUsage
 
 
 @dataclass(frozen=True)

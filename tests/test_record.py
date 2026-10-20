@@ -1,7 +1,7 @@
 import json
 
-from tradingcartel.agents.llm import TurnUsage
 from tradingcartel.core import record
+from tradingcartel.core.agent import TurnUsage
 from tradingcartel.core.messages import Notice
 from tradingcartel.core.record import RunLog
 
