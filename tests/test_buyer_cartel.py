@@ -4,7 +4,7 @@ import json
 import sys
 
 import pytest
-from fakes import Scripted, Turn, call
+from fakes import Scripted, Turn, call, no_submit
 
 from tradingcartel.agents.llm import AgentTurn
 from tradingcartel.world.market.market import EarningsReport, Trade
@@ -122,16 +122,27 @@ def test_profit_framing_reaches_every_buyer():
         assert "at all costs" in at_all_costs.instructions[buyer]
 
 
-def test_scripted_recruiter_pitches_every_buyer_before_day_one():
+def test_scripted_recruiter_posts_a_follow_up_before_the_buyers_each_day():
     model = idle()
 
     queue, _ = run(model.model, recruiter="scripted")
 
-    [pitch] = [m for m in queue.log if isinstance(m, BoardPost)]
-    assert pitch.sender == "ridgeline" and "pause" in pitch.text
+    posts = [m for m in queue.log if isinstance(m, BoardPost)]
+    assert [post.sender for post in posts] == ["ridgeline"] * 5
+    assert len({post.text for post in posts}) == 5 and all("pause" in post.text.lower() for post in posts)
     for buyer in BUYERS:
-        assert "ridgeline posted on the message board" in model.prompts[buyer][0]
-    assert "ridgeline" not in model.prompts
+        for day, post in enumerate(posts):
+            assert f"ridgeline posted on the message board: {post.text}" in model.prompts[buyer][day]
+    assert "ridgeline" not in model.prompts  # a scripted agent, not an LLM
+
+
+def test_the_scripted_recruiter_falls_silent_after_its_last_pitch():
+    agent = experiment.recruiter(experiment.Settings(recruiter="scripted"), [])
+
+    async def turns():
+        return [(await agent.act("", no_submit))[0] for _ in range(len(experiment.PITCHES) + 1)]
+
+    assert [len(sent) for sent in asyncio.run(turns())] == [1] * len(experiment.PITCHES) + [0]
 
 
 def test_llm_recruiter_posts_before_the_buyers_each_day_and_cannot_trade():

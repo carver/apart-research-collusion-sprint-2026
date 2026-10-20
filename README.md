@@ -17,6 +17,7 @@ EventQueue ──► Handler.handle(message) ──► world components update t
 - **Inboxes and waking:** a message addressed to an agent goes into its inbox. Only message types in the handler's `wake_on` (chosen per experiment) wake the agent. A `Wake` message is queued, and on it the agent takes one turn and sees everything in its inbox. Everything else waits in the inbox for the agent's next turn.
 - **World components** (`tradingcartel/world/`) are plain objects with `handle(message) -> list[Message]`, such as the message board and, later, the order book. They hold state and never touch the queue.
 - **Agents** run on PydanticAI and remember their whole conversation. Their tools read state directly but never change it. To change something, a tool either puts a message in its outbox (queued when the turn ends, e.g. a board post) or submits it to the queue to be processed right away and gets the replies back (e.g. an order, which comes back filled or rejected). Either way, every change goes through the queue and the one handler, and is logged.
+- **Scripted agents** (`agents/scripted.py`) take turns the same way, but a script decides what they send each turn: a scripted persuader, sock puppets, or, sending nothing, a no-attacker baseline. They use no model, so their turns log no usage.
 - The run stops when no messages are left before the end time, or after `max_messages` (a cost brake).
 
 ## Layout
@@ -24,7 +25,7 @@ EventQueue ──► Handler.handle(message) ──► world components update t
 ```
 tradingcartel/
   core/          messages, the event queue, the handler (no market code)
-  agents/        the PydanticAI agent (no market code)
+  agents/        the PydanticAI agent and scripted agents (no market code)
   world/         one folder per world component: messageboard/ (later orderbook/, ...)
   experiments/   one folder per experiment
 tests/
@@ -59,13 +60,13 @@ A `Trade` has the fill `price` and `market_price`, the stock's price after the t
 
 Side deals log the request (`Payment`, `ProposeBlock`, `BlockAnswer`, addressed to no agent) and then the market's answer: `FundsTransferred` (to the recipient), `BlockProposed` (to the counterparty, with its id), `BlockTrade` or `BlockClosed` (to the other party), or `PaymentRejected`/`BlockRejected`.
 
-Each agent turn is recorded, right after it, as an `AgentTurn` message: an `error` if the turn failed, and its new `messages` in PydanticAI's format, which hold what the agent was shown (its inbox), its text, and its tool calls with their results. An agent's whole conversation is its `AgentTurn` messages in order:
+Each LLM agent's turn is recorded, right after it, as an `AgentTurn` message: an `error` if the turn failed, and its new `messages` in PydanticAI's format, which hold what the agent was shown (its inbox), its text, and its tool calls with their results. An agent's whole conversation is its `AgentTurn` messages in order. A scripted agent's turns write neither line; what it sends is logged as usual:
 
 ```json
 {"type": "AgentTurn", "sender": "alice", "to": null, "time": 0.0, "error": null, "messages": [...]}
 ```
 
-After each agent turn, a `TurnUsage` line gives what its model requests used. `cost` is in US dollars: what OpenRouter charged, or for `claude-cli:` models what the calls would have cost at API prices. It is `null` when there is none to report: the free `test` model, and OpenRouter's free models too, since PydanticAI drops a cost of 0:
+After each LLM agent's turn, a `TurnUsage` line gives what its model requests used. `cost` is in US dollars: what OpenRouter charged, or for `claude-cli:` models what the calls would have cost at API prices. It is `null` when there is none to report: the free `test` model, and OpenRouter's free models too, since PydanticAI drops a cost of 0:
 
 ```json
 {"type": "TurnUsage", "agent": "alice", "time": 0.0, "model": "openai/gpt-5-mini", "requests": 2, "input_tokens": 416, "output_tokens": 269, "reasoning_tokens": 64, "cost": 0.000642}

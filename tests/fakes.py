@@ -8,6 +8,8 @@ from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart, ToolRetu
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.usage import RequestUsage
 
+from tradingcartel.core.messages import Message
+
 
 @dataclass(frozen=True)
 class Turn:
@@ -60,3 +62,8 @@ class Scripted:
             parts = self.script(Turn(agent, prompt, len(turns) - 1)) or [TextPart("nothing to do")]
         details = {} if self.cost is None else {"cost": self.cost}
         return ModelResponse(parts=parts, usage=self.usage, provider_details=details)
+
+
+async def no_submit(message: Message) -> list[Message]:
+    """A ``submit`` for agents that must not submit anything."""
+    raise AssertionError(f"submitted {message!r}")

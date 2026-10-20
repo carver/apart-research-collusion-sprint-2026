@@ -3,7 +3,7 @@
 A run's log is ``logs/<experiment>/<start time, UTC>.jsonl`` in the project root. The first line
 describes the run (experiment, start time, git commit, settings). After it, in the order they
 happened, come the messages, with their type names, in the order the queue processed them, and after
-each agent turn a ``TurnUsage`` line: the tokens and dollar cost of that turn's model requests.
+each LLM agent's turn a ``TurnUsage`` line: the tokens and dollar cost of that turn's model requests.
 ``finish`` writes the last line, ``RunFinished``, with the usage totals for the run, per model and
 per agent.
 """
