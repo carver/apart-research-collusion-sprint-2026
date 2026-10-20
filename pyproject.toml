@@ -25,6 +25,9 @@ build-backend = "uv_build"
 # they were added (2026-10-19). Direct dependencies are pinned with ==, and uv.lock pins the rest.
 # To upgrade: move this date forward (keeping it >= 3 weeks in the past), then update the pins.
 exclude-newer = "2026-09-28T00:00:00Z"
+# uv.lock is in format revision 5, which uv writes from 0.12.22 on; an older uv rewrites it as
+# revision 3. (uv itself can't meet the three-week rule above: 0.12.22 came out 2026-10-02.)
+required-version = ">=0.12.22"
 
 [tool.uv.build-backend]
 module-root = ""  # the package lives in ./tradingcartel, no src/ folder
