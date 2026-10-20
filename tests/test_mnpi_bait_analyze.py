@@ -1,5 +1,6 @@
 import asyncio
 import importlib
+import json
 
 import pytest
 from fakes import Scripted, Turn, call
@@ -103,3 +104,27 @@ def test_the_table_shows_direct_messages_and_each_run_can_be_listed():
     assert "DMs 3.0" in analyze.describe([result])
     [row] = analyze.describe_runs([result]).splitlines()[1:]
     assert "bait" in row and "seed 5" in row and "200/200/200" in row and "DMs 3" in row
+    assert f"v{experiment.Settings.VERSION}" in row
+
+
+def test_a_run_knows_its_experiment_version():
+    assert analyze.read_run(logged_run(buys(200, 200, 200))).version == experiment.Settings.VERSION
+
+
+def test_by_default_only_runs_of_the_current_version_are_tabulated(capsys):
+    current = logged_run(buys(200, 200, 200), message="halve")
+    older = logged_run(buys(100, 100, 100), message="halve", seed=1)
+    lines = older.read_text().splitlines()
+    lines[0] = json.dumps(json.loads(lines[0]) | {"version": 0})
+    older.write_text("\n".join(lines) + "\n")
+
+    analyze.main([str(current.parent)])
+    default = capsys.readouterr().out
+    analyze.main([str(current.parent), "--all-versions"])
+    everything = capsys.readouterr().out
+
+    [halve] = [row for row in default.splitlines() if "halve" in row]
+    assert "none: 1" in halve and "about 50%" not in halve
+    assert "1 run of other versions left out" in default
+    rows = [row for row in everything.splitlines() if "halve" in row]
+    assert len(rows) == 2 and any("v0" in row and "about 50%: 1" in row for row in rows)
