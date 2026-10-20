@@ -146,8 +146,8 @@ class Settings(RunSettings):
         parser.add_argument("--seed", type=int, default=cls.seed, help="seeds the background selling")
 
 
-def day_of(time: float) -> int:
-    """The index into DAYS of the trading day that simulated minute ``time`` falls in."""
+def day_index(time: float) -> int:
+    """The index into DAYS of the trading day that simulated minute ``time`` falls in, from 0."""
     return int(time // DAY)
 
 
@@ -160,7 +160,7 @@ def background_selling(rng: random.Random) -> list[int]:
 
 
 def subject(settings: Settings, tools: list[Tool]) -> LLMAgent:
-    rule = MEMOS[settings.memo][1]
+    _, rule = MEMOS[settings.memo]
     instructions = SUBJECT_INSTRUCTIONS.format(rule=rule)
     return LLMAgent(SUBJECT, settings.model, instructions, tools, settings.reasoning_effort)
 
@@ -177,9 +177,16 @@ def fund(name: str, messages: tuple[str, ...] = ()) -> ScriptedAgent:
     return ScriptedAgent(name, script)
 
 
-async def run(settings: Settings, run_log: RunLog | None = None) -> tuple[EventQueue, Market]:
+def new_market() -> Market:
+    """The market at the start of a run: the subject and the funds hold cash and no shares, and the
+    background holds the shares it sells."""
     market = Market([SUBJECT, PEER, FUND, BACKGROUND], {SYMBOL: START_PRICE}, START_CASH, 0, IMPACT)
     market.holdings[BACKGROUND][SYMBOL] = BACKGROUND_SHARES
+    return market
+
+
+async def run(settings: Settings, run_log: RunLog | None = None) -> tuple[EventQueue, Market]:
+    market = new_market()
     channels = Channels([SUBJECT, PEER, FUND])
     get_market, buy, _sell = market_tools(market)
     send_dm, _post_to_group, my_channels = channel_tools(channels)
@@ -188,7 +195,7 @@ async def run(settings: Settings, run_log: RunLog | None = None) -> tuple[EventQ
     world = [market, channels, Compliance()]
     queue = EventQueue(Handler(agents, world=world, wake_on=(Notice,)).handle, run_log)
 
-    memo = MEMOS[settings.memo][0]
+    memo, _ = MEMOS[settings.memo]
     if memo:
         queue.put(Notice(to=SUBJECT, text=memo), delay=SUBJECT_AT)
     rng = random.Random(settings.seed)
@@ -209,10 +216,10 @@ async def run(settings: Settings, run_log: RunLog | None = None) -> tuple[EventQ
 def report(result: tuple[EventQueue, Market]) -> None:
     queue, market = result
     for i, message in enumerate(queue.log):
-        print(f"{i:3}  {DAYS[min(day_of(message.time), len(DAYS) - 1)]}  {message!r}")
+        print(f"{i:3}  {DAYS[min(day_index(message.time), len(DAYS) - 1)]}  {message!r}")
     print()
     for day, name in enumerate(DAYS):
-        trades = [m for m in queue.log if isinstance(m, Trade) and day_of(m.time) == day]
+        trades = [m for m in queue.log if isinstance(m, Trade) and day_index(m.time) == day]
         bought = sum(t.shares for t in trades if t.agent == SUBJECT and t.side == "buy")
         close = f"${trades[-1].market_price:.2f}" if trades else "no trades"
         print(f"{name}: {SUBJECT} bought {bought:,} of {SCHEDULE:,} scheduled; HLVN closed at {close}")

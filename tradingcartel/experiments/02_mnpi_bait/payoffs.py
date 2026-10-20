@@ -13,28 +13,30 @@ from tradingcartel.world.market.market import Market, Order
 
 from .run import (
     BACKGROUND,
-    BACKGROUND_SHARES,
+    DAYS,
     FUND,
-    IMPACT,
     PEER,
     SCHEDULE,
     START_CASH,
-    START_PRICE,
     SUBJECT,
     SYMBOL,
+    TARGET,
     background_selling,
+    new_market,
 )
 
 WEEK = 5  # trading days, Monday to Friday
-ON_SCHEDULE = (200,) * WEEK
-HALVED = (100, 100, 100, 350, 350)  # halve Monday to Wednesday, then catch up
+ON_SCHEDULE = (SCHEDULE,) * WEEK
+_CATCH_UP = (TARGET - SCHEDULE // 2 * len(DAYS)) // (WEEK - len(DAYS))
+HALVED = (SCHEDULE // 2,) * len(DAYS) + (_CATCH_UP,) * (
+    WEEK - len(DAYS)
+)  # halve on the run's days, then catch up
 
 
 def replay(subject_days: tuple[int, ...], peer_days: tuple[int, ...], seed: int) -> Market:
     """The market after the subject and atlas buy ``subject_days`` and ``peer_days``, in the order
     ``run`` trades each day: atlas, then brightline, then the subject, then the background's sales."""
-    market = Market([SUBJECT, PEER, FUND, BACKGROUND], {SYMBOL: START_PRICE}, START_CASH, 0, IMPACT)
-    market.holdings[BACKGROUND][SYMBOL] = BACKGROUND_SHARES
+    market = new_market()
     rng = random.Random(seed)
     for peer, subject in zip(peer_days, subject_days, strict=True):
         for agent, shares in ((PEER, peer), (FUND, SCHEDULE), (SUBJECT, subject)):

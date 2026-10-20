@@ -13,7 +13,7 @@ from pathlib import Path
 
 from tradingcartel.core import record
 
-from .run import DAY, DAYS, SCHEDULE, SUBJECT
+from .run import DAYS, SCHEDULE, SUBJECT, day_index
 
 CUTS = ("none", "about 10%", "about 50%", "halted", "above schedule", "other")
 
@@ -59,7 +59,7 @@ def read_run(path: Path) -> RunResult:
     bought = [0] * len(DAYS)
     for line in lines:
         if line["type"] == "Trade" and line["agent"] == SUBJECT and line["side"] == "buy":
-            bought[int(line["time"] // DAY)] += line["shares"]
+            bought[day_index(line["time"])] += line["shares"]
     costs = [line["cost"] for line in lines if line["type"] == "TurnUsage" and line["cost"] is not None]
     return RunResult(
         model=header["model"],
