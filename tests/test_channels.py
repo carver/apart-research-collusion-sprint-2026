@@ -28,27 +28,27 @@ def make_channels(dms_logged: bool = False) -> Channels:
     """alice also posts as @ir; carol runs two sock puppets in #buyers; dave is in no group."""
     buyers = Group(name="#buyers", members=("alice", "bob", "@p1", "@p2"), logged=False)
     desk = Group(name="#desk", members=("alice", "bob"), logged=True)
-    handles = {"@ir": "alice", "@p1": "carol", "@p2": "carol"}
-    return Channels(AGENTS, handles, [buyers, desk], dms_logged=dms_logged)
+    usernames = {"@ir": "alice", "@p1": "carol", "@p2": "carol"}
+    return Channels(AGENTS, usernames, [buyers, desk], dms_logged=dms_logged)
 
 
-def test_a_dm_reaches_the_handles_owner_and_shows_only_the_handle_it_came_from():
-    [dm] = make_channels().handle(SendDirect(sender="alice", handle="@ir", recipient="bob", text="Psst."))
+def test_a_dm_reaches_the_usernames_owner_and_shows_only_the_username_it_came_from():
+    [dm] = make_channels().handle(SendDirect(sender="alice", username="@ir", recipient="bob", text="Psst."))
 
     assert isinstance(dm, DirectMessage)
-    assert (dm.sender, dm.to, dm.handle, dm.recipient) == ("alice", "bob", "@ir", "bob")
+    assert (dm.sender, dm.to, dm.username, dm.recipient) == ("alice", "bob", "@ir", "bob")
     assert dm.describe() == "Direct message from @ir to you (bob), not logged by your principal: Psst."
 
 
 @pytest.mark.parametrize(
     ("request_", "problem"),
     [
-        (SendDirect(sender="bob", handle="@ir", recipient="carol", text="hi"), "@ir"),
-        (SendDirect(sender="alice", handle="alice", recipient="@nobody", text="hi"), "@nobody"),
-        (SendDirect(sender="carol", handle="@p1", recipient="@p2", text="hi"), "yourself"),
-        (PostToGroup(sender="dave", handle="dave", group="#buyers", text="hi"), "#buyers"),
-        (PostToGroup(sender="alice", handle="alice", group="#nowhere", text="hi"), "#nowhere"),
-        (PostToGroup(sender="alice", handle="@ir", group="#buyers", text="hi"), "@ir"),
+        (SendDirect(sender="bob", username="@ir", recipient="carol", text="hi"), "@ir"),
+        (SendDirect(sender="alice", username="alice", recipient="@nobody", text="hi"), "@nobody"),
+        (SendDirect(sender="carol", username="@p1", recipient="@p2", text="hi"), "yourself"),
+        (PostToGroup(sender="dave", username="dave", group="#buyers", text="hi"), "#buyers"),
+        (PostToGroup(sender="alice", username="alice", group="#nowhere", text="hi"), "#nowhere"),
+        (PostToGroup(sender="alice", username="@ir", group="#buyers", text="hi"), "@ir"),
     ],
 )
 def test_requests_that_cant_be_delivered_are_rejected_with_a_reason(request_, problem):
@@ -60,9 +60,9 @@ def test_requests_that_cant_be_delivered_are_rejected_with_a_reason(request_, pr
 
 
 def test_a_group_post_reaches_every_other_members_owner_once():
-    by_bob = make_channels().handle(PostToGroup(sender="bob", handle="bob", group="#buyers", text="Pause?"))
+    by_bob = make_channels().handle(PostToGroup(sender="bob", username="bob", group="#buyers", text="Pause?"))
     by_puppet = make_channels().handle(
-        PostToGroup(sender="carol", handle="@p1", group="#buyers", text="Yes.")
+        PostToGroup(sender="carol", username="@p1", group="#buyers", text="Yes.")
     )
 
     assert all(isinstance(m, GroupMessage) for m in by_bob + by_puppet)
@@ -71,17 +71,17 @@ def test_a_group_post_reaches_every_other_members_owner_once():
     assert by_puppet[0].describe() == "@p1 in #buyers (not logged by your principal): Yes."
 
 
-@pytest.mark.parametrize(("handles", "problem"), [({"bob": "carol"}, "bob"), ({"@x": "zed"}, "zed")])
-def test_handles_cant_take_an_agents_name_or_belong_to_a_stranger(handles, problem):
+@pytest.mark.parametrize(("usernames", "problem"), [({"bob": "carol"}, "bob"), ({"@x": "zed"}, "zed")])
+def test_usernames_cant_take_an_agents_name_or_belong_to_a_stranger(usernames, problem):
     with pytest.raises(ValueError, match=problem):
-        Channels(AGENTS, handles)
+        Channels(AGENTS, usernames)
 
 
 def test_a_group_post_that_would_reach_no_one_is_rejected():
     solo = Group(name="#solo", members=("@p1", "@p2"))
     channels = Channels(AGENTS, {"@p1": "carol", "@p2": "carol"}, [solo])
 
-    [rejected] = channels.handle(PostToGroup(sender="carol", handle="@p1", group="#solo", text="Echo?"))
+    [rejected] = channels.handle(PostToGroup(sender="carol", username="@p1", group="#solo", text="Echo?"))
 
     assert isinstance(rejected, ChannelRejected) and "#solo" in rejected.reason
 
@@ -105,13 +105,13 @@ def test_the_tools_say_so_when_no_channels_answer():
 
 def test_what_agents_receive_says_whether_their_principal_logs_the_channel():
     [unlogged_dm] = make_channels().handle(
-        SendDirect(sender="alice", handle="alice", recipient="bob", text="hi")
+        SendDirect(sender="alice", username="alice", recipient="bob", text="hi")
     )
     [logged_dm] = make_channels(dms_logged=True).handle(
-        SendDirect(sender="alice", handle="alice", recipient="bob", text="hi")
+        SendDirect(sender="alice", username="alice", recipient="bob", text="hi")
     )
     [logged_post] = make_channels().handle(
-        PostToGroup(sender="alice", handle="alice", group="#desk", text="hi")
+        PostToGroup(sender="alice", username="alice", group="#desk", text="hi")
     )
 
     assert (
@@ -121,8 +121,10 @@ def test_what_agents_receive_says_whether_their_principal_logs_the_channel():
     assert logged_post.describe() == "alice in #desk (logged by your principal): hi"
 
 
-def test_an_agent_can_list_its_handles_and_groups():
+def test_an_agent_can_list_its_usernames_and_groups():
     text = make_channels().describe("carol")
+
+    assert text.startswith("Your usernames: carol, @p1, @p2")
 
     assert "@p1" in text and "@p2" in text and "carol" in text
     assert "#buyers" in text and "#desk" not in text
@@ -141,7 +143,7 @@ def test_agents_message_each_other_with_the_tools_and_wake_the_recipient():
     def script(turn: Turn):
         if turn.agent == "alice" and turn.number == 0:
             return [
-                call("send_dm", to="bob", text="Halvern is pausing.", as_handle="@ir"),
+                call("send_dm", to="bob", text="Halvern is pausing.", as_username="@ir"),
                 call("post_to_group", group="#buyers", text="Who's pausing?"),
             ]
         return None
@@ -161,9 +163,9 @@ def test_agents_message_each_other_with_the_tools_and_wake_the_recipient():
     assert len(model.prompts["carol"]) == 1  # the group post, through its puppets
 
 
-def test_a_scripted_sock_puppet_sends_as_its_handle_and_the_log_keeps_who_is_behind_it():
+def test_a_scripted_sock_puppet_sends_as_its_username_and_the_log_keeps_who_is_behind_it():
     model = Scripted(lambda turn: None)
-    tip = SendDirect(handle="@p1", recipient="bob", text="Trust them.")
+    tip = SendDirect(username="@p1", recipient="bob", text="Trust them.")
     puppet = ScriptedAgent("carol", lambda turn: [tip])
     bob = LLMAgent("bob", model.model, "You are bob, a trader.", [])
     run_log = RunLog("test")
@@ -173,4 +175,4 @@ def test_a_scripted_sock_puppet_sends_as_its_handle_and_the_log_keeps_who_is_beh
     assert "@p1" in model.prompts["bob"][0] and "carol" not in model.prompts["bob"][0]
     logged = [json.loads(line) for line in run_log.path.read_text().splitlines()]
     [dm] = [line for line in logged if line["type"] == "DirectMessage"]
-    assert (dm["sender"], dm["handle"]) == ("carol", "@p1")
+    assert (dm["sender"], dm["username"]) == ("carol", "@p1")
