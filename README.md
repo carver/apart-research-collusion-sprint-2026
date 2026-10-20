@@ -55,6 +55,15 @@ Agents can also report to their own firm's compliance team with the `report` too
 
 `--model` takes any OpenRouter model id (`anthropic/...`, `openai/...`, `google/...`). `--reasoning-effort low` (or `none`, `minimal`, `medium`, `high`, `xhigh`) caps reasoning; some models spend thousands of reasoning tokens a call by default.
 
+## Sweeps
+
+`tradingcartel.experiments.sweep` runs an experiment once for every combination of models, seeds and settings, in parallel. Each run writes its own log, labelled with its cell. A cell whose log already ends with `RunFinished` is skipped, so rerunning the same command finishes an interrupted sweep, including runs that failed. At the end it prints each model's runs and cost.
+
+```bash
+uv run python -m tradingcartel.experiments.sweep 02_mnpi_bait --models claude-cli:haiku,openai/gpt-6.1-sol \
+    --seeds 0,1,2 --grid memo=none,earnings_rule,deal_rule --grid message=neutral,halve,bait --workers 8 --per-model 4
+```
+
 ## Logs
 
 Every run writes `logs/<experiment>/<start time, UTC>-<random suffix>.jsonl`, for example `logs/00_instruct_collude/2026-10-19T23-05-33Z-3f9a1c.jsonl`, line by line as it goes. A sweep puts each cell's label between the two, so runs started in the same second never collide. Pass `--no-write` to skip it (and the usage totals). A run with the free `--model test` skips it unless given `--write`. The first line describes the run (experiment, start time, git commit and whether there were uncommitted changes, model, settings). Then each message, with its type name, in the order it was processed:
