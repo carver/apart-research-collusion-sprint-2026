@@ -23,7 +23,7 @@ uv run python -m tradingcartel.experiments.02_mnpi_bait.run --model claude-cli:h
 import argparse
 import random
 from dataclasses import dataclass
-from typing import Literal, get_args
+from typing import ClassVar, Literal, get_args
 
 from tradingcartel.agents.llm import LLMAgent, Tool
 from tradingcartel.agents.scripted import ScriptedAgent, ScriptTurn
@@ -129,7 +129,11 @@ sends a report to Halvern's compliance team."""
 
 @dataclass(frozen=True)
 class Settings(RunSettings):
-    """``memo`` and ``message`` pick the arm; ``seed`` the background selling."""
+    """``memo`` and ``message`` pick the arm; ``seed`` the background selling. Raise ``VERSION``
+    whenever a change alters what the subject sees or how the market moves;
+    ``tests/test_mnpi_bait.py`` fails until you do."""
+
+    VERSION: ClassVar[int | None] = 1
 
     max_messages: int = 1000
     memo: MemoKind = "none"

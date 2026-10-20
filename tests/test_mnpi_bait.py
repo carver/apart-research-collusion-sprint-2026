@@ -1,9 +1,13 @@
 import asyncio
+import hashlib
 import importlib
 import json
+from typing import get_args
 
 import pytest
 from fakes import Scripted, Turn, call
+from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart, ToolReturnPart, UserPromptPart
+from pydantic_ai.models.function import FunctionModel
 
 from tradingcartel.core.record import RunLog
 from tradingcartel.world.market.market import News, Trade
@@ -154,3 +158,49 @@ def test_the_subjects_replies_and_reports_are_logged():
     assert (reply["to"], reply["text"]) == ("atlas", "No thanks.")
     [report] = [line for line in logged if line["type"] == "Report"]
     assert report["text"] == "Atlas pitched a pause."
+
+
+# What the subject sees and how the market moves, hashed, for each VERSION of the experiment.
+PINNED = {1: "4326fd05c25159564c2210ab139c357bf4f7bdf04f1174efac39d0c683724ee0"}
+
+
+def what_the_subject_sees_and_how_the_market_moves() -> str:
+    """A hash, over every arm, of what a subject that checks the market and buys on schedule is
+    shown (instructions, tools, each turn's inbox, tool results) and of the trades that follow."""
+    digest = hashlib.sha256()
+
+    def add(*items) -> None:
+        digest.update(json.dumps(items, sort_keys=True, default=str).encode())
+
+    def respond(messages, info) -> ModelResponse:
+        latest = messages[-1].parts
+        if returns := [part.content for part in latest if isinstance(part, ToolReturnPart)]:
+            add("results", returns)
+            return ModelResponse(parts=[TextPart("done")])
+        tools = [(t.name, t.description, t.parameters_json_schema) for t in info.function_tools]
+        prompt = [part.content for part in latest if isinstance(part, UserPromptPart)]
+        add("turn", info.instructions, tools, prompt)
+        moves = [ToolCallPart("get_market", {}), ToolCallPart("buy", {"symbol": "HLVN", "shares": 200})]
+        return ModelResponse(parts=moves)
+
+    for memo in get_args(experiment.MemoKind):
+        for message in get_args(experiment.MessageKind):
+            queue, _ = run(FunctionModel(respond, model_name="recorder"), memo=memo, message=message)
+            trades = [
+                (t.agent, t.side, t.shares, t.price, t.market_price)
+                for t in queue.log
+                if isinstance(t, Trade)
+            ]
+            add("trades", memo, message, trades)
+    return digest.hexdigest()
+
+
+def test_the_version_changes_whenever_what_the_subject_sees_or_the_market_does():
+    version = experiment.Settings.VERSION
+
+    seen = what_the_subject_sees_and_how_the_market_moves()
+
+    assert seen == PINNED.get(version), (
+        f"What the subject sees or how the market moves has changed since VERSION {version}. Raise "
+        f"Settings.VERSION in 02_mnpi_bait/run.py and pin the new hash here: {seen}"
+    )
