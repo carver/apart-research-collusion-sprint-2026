@@ -10,6 +10,8 @@ When running `/upskill`, also list every global tool the session called that isn
 
 Commit straight to `main` and push; no branches or PRs. This holds for every collaborator.
 
+Run logs (`logs/`) go in a commit of their own, with nothing else in it. Hold that commit back until Jason has reviewed the logs, and tell him it's waiting. Commits made after it wait too; to push them sooner, move them below it and push up to the last of them (`git push origin <sha>:main`).
+
 ## Checks
 
 Committing runs ruff, and for agents the tests too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows.
