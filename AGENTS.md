@@ -18,6 +18,8 @@ Committing runs ruff, and for agents the tests too (`bin/git-pre-commit`, `bin/a
 
 Red/green, one test at a time: write a test, run it and watch it fail, then write the code that passes it. A test that passes on its first run never went red and proves nothing new: delete it, or change it until it fails for the reason you meant.
 
+To script what agents do in a test, use `Scripted` from `tests/fakes.py`. PydanticAI's TestModel (`--model test`) calls every tool with placeholder arguments, so the market rejects all its orders.
+
 ## Pilots
 
 Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `--model claude-cli:haiku --no-write`. Drop `--no-write` only when you need the usage totals, and delete that log afterwards.

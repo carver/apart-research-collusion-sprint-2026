@@ -4,14 +4,8 @@ import json
 import sys
 
 import pytest
-from pydantic_ai.messages import (
-    ModelRequest,
-    ModelResponse,
-    TextPart,
-    ToolCallPart,
-    ToolReturnPart,
-    UserPromptPart,
-)
+from fakes import Scripted, Turn, call
+from pydantic_ai.messages import ModelResponse, TextPart
 from pydantic_ai.models.function import FunctionModel
 
 from tradingcartel.core import record
@@ -20,16 +14,13 @@ from tradingcartel.world.market.market import Trade
 experiment = importlib.import_module("tradingcartel.experiments.00_instruct_collude.run")
 
 
-def buys_ten_aldn_each_turn(messages, info) -> ModelResponse:
-    if isinstance(messages[-1], ModelRequest) and any(
-        isinstance(p, ToolReturnPart) for p in messages[-1].parts
-    ):
-        return ModelResponse(parts=[TextPart("done")])
-    return ModelResponse(parts=[ToolCallPart("buy", {"symbol": "ALDN", "shares": 10})])
+def ten_aldn_buyer() -> FunctionModel:
+    """A model whose agents buy 10 ALDN every turn."""
+    return Scripted(lambda turn: [call("buy", symbol="ALDN", shares=10)]).model
 
 
 def test_with_the_impact_market_each_trade_moves_the_price():
-    model = FunctionModel(buys_ten_aldn_each_turn)
+    model = ten_aldn_buyer()
 
     queue, _ = asyncio.run(experiment.run(experiment.Settings(model, market="impact")))
 
@@ -40,7 +31,7 @@ def test_with_the_impact_market_each_trade_moves_the_price():
 
 
 def test_the_fixed_market_is_the_default():
-    model = FunctionModel(buys_ten_aldn_each_turn)
+    model = ten_aldn_buyer()
 
     queue, market = asyncio.run(experiment.run(experiment.Settings(model)))
 
@@ -60,42 +51,27 @@ def test_the_log_header_records_the_market_and_its_impact(tmp_path, monkeypatch)
     assert header["impact"] == {"coefficient": 1.0, "average_volume": 1000}
 
 
-class SideDealer:
-    """A fake model for every treasurer: on her first turn alice pays bob $500 and offers to sell him 5
-    ALDN at $110; bob answers any block he is offered with ``answer``. ``prompts`` holds what each
-    treasurer was shown, turn by turn."""
+def side_dealer(answer: str = "accept_block") -> Scripted:
+    """On her first turn alice pays bob $500 and offers to sell him 5 ALDN at $110; bob answers any
+    block he is offered with ``answer``."""
 
-    def __init__(self, answer: str = "accept_block") -> None:
-        self.answer = answer
-        self.prompts: dict[str, list[str]] = {}
+    def script(turn: Turn):
+        if turn.agent == "alice" and turn.number == 0:
+            block = call("propose_block", counterparty="bob", side="sell", symbol="ALDN", shares=5, price=110)
+            return [call("send_funds", to="bob", amount=500, memo="for the tip"), block]
+        if turn.agent == "bob" and "proposes block trade B1" in turn.prompt:
+            return [call(answer, id="B1")]
+        return None
 
-    def __call__(self, messages, info) -> ModelResponse:
-        if any(isinstance(p, ToolReturnPart) for p in messages[-1].parts):
-            return ModelResponse(parts=[TextPart("done")])
-        name = info.instructions.split()[2].rstrip(",")  # "You are alice, the treasurer of ..."
-        prompt = "\n".join(str(p.content) for p in messages[-1].parts if isinstance(p, UserPromptPart))
-        self.prompts.setdefault(name, []).append(prompt)
-        if name == "alice" and len(self.prompts[name]) == 1:
-            block = {"counterparty": "bob", "side": "sell", "symbol": "ALDN", "shares": 5, "price": 110}
-            return ModelResponse(
-                parts=[
-                    ToolCallPart("send_funds", {"to": "bob", "amount": 500, "memo": "for the tip"}),
-                    ToolCallPart("propose_block", block),
-                ]
-            )
-        if name == "bob" and "proposes block trade B1" in prompt:
-            return ModelResponse(parts=[ToolCallPart(self.answer, {"id": "B1"})])
-        return ModelResponse(parts=[TextPart("nothing to do")])
+    return Scripted(script)
 
 
 def test_with_side_deals_agents_pay_each_other_and_settle_block_trades(tmp_path, monkeypatch):
     monkeypatch.setattr(record, "LOGS_DIR", tmp_path)
     run_log = record.RunLog("test")
-    dealer = SideDealer()
+    dealer = side_dealer()
 
-    queue, market = asyncio.run(
-        experiment.run(experiment.Settings(FunctionModel(dealer), side_deals=True), run_log)
-    )
+    queue, market = asyncio.run(experiment.run(experiment.Settings(dealer.model, side_deals=True), run_log))
 
     # Before the earnings move prices: alice sold bob 5 ALDN at $110 and paid him $500.
     assert market.cash["alice"] == 10_000 - 500 + 5 * 110
@@ -124,9 +100,9 @@ def test_without_side_deals_agents_get_no_side_deal_tools():
     [("accept_block", "Block trade B1 settled"), ("decline_block", "Block trade B1 was declined by bob")],
 )
 def test_the_proposer_is_woken_when_its_block_settles_or_is_declined(answer, news):
-    dealer = SideDealer(answer)
+    dealer = side_dealer(answer)
 
-    asyncio.run(experiment.run(experiment.Settings(FunctionModel(dealer), side_deals=True)))
+    asyncio.run(experiment.run(experiment.Settings(dealer.model, side_deals=True)))
 
     # Her second turn comes from the news itself, before the 10:00 notice wakes everyone.
     first, second, *_ = dealer.prompts["alice"]

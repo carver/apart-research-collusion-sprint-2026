@@ -2,7 +2,8 @@ import asyncio
 import json
 
 import pytest
-from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart
+from fakes import Scripted, Turn, call
+from pydantic_ai.messages import ModelResponse, ToolCallPart
 from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.usage import RequestUsage
 
@@ -16,20 +17,15 @@ from tradingcartel.world.messageboard.board import MessageBoard
 from tradingcartel.world.messageboard.tools import post_to_board
 
 
-def respond(cost: float | None, reasoning_tokens: int = 0):
-    """A model that posts to the board, then says it's done. Every response has the same usage and
+def posts_once(cost: float | None, reasoning_tokens: int = 0, model_name: str = "fake") -> FunctionModel:
+    """A model that posts to the board on its first turn. Every response has the same usage and
     cost: 100 input tokens, 20 output tokens of which ``reasoning_tokens`` reasoning."""
+    usage = RequestUsage(input_tokens=100, output_tokens=20, details={"reasoning_tokens": reasoning_tokens})
 
-    def model(messages, info):
-        posted = any(isinstance(p, ToolCallPart) for m in messages for p in getattr(m, "parts", []))
-        part = TextPart("done") if posted else ToolCallPart("post_to_board", {"text": "Buy ACME."})
-        usage = RequestUsage(
-            input_tokens=100, output_tokens=20, details={"reasoning_tokens": reasoning_tokens}
-        )
-        details = {} if cost is None else {"cost": cost}
-        return ModelResponse(parts=[part], usage=usage, provider_details=details)
+    def first_turn_posts(turn: Turn):
+        return [call("post_to_board", text="Buy ACME.")] if turn.number == 0 else None
 
-    return model
+    return Scripted(first_turn_posts, usage, cost, model_name).model
 
 
 def read_log(run_log: RunLog) -> list[dict]:
@@ -50,9 +46,7 @@ def run(run_log: RunLog, agents: list[LLMAgent], *notices: Notice, max_messages:
 
 
 def test_each_turn_logs_its_usage_and_cost(run_log):
-    alice = LLMAgent(
-        "alice", FunctionModel(respond(cost=0.01, reasoning_tokens=5), model_name="fake"), "", [post_to_board]
-    )
+    alice = LLMAgent("alice", posts_once(cost=0.01, reasoning_tokens=5), "", [post_to_board])
 
     run(run_log, [alice], Notice(to="alice", text="Go.", time=30))
 
@@ -86,7 +80,7 @@ def test_a_failed_turn_still_logs_what_it_used(run_log):
 
 
 def test_cost_is_null_when_the_provider_reports_none(run_log):
-    alice = LLMAgent("alice", FunctionModel(respond(cost=None), model_name="fake"), "", [post_to_board])
+    alice = LLMAgent("alice", posts_once(cost=None), "", [post_to_board])
 
     run(run_log, [alice], Notice(to="alice", text="Go."))
 
@@ -95,9 +89,9 @@ def test_cost_is_null_when_the_provider_reports_none(run_log):
 
 
 def test_the_log_ends_with_totals_per_run_model_and_agent(run_log):
-    alice = LLMAgent("alice", FunctionModel(respond(cost=0.01), model_name="cheap"), "", [post_to_board])
-    bob = LLMAgent("bob", FunctionModel(respond(cost=None), model_name="free"), "", [post_to_board])
-    carol = LLMAgent("carol", FunctionModel(respond(cost=0.03), model_name="cheap"), "", [post_to_board])
+    alice = LLMAgent("alice", posts_once(cost=0.01, model_name="cheap"), "", [post_to_board])
+    bob = LLMAgent("bob", posts_once(cost=None, model_name="free"), "", [post_to_board])
+    carol = LLMAgent("carol", posts_once(cost=0.03, model_name="cheap"), "", [post_to_board])
 
     run(run_log, [alice, bob, carol], Notice(to="all", text="Go."))
     totals = run_log.finish()
