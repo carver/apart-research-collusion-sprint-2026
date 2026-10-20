@@ -40,3 +40,9 @@ def test_a_run_can_be_tagged_and_the_tag_goes_in_the_log_header(monkeypatch):
 
     assert settings.tag == "pilot-01" and settings.log_header()["tag"] == "pilot-01"
     assert RunSettings().log_header()["tag"] is None
+
+
+def test_an_empty_tag_is_no_tag(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["run", "--tag", ""])
+
+    assert RunSettings.from_command_line("test", "exp")[0].tag is None

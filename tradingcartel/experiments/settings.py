@@ -11,6 +11,11 @@ from tradingcartel.agents.llm import TEST_MODEL, ReasoningEffort
 from tradingcartel.core.record import RunLog
 
 
+def no_tag_if_empty(text: str) -> str | None:
+    """A ``--tag`` from the command line: an empty one means no tag."""
+    return text or None
+
+
 @dataclass(frozen=True)
 class RunSettings:
     """``max_messages`` stops the run after that many messages, a cost brake. ``tag`` names the batch
@@ -39,7 +44,9 @@ class RunSettings:
             "--max-messages", type=int, default=defaults["max_messages"], help="stop after this many messages"
         )
         parser.add_argument("--reasoning-effort", choices=get_args(ReasoningEffort), help="cap reasoning")
-        parser.add_argument("--tag", help="a name for the batch this run belongs to, such as pilot-01")
+        parser.add_argument(
+            "--tag", type=no_tag_if_empty, help="a name for the batch this run belongs to, such as pilot-01"
+        )
         writing = parser.add_mutually_exclusive_group()
         writing.add_argument(
             "--no-write", action="store_true", help="don't write a log to logs/ or count usage"

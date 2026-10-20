@@ -143,3 +143,16 @@ def test_tags_pool_by_default_and_tag_picks_one_batch(capsys):
     assert " 2 " in bait and "tags: full-01, pilot-01" in pooled
     [bait] = [row for row in one.splitlines() if "bait" in row]
     assert " 1 " in bait and "about 10%" not in bait
+
+
+def test_the_tag_list_names_untagged_runs_and_only_the_runs_tabulated(capsys):
+    def fails(turn: Turn):
+        raise UnexpectedModelBehavior("the model returned nothing")
+
+    tagged = logged_run(buys(200, 200, 200), message="halve", tag="pilot-01")
+    logged_run(buys(200, 200, 200), message="halve", seed=1)
+    logged_run(fails, message="halve", seed=2, tag="broken")
+
+    analyze.main([str(tagged.parent)])
+
+    assert "tags: (untagged), pilot-01" in capsys.readouterr().out

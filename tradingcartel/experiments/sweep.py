@@ -26,7 +26,7 @@ from typing import Any, Literal, Union, get_args, get_origin
 
 from tradingcartel.core import record
 from tradingcartel.core.record import RunLog, UsageTotal
-from tradingcartel.experiments.settings import RunSettings
+from tradingcartel.experiments.settings import RunSettings, no_tag_if_empty
 
 WORKERS = 8  # runs at once
 PER_MODEL = 4  # runs at once per model
@@ -205,7 +205,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         help="a setting and the values to sweep it over; repeat for more settings",
     )
     parser.add_argument(
-        "--tag", help="tag every run, such as pilot-01; a sweep reuses only runs with its tag"
+        "--tag",
+        type=no_tag_if_empty,
+        help="tag every run, such as pilot-01; a sweep reuses only runs with its tag",
     )
     parser.add_argument("--workers", type=int, default=WORKERS, help=f"runs at once (default {WORKERS})")
     parser.add_argument(

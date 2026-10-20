@@ -146,7 +146,9 @@ def main(argv: list[str] | None = None) -> None:
     results = [result for result in results if result not in others]
     finished = [result for result in results if result.finished]
     print(describe(finished))
-    if tags := sorted({result.tag for result in finished if result.tag}):
+    tabulated = [result for result in finished if not result.errors]
+    if any(result.tag for result in tabulated):
+        tags = sorted({result.tag or "(untagged)" for result in tabulated})
         print(f"\ntags: {', '.join(tags)}")
     if args.runs:
         print("\n" + describe_runs(finished))
