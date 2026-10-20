@@ -17,14 +17,31 @@ import importlib
 import itertools
 import sys
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, fields
 from pathlib import Path
-from types import ModuleType
-from typing import Any, Literal, get_args, get_origin
+from types import ModuleType, NoneType, UnionType
+from typing import Any, Literal, Union, get_args, get_origin
 
 from tradingcartel.core import record
 from tradingcartel.core.record import RunLog, UsageTotal
+from tradingcartel.experiments.settings import RunSettings
+
+WORKERS = 8  # runs at once
+PER_MODEL = 4  # runs at once per model
+
+
+@dataclass(frozen=True)
+class Experiment:
+    """What a sweep needs from an experiment: its settings type and its ``run``."""
+
+    settings_type: type[RunSettings]
+    run: Callable[[Any, RunLog | None], Awaitable[Any]]
+
+    @classmethod
+    def from_module(cls, module: ModuleType) -> "Experiment":
+        """An experiment's ``run`` module, with its ``Settings`` and ``run``."""
+        return cls(module.Settings, module.run)
 
 
 @dataclass(frozen=True)
@@ -34,9 +51,13 @@ class Cell:
     settings: dict[str, Any]
 
     @property
+    def model(self) -> str:
+        return self.settings["model"]
+
+    @property
     def label(self) -> str:
-        """The cell's settings, as a name for its log file."""
-        return record.safe_name(",".join(f"{key}={value}" for key, value in self.settings.items()))
+        """The cell's settings, to name its log file."""
+        return ",".join(f"{key}={value}" for key, value in self.settings.items())
 
 
 @dataclass
@@ -83,15 +104,15 @@ def is_finished(cell: Cell, finished: list[dict[str, Any]]) -> bool:
 
 
 async def run_cells(
-    experiment: ModuleType,
+    experiment: Experiment,
     name: str,
     cells: list[Cell],
-    workers: int = 8,
-    per_model: int = 4,
+    workers: int = WORKERS,
+    per_model: int = PER_MODEL,
     folder: Path | None = None,
 ) -> list[Outcome]:
-    """Run each of ``cells`` that has no finished log yet with ``experiment``'s ``Settings`` and
-    ``run``, logging under ``folder``/``name`` (the project's logs/ by default)."""
+    """Run each of ``cells`` that has no finished log yet with ``experiment``, logging under
+    ``folder``/``name`` (the project's logs/ by default)."""
     folder = folder or record.LOGS_DIR
     finished = finished_runs(folder / name)
     everyone = asyncio.Semaphore(workers)
@@ -100,10 +121,10 @@ async def run_cells(
     async def one(cell: Cell) -> Outcome:
         if is_finished(cell, finished):
             return Outcome(cell, "skipped")
-        async with by_model[cell.settings["model"]], everyone:
+        async with by_model[cell.model], everyone:
             run_log = None
             try:
-                settings = experiment.Settings(**cell.settings)
+                settings = experiment.settings_type(**cell.settings)
                 run_log = RunLog(name, folder, label=cell.label, **settings.log_header())
                 await experiment.run(settings, run_log)
             except Exception as exc:
@@ -124,8 +145,8 @@ async def run_cells(
 def describe_costs(outcomes: list[Outcome]) -> str:
     """Per model: runs, failures, and the cost of the runs this sweep made."""
     rows = []
-    for model in dict.fromkeys(o.cell.settings["model"] for o in outcomes):
-        mine = [o for o in outcomes if o.cell.settings["model"] == model]
+    for model in dict.fromkeys(o.cell.model for o in outcomes):
+        mine = [o for o in outcomes if o.cell.model == model]
         spent = [o.usage for o in mine if o.usage]  # runs that ran or failed
         ran = [o.usage for o in mine if o.status == "ran" and o.usage]
         counts = {status: sum(o.status == status for o in mine) for status in ("ran", "skipped", "failed")}
@@ -144,6 +165,9 @@ def parse_value(settings_type: type, setting: str, text: str) -> Any:
     if setting not in types:
         raise SystemExit(f"{settings_type.__name__} has no setting {setting!r}")
     kind = types[setting]
+    if get_origin(kind) in (Union, UnionType):  # such as ReasoningEffort | None
+        kinds = [k for k in get_args(kind) if k is not NoneType]
+        kind = kinds[0] if len(kinds) == 1 else kind
     if get_origin(kind) is Literal:
         if text not in get_args(kind):
             raise SystemExit(f"{setting} takes {', '.join(get_args(kind))}, not {text!r}")
@@ -152,7 +176,9 @@ def parse_value(settings_type: type, setting: str, text: str) -> Any:
         return int(text)
     if kind is float:
         return float(text)
-    return text
+    if kind is str:
+        return text
+    raise SystemExit(f"--grid can't set {setting}, a {kind}")
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -169,15 +195,19 @@ def main(argv: Sequence[str] | None = None) -> None:
         metavar="SETTING=V1,V2",
         help="a setting and the values to sweep it over; repeat for more settings",
     )
-    parser.add_argument("--workers", type=int, default=8, help="runs at once (default 8)")
-    parser.add_argument("--per-model", type=int, default=4, help="runs at once per model (default 4)")
+    parser.add_argument("--workers", type=int, default=WORKERS, help=f"runs at once (default {WORKERS})")
+    parser.add_argument(
+        "--per-model", type=int, default=PER_MODEL, help=f"runs at once per model (default {PER_MODEL})"
+    )
     args = parser.parse_args(argv)
 
-    experiment = importlib.import_module(f"tradingcartel.experiments.{args.experiment}.run")
+    experiment = Experiment.from_module(
+        importlib.import_module(f"tradingcartel.experiments.{args.experiment}.run")
+    )
     grid = {}
     for item in args.grid:
         setting, _, values = item.partition("=")
-        grid[setting] = [parse_value(experiment.Settings, setting, value) for value in values.split(",")]
+        grid[setting] = [parse_value(experiment.settings_type, setting, value) for value in values.split(",")]
     seeds = [int(seed) for seed in args.seeds.split(",")]
     cells = make_cells(args.models.split(","), seeds, grid)
     outcomes = asyncio.run(run_cells(experiment, args.experiment, cells, args.workers, args.per_model))

@@ -2,15 +2,16 @@ import asyncio
 import importlib
 import json
 from dataclasses import dataclass
-from types import SimpleNamespace
+
+import pytest
 
 from tradingcartel.agents.llm import AgentTurn
 from tradingcartel.core.agent import TurnUsage
 from tradingcartel.experiments import sweep
 from tradingcartel.experiments.settings import RunSettings
-from tradingcartel.experiments.sweep import Cell, describe_costs, make_cells, run_cells
+from tradingcartel.experiments.sweep import Cell, Experiment, describe_costs, make_cells, run_cells
 
-mnpi_bait = importlib.import_module("tradingcartel.experiments.02_mnpi_bait.run")
+mnpi_bait = Experiment.from_module(importlib.import_module("tradingcartel.experiments.02_mnpi_bait.run"))
 
 
 def lines(path) -> list[dict]:
@@ -27,7 +28,12 @@ class FakeSettings(RunSettings):
     seed: int = 0
 
 
-def fake_experiment(seconds: float = 0.0, cost: float = 0.25):
+@dataclass(frozen=True)
+class FakeExperiment(Experiment):
+    peak: dict[str, int]
+
+
+def fake_experiment(seconds: float = 0.0, cost: float = 0.25) -> FakeExperiment:
     """An experiment whose runs take ``seconds`` and report ``cost``. They fail when memo is "boom",
     and an agent's turn fails when memo is "turnfail".
     ``running`` counts the runs in progress per model; ``peak`` the most at once, per model and in
@@ -52,7 +58,7 @@ def fake_experiment(seconds: float = 0.0, cost: float = 0.25):
         finally:
             running[model] -= 1
 
-    return SimpleNamespace(Settings=FakeSettings, run=run, peak=peak)
+    return FakeExperiment(FakeSettings, run, peak)
 
 
 def test_cells_cover_every_combination_and_alternate_models():
@@ -147,11 +153,17 @@ def test_the_command_line_runs_the_grid_with_typed_settings(logs_dir, capsys):
     assert "test: 2 ran" in capsys.readouterr().out
 
 
-def test_a_cells_label_names_its_settings_safely():
+def test_a_cells_label_names_its_settings():
     cell = Cell({"model": "deepseek/deepseek-v4-pro", "seed": 1, "memo": "none"})
 
-    assert "/" not in cell.label
-    assert "seed=1" in cell.label and "memo=none" in cell.label and "deepseek" in cell.label
+    assert cell.label == "model=deepseek/deepseek-v4-pro,seed=1,memo=none"
+
+
+def test_the_command_line_refuses_values_a_setting_cant_take(logs_dir):
+    with pytest.raises(SystemExit, match="hihg"):
+        sweep.main(["02_mnpi_bait", "--models", "test", "--grid", "reasoning_effort=hihg"])
+    with pytest.raises(SystemExit, match="model"):
+        sweep.main(["02_mnpi_bait", "--models", "test", "--grid", "model=x"])
 
 
 def test_a_run_with_a_failed_turn_counts_as_failed_and_runs_again(tmp_path):

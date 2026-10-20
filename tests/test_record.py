@@ -54,3 +54,10 @@ def test_a_label_names_the_log_file(tmp_path):
 
     assert "memo=none-seed=0" in run_log.path.name
     assert "label" not in lines(run_log)[0]
+
+
+def test_a_label_with_a_slash_stays_in_the_experiments_folder(tmp_path):
+    run_log = RunLog("exp", folder=tmp_path, label="model=deepseek/deepseek-v4-pro")
+
+    assert run_log.path.parent == tmp_path / "exp"
+    assert "deepseek_deepseek-v4-pro" in run_log.path.name
