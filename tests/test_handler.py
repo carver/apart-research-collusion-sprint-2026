@@ -15,33 +15,45 @@ def make_agents(*names: str) -> list[LLMAgent]:
 
 
 def received(agent: LLMAgent) -> list[str]:
-    """The prompts an agent was given, i.e. the messages delivered to it."""
+    """The prompt of each turn the agent took."""
     return [p.content for m in agent.history for p in m.parts if isinstance(p, UserPromptPart)]
 
 
-def process(queue: EventQueue, message: Message, max_messages: int) -> None:
-    queue.put(message)
+def process(queue: EventQueue, *messages: Message, max_messages: int) -> None:
+    for message in messages:
+        queue.put(message)
     asyncio.run(queue.run(max_messages))
 
 
-def test_a_broadcast_reaches_every_agent_but_the_sender():
+def test_a_broadcast_wakes_every_agent_but_the_sender():
     alice, bob, carol = make_agents("alice", "bob", "carol")
     board = MessageBoard()
-    queue = EventQueue(Handler([alice, bob, carol], world=[board]).handle)
+    queue = EventQueue(Handler([alice, bob, carol], world=[board], wake_on=(BoardPost,)).handle)
     post = BoardPost(sender="alice", text="Buy ACME.")
 
-    process(queue, post, max_messages=1)
+    process(queue, post, max_messages=3)  # the post, then bob's and carol's wake-ups
 
     assert board.posts == [post]
     assert received(alice) == []
     assert received(bob) == received(carol) == ["alice posted on the message board: Buy ACME."]
 
 
-def test_a_message_to_one_agent_reaches_only_that_agent():
+def test_a_message_to_one_agent_wakes_only_that_agent():
     alice, bob = make_agents("alice", "bob")
-    queue = EventQueue(Handler([alice, bob], world=[]).handle)
+    queue = EventQueue(Handler([alice, bob], world=[], wake_on=(Notice,)).handle)
 
-    process(queue, Notice(to="bob", text="Hello, Bob."), max_messages=1)
+    process(queue, Notice(to="bob", text="Hello, Bob."), max_messages=2)
 
     assert received(alice) == []
     assert received(bob) == ["Hello, Bob."]
+
+
+def test_messages_that_dont_wake_wait_in_the_inbox_for_the_next_turn():
+    alice, bob = make_agents("alice", "bob")
+    queue = EventQueue(Handler([alice, bob], world=[], wake_on=(Notice,)).handle)
+
+    process(queue, BoardPost(sender="alice", text="Buy ACME."), max_messages=1)
+    assert received(bob) == []
+
+    process(queue, Notice(to="bob", text="Hello, Bob."), max_messages=3)
+    assert received(bob) == ["alice posted on the message board: Buy ACME.\n\nHello, Bob."]

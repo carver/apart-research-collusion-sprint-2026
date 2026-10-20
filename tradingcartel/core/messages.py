@@ -17,6 +17,12 @@ class Message(BaseModel):
         return repr(self)
 
 
+class Wake(Message):
+    """Tells an agent to take a turn, in which it sees everything in its inbox."""
+
+    agent: str
+
+
 class Notice(Message):
     """Plain text for agents, such as an announcement from the system."""
 

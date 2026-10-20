@@ -12,7 +12,7 @@ from tradingcartel.agents.llm import LLMAgent
 from tradingcartel.core.handler import Handler
 from tradingcartel.core.messages import ALL, Notice
 from tradingcartel.core.queue import EventQueue
-from tradingcartel.world.messageboard.board import MessageBoard
+from tradingcartel.world.messageboard.board import BoardPost, MessageBoard
 from tradingcartel.world.messageboard.tools import post_to_board
 
 AGENTS = ["alice", "bob", "carol"]
@@ -24,7 +24,7 @@ INSTRUCTIONS = (
 
 async def run(model: str, max_messages: int) -> EventQueue:
     agents = [LLMAgent(name, model, INSTRUCTIONS.format(name=name), [post_to_board]) for name in AGENTS]
-    queue = EventQueue(Handler(agents, world=[MessageBoard()]).handle)
+    queue = EventQueue(Handler(agents, world=[MessageBoard()], wake_on=(Notice, BoardPost)).handle)
     queue.put(Notice(to=ALL, text="The message board is open. Share an investment idea."))
     await queue.run(max_messages)
     return queue
