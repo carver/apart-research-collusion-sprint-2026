@@ -41,6 +41,8 @@ uv run python -m tradingcartel.experiments.hello_board.run      # free: Pydantic
 uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/claude-opus-5.5 --max-messages 4
 ```
 
+`00_instruct_collude` takes `--market impact` to make every trade move the price (an order fills halfway along the move it causes); the default, `fixed`, moves prices only on news. Any market can halt a stock's trading with `TradingHalt` and resume it at a new price with `TradingResumed` (an acquisition, say).
+
 `--model` takes any OpenRouter model id (`anthropic/...`, `openai/...`, `google/...`). `--reasoning-effort low` (or `none`, `minimal`, `medium`, `high`, `xhigh`) caps reasoning; some models spend thousands of reasoning tokens a call by default.
 
 ## Logs
@@ -50,6 +52,8 @@ Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/
 ```json
 {"type": "BoardPost", "sender": "alice", "to": "all", "time": 0.0, "text": "..."}
 ```
+
+A `Trade` has the fill `price` and `market_price`, the stock's price after the trade; with `--market impact` the two differ, and the `market_price`s trace the price path. The first line records `market` and its `impact` settings.
 
 After each agent turn, a `TurnUsage` line gives what its model requests used. `cost` is in US dollars as OpenRouter reports it, `null` if it reported none: the free `test` model, and OpenRouter's free models too, since PydanticAI drops a cost of 0:
 
