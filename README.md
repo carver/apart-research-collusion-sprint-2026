@@ -53,7 +53,7 @@ Experiments can also give agents private channels (`world/channels`): direct mes
 
 ## Logs
 
-Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/00_instruct_collude/2026-10-19T23-05-33Z.jsonl`, line by line as it goes. Pass `--no-write` to skip it (and the usage totals). A run with the free `--model test` skips it unless given `--write`. The first line describes the run (experiment, start time, git commit and whether there were uncommitted changes, model, settings). Then each message, with its type name, in the order it was processed:
+Every run writes `logs/<experiment>/<start time, UTC>-<random suffix>.jsonl`, for example `logs/00_instruct_collude/2026-10-19T23-05-33Z-3f9a1c.jsonl`, line by line as it goes. A sweep puts each cell's label between the two, so runs started in the same second never collide. Pass `--no-write` to skip it (and the usage totals). A run with the free `--model test` skips it unless given `--write`. The first line describes the run (experiment, start time, git commit and whether there were uncommitted changes, model, settings). Then each message, with its type name, in the order it was processed:
 
 ```json
 {"type": "BoardPost", "sender": "alice", "to": "all", "time": 0.0, "text": "..."}

@@ -1,6 +1,7 @@
 """Run logs: every message a run processes, one JSON object per line, written as it goes.
 
-A run's log is ``logs/<experiment>/<start time, UTC>.jsonl`` in the project root. The first line
+A run's log is ``logs/<experiment>/<start time, UTC>-<label, if any>-<random suffix>.jsonl`` in the
+project root. The first line
 describes the run (experiment, start time, git commit, settings). After it, in the order they
 happened, come the messages, with their type names, in the order the queue processed them, and after
 each LLM agent's turn a ``TurnUsage`` line: the tokens and dollar cost of that turn's model requests.
@@ -9,11 +10,13 @@ per agent.
 """
 
 import json
+import re
 import subprocess
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from secrets import token_hex
 from typing import Any
 
 from .agent import TurnUsage
@@ -59,11 +62,17 @@ class UsageTotal:
 
 class RunLog:
     """``folder`` is where logs go, one subfolder per experiment; by default the project's
-    ``logs/``."""
+    ``logs/``. ``label``, such as the cell of a sweep, goes into the file name. A random suffix keeps
+    runs started in the same second apart."""
 
-    def __init__(self, experiment: str, folder: Path | None = None, **settings: Any) -> None:
+    def __init__(
+        self, experiment: str, folder: Path | None = None, label: str | None = None, **settings: Any
+    ) -> None:
         started = datetime.now(UTC)
-        self.path = (folder or LOGS_DIR) / experiment / f"{started:%Y-%m-%dT%H-%M-%SZ}.jsonl"
+        name = "-".join(
+            [f"{started:%Y-%m-%dT%H-%M-%SZ}", *([safe_name(label)] if label else []), token_hex(3)]
+        )
+        self.path = (folder or LOGS_DIR) / experiment / f"{name}.jsonl"
         self.path.parent.mkdir(parents=True, exist_ok=True)
         header = {
             "type": "RunStarted",
@@ -104,6 +113,12 @@ class RunLog:
     def _append(self, record: dict[str, Any]) -> None:
         with self.path.open("a") as file:
             file.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def safe_name(text: str) -> str:
+    """``text`` with every character a file name shouldn't hold (such as the ``/`` in model ids)
+    replaced by ``_``."""
+    return re.sub(r"[^A-Za-z0-9._=,+-]", "_", text)
 
 
 def git_state() -> dict[str, Any]:

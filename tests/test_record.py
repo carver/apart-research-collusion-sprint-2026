@@ -39,3 +39,18 @@ def test_tests_never_write_into_the_real_logs_folder():
     if in_real_logs:
         run_log.path.unlink()
     assert not in_real_logs
+
+
+def test_runs_started_in_the_same_second_get_separate_logs(tmp_path):
+    first = RunLog("exp", folder=tmp_path, seed=1)
+    second = RunLog("exp", folder=tmp_path, seed=2)
+
+    assert first.path != second.path
+    assert (lines(first)[0]["seed"], lines(second)[0]["seed"]) == (1, 2)
+
+
+def test_a_label_names_the_log_file(tmp_path):
+    run_log = RunLog("exp", folder=tmp_path, label="memo=none-seed=0")
+
+    assert "memo=none-seed=0" in run_log.path.name
+    assert "label" not in lines(run_log)[0]
