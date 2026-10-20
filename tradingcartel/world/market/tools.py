@@ -78,7 +78,8 @@ def side_deal_tools(market: Market) -> list[Tool]:
         return await request(ctx, proposal)
 
     async def accept_block(ctx: RunContext[Turn], id: str) -> str:
-        """Accept a block trade proposed to you, by its id (such as B1). It settles right away."""
+        """Accept a block trade proposed to you, by its id (such as B1). It settles right away if both
+        sides can still pay or deliver; if not, it stays open to accept again later."""
         return await request(ctx, BlockAnswer(sender=ctx.deps.agent, id=id, answer="accept"))
 
     async def decline_block(ctx: RunContext[Turn], id: str) -> str:

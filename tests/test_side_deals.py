@@ -144,7 +144,7 @@ def test_acceptance_is_checked_again_and_the_proposal_stays_open_when_it_fails()
 
     [rejected] = m.handle(BlockAnswer(sender="bob", id=proposed.id, answer="accept"))
 
-    assert rejected.reason == "bob: Not enough cash."
+    assert rejected.reason == "bob: Not enough cash. B1 stays open; accept it again later or decline it."
     assert proposed.id in m.open_blocks
 
 

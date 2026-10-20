@@ -229,9 +229,8 @@ class Market:
         symbol, shares, price = proposal.symbol, proposal.shares, proposal.price
         for agent, side in ((buyer, "buy"), (seller, "sell")):
             if problem := self.check_block(agent, side, symbol, shares, price):
-                return BlockRejected(
-                    sender="market", agent=proposal.counterparty, reason=f"{agent}: {problem}"
-                )
+                reason = f"{agent}: {problem} {proposal.id} stays open; accept it again later or decline it."
+                return BlockRejected(sender="market", agent=proposal.counterparty, reason=reason)
         del self.open_blocks[proposal.id]
         cost = round(shares * price, 2)
         self.cash[buyer] -= cost
