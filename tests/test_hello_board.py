@@ -1,6 +1,8 @@
 import asyncio
+import json
+import sys
 
-from tradingcartel.experiments.hello_board.run import Settings, run
+from tradingcartel.experiments.hello_board.run import Settings, main, run
 from tradingcartel.world.messageboard.board import BoardPost
 
 
@@ -12,20 +14,15 @@ def test_hello_board_runs_for_free():
     assert [m.sender for m in queue.log if isinstance(m, BoardPost)] == ["alice", "bob", "carol"]
 
 
-def test_main_runs_the_experiment_then_finishes_the_log(monkeypatch, capsys):
-    import json
-    import sys
-    from pathlib import Path
-
-    from tradingcartel.experiments.hello_board.run import main
-
+def test_main_runs_the_experiment_then_finishes_the_log(logs_dir, monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["run", "--write", "--max-messages", "20"])
 
     main()
 
     printed = capsys.readouterr().out
-    path = printed.rsplit("Log: ", 1)[1].strip()
-    logged = [json.loads(line)["type"] for line in Path(path).read_text().splitlines()]
+    [log] = logs_dir.glob("hello_board/*.jsonl")
+    assert f"Log: {log}" in printed
+    logged = [json.loads(line)["type"] for line in log.read_text().splitlines()]
     assert logged[0] == "RunStarted" and logged[-1] == "RunFinished"
     assert "BoardPost" in printed  # the experiment's own report
     assert "total: " in printed

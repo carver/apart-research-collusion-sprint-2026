@@ -25,6 +25,7 @@ pydantic_ai.BANNER_ENABLED = False  # no first-run banner in our output
 
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"  # in the project root
 MAX_REQUESTS_PER_TURN = 10  # a normal turn takes 2-3 model requests
+TEST_MODEL = "test"  # PydanticAI's free TestModel
 
 Submit = Callable[[Message], Awaitable[list[Message]]]
 Tool = Callable[..., str | Awaitable[str]]
@@ -130,7 +131,7 @@ def make_model(name: str, reasoning_effort: ReasoningEffort | None = None) -> Mo
     model id, such as ``anthropic/claude-opus-5.5``, using OPENROUTER_API_KEY from the environment or
     the project's .env. OpenRouter reports each response's cost. ``reasoning_effort`` caps
     reasoning; without it the provider's default applies."""
-    if name == "test":
+    if name == TEST_MODEL:
         return TestModel()
     if name.startswith(claude_cli.PREFIX):
         return claude_cli.claude_cli_model(name, reasoning_effort)

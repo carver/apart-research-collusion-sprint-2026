@@ -35,8 +35,7 @@ def test_messages_then_the_totals_follow_the_header(tmp_path):
 
 def test_tests_never_write_into_the_real_logs_folder():
     run_log = RunLog("exp")
-    try:
-        assert not run_log.path.is_relative_to(record.ROOT / "logs")
-    finally:
-        if run_log.path.is_relative_to(record.ROOT / "logs"):
-            run_log.path.unlink()
+    in_real_logs = run_log.path.is_relative_to(record.ROOT / "logs")
+    if in_real_logs:
+        run_log.path.unlink()
+    assert not in_real_logs

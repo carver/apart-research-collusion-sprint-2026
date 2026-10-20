@@ -15,10 +15,9 @@ def run_from_command_line[S: RunSettings, R](
     run: Callable[[S, RunLog | None], Awaitable[R]],
     report: Callable[[R], None],
 ) -> None:
-    """Parse the settings from the command line, run the experiment with a log (or none, see
-    ``RunSettings.from_command_line``), and pass what ``run`` returns to ``report`` to print. Then
-    finish the log and print the usage totals and where the log is. The log goes under the name of
-    the experiment's folder, the one holding ``experiment_file``."""
+    """Run an experiment with the settings and log the command line asks for, print its
+    ``report``, then the usage totals and the log's path. The log is named for the folder holding
+    ``experiment_file``."""
     experiment = Path(experiment_file).parent.name
     settings, run_log = settings_type.from_command_line(description, experiment)
     report(asyncio.run(run(settings, run_log)))

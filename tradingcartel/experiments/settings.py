@@ -7,7 +7,7 @@ from typing import Any, Self, get_args
 
 from pydantic_ai.models import Model
 
-from tradingcartel.agents.llm import ReasoningEffort
+from tradingcartel.agents.llm import TEST_MODEL, ReasoningEffort
 from tradingcartel.core.record import RunLog
 
 
@@ -15,13 +15,14 @@ from tradingcartel.core.record import RunLog
 class RunSettings:
     """``max_messages`` stops the run after that many messages, a cost brake."""
 
-    model: str | Model = "test"
+    model: str | Model = TEST_MODEL
     max_messages: int = 100
     reasoning_effort: ReasoningEffort | None = None
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> None:
-        """Add a flag for each setting, defaulting to the field's default, and ``--no-write``."""
+        """Add a flag for each setting, defaulting to the field's default, and ``--write`` and
+        ``--no-write``."""
         defaults = {field.name: field.default for field in fields(cls)}
         parser.add_argument(
             "--model",
@@ -51,7 +52,9 @@ class RunSettings:
         cls.add_arguments(parser)
         args = parser.parse_args()
         settings = cls(**{field.name: getattr(args, field.name) for field in fields(cls)})
-        write = args.write or not (args.no_write or settings.model == "test")
+        write = settings.model != TEST_MODEL
+        if args.write or args.no_write:
+            write = args.write
         return settings, RunLog(experiment, **settings.log_header()) if write else None
 
     def log_header(self) -> dict[str, Any]:
