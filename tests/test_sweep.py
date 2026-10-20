@@ -207,7 +207,7 @@ def test_a_cell_finished_by_another_version_of_the_experiment_runs_again(tmp_pat
 
     assert [o.status for o in new] == ["ran"]
     assert [o.status for o in again] == ["skipped"]
-    assert [lines(log)[0].get("version") for log in logs(tmp_path)].count(2) == 1  # and one without
+    assert sorted(str(lines(log)[0].get("version")) for log in logs(tmp_path)) == ["2", "None"]
 
 
 def test_a_tag_resumes_only_its_own_batch(tmp_path):
