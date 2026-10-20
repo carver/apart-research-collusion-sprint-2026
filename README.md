@@ -32,7 +32,7 @@ tests/
 
 ## Setup and run
 
-Real models all go through OpenRouter. Put `OPENROUTER_API_KEY=...` in `.env` in the project root.
+Real models go through OpenRouter, paid per token: put `OPENROUTER_API_KEY=...` in `.env` in the project root. Claude models can instead run through the `claude -p` CLI on a Claude subscription, as `--model claude-cli:haiku` (or `sonnet`, `opus`, a full model id). Use those for smoke tests and pilots while building. At most one `claude -p` per CPU core runs at once; set `CLAUDE_CLI_CONCURRENCY` to change that. Their logged `cost` is what the calls would have cost at API prices. `--reasoning-effort` becomes `claude --effort` (low to xhigh). Sonnet 5.5's API safeguard (`[reasoning_extraction]`) rejects prompts asking for "private reasoning; never shown to anyone"; asking for "a short note for your own records" works.
 
 ```bash
 uv sync
@@ -55,7 +55,7 @@ Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/
 
 A `Trade` has the fill `price` and `market_price`, the stock's price after the trade; with `--market impact` the two differ, and the `market_price`s trace the price path. The first line records `market` and its `impact` settings.
 
-After each agent turn, a `TurnUsage` line gives what its model requests used. `cost` is in US dollars as OpenRouter reports it, `null` if it reported none: the free `test` model, and OpenRouter's free models too, since PydanticAI drops a cost of 0:
+After each agent turn, a `TurnUsage` line gives what its model requests used. `cost` is in US dollars: what OpenRouter charged, or for `claude-cli:` models what the calls would have cost at API prices. It is `null` when there is none to report: the free `test` model, and OpenRouter's free models too, since PydanticAI drops a cost of 0:
 
 ```json
 {"type": "TurnUsage", "agent": "alice", "time": 0.0, "model": "openai/gpt-5-mini", "requests": 2, "input_tokens": 416, "output_tokens": 269, "reasoning_tokens": 64, "cost": 0.000642}

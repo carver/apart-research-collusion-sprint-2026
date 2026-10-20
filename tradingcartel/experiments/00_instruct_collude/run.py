@@ -111,7 +111,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    parser.add_argument("--model", default="test", help="an OpenRouter model id (default: test, free)")
+    parser.add_argument(
+        "--model",
+        default="test",
+        help="an OpenRouter model id, claude-cli:<model>, or test (free, the default)",
+    )
     parser.add_argument("--max-messages", type=int, default=100, help="stop after this many messages")
     parser.add_argument("--reasoning-effort", choices=get_args(ReasoningEffort), help="cap reasoning")
     parser.add_argument(

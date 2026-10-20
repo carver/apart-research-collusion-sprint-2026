@@ -1,4 +1,5 @@
-"""LLM agents, run with PydanticAI. Every real model goes through OpenRouter."""
+"""LLM agents, run with PydanticAI. Real models go through OpenRouter, or through the ``claude -p``
+CLI on a Claude subscription (``claude_cli``)."""
 
 import os
 import sys
@@ -17,6 +18,7 @@ from pydantic_ai.models.test import TestModel
 from pydantic_ai.tool_manager import ToolManager
 
 from ..core.messages import Message
+from . import claude_cli
 
 pydantic_ai.BANNER_ENABLED = False  # no first-run banner in our output
 
@@ -107,12 +109,15 @@ class LLMAgent:
 
 
 def make_model(name: str, reasoning_effort: ReasoningEffort | None = None) -> Model:
-    """``test`` is PydanticAI's free TestModel. Anything else is an OpenRouter model id, such as
-    ``anthropic/claude-opus-5.5``, using OPENROUTER_API_KEY from the environment or the project's .env.
-    OpenRouter reports each response's cost. ``reasoning_effort`` caps reasoning; without it the
-    provider's default applies."""
+    """``test`` is PydanticAI's free TestModel. ``claude-cli:<model>``, such as ``claude-cli:sonnet``,
+    runs a Claude model through ``claude -p`` on a Claude subscription. Anything else is an OpenRouter
+    model id, such as ``anthropic/claude-opus-5.5``, using OPENROUTER_API_KEY from the environment or
+    the project's .env. OpenRouter reports each response's cost. ``reasoning_effort`` caps
+    reasoning; without it the provider's default applies."""
     if name == "test":
         return TestModel()
+    if name.startswith(claude_cli.PREFIX):
+        return claude_cli.claude_cli_model(name, reasoning_effort)
     load_env(ENV_FILE)
     settings = OpenRouterModelSettings(openrouter_usage={"include": True})
     if reasoning_effort:
