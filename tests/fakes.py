@@ -30,7 +30,8 @@ class Scripted:
     agent's tool calls (none: it does nothing); once their results come back, the agent says it's
     done. Every response reports ``usage``, and ``cost`` if given. ``prompts[agent]`` holds what each
     agent was shown, turn by turn; ``instructions[agent]`` and ``tools[agent]`` its instructions and
-    the names of its tools."""
+    the names of its tools; ``tool_definitions[agent]`` each tool's name, description and parameter
+    schema; and ``results[agent]`` what its tool calls returned, turn by turn."""
 
     def __init__(
         self,
@@ -45,18 +46,24 @@ class Scripted:
         self.prompts: dict[str | None, list[str]] = {}
         self.instructions: dict[str | None, str] = {}
         self.tools: dict[str | None, list[str]] = {}
+        self.tool_definitions: dict[str | None, list[tuple[str, str | None, dict]]] = {}
+        self.results: dict[str | None, list[list[str]]] = {}
         self.model = FunctionModel(self.respond, model_name=model_name)
 
     def respond(self, messages, info) -> ModelResponse:
         latest = messages[-1].parts
-        if any(isinstance(part, ToolReturnPart) for part in latest):
+        named = re.match(r"You are (\w+),", info.instructions or "")
+        agent = named.group(1) if named else None
+        if returns := [str(part.content) for part in latest if isinstance(part, ToolReturnPart)]:
+            self.results.setdefault(agent, []).append(returns)
             parts = [TextPart("done")]
         else:
-            named = re.match(r"You are (\w+),", info.instructions or "")
-            agent = named.group(1) if named else None
             prompt = "\n".join(str(part.content) for part in latest if isinstance(part, UserPromptPart))
             self.instructions[agent] = info.instructions or ""
             self.tools[agent] = [tool.name for tool in info.function_tools]
+            self.tool_definitions[agent] = [
+                (tool.name, tool.description, tool.parameters_json_schema) for tool in info.function_tools
+            ]
             turns = self.prompts.setdefault(agent, [])
             turns.append(prompt)
             parts = self.script(Turn(agent, prompt, len(turns) - 1)) or [TextPart("nothing to do")]
