@@ -44,6 +44,8 @@ pythonVersion = "3.12"
 [tool.ruff]
 line-length = 110
 target-version = "py312"
+# Copies of llm-toolbox tools and the module they import, kept identical to their originals.
+extend-exclude = ["lib", "bin/apply-edits", "bin/bgrun", "bin/safeps", "bin/waitone"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
