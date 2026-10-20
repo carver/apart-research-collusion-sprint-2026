@@ -4,7 +4,7 @@ from tradingcartel.core.messages import Message, Notice
 from tradingcartel.core.queue import EventQueue
 
 
-async def ignore(message: Message) -> list[Message]:
+async def ignore(message: Message, queue: EventQueue) -> list[Message]:
     return []
 
 

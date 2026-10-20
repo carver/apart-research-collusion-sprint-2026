@@ -11,16 +11,18 @@ import math
 from collections.abc import Awaitable, Callable
 
 from .messages import Message
+from .record import RunLog
 
-Handler = Callable[[Message], Awaitable[list[Message]]]
+Handler = Callable[[Message, "EventQueue"], Awaitable[list[Message]]]
 
 
 class EventQueue:
     """The handler returns the messages that follow from each message; they happen now. Every
-    processed message is kept in ``log``."""
+    processed message is kept in ``log``, and written to ``run_log`` if there is one."""
 
-    def __init__(self, handler: Handler) -> None:
+    def __init__(self, handler: Handler, run_log: RunLog | None = None) -> None:
         self.handler = handler
+        self.run_log = run_log
         self.now = 0.0  # simulated minutes since the start
         self.log: list[Message] = []
         self._heap: list[tuple[float, int, Message]] = []
@@ -31,11 +33,23 @@ class EventQueue:
         message = message.model_copy(update={"time": self.now + delay})
         heapq.heappush(self._heap, (message.time, next(self._order), message))
 
+    async def submit(self, message: Message) -> list[Message]:
+        """Process a message right away instead of queueing it, and return the messages that follow
+        from it (which are queued as usual). For requests that need an answer, such as orders."""
+        return await self._process(message.model_copy(update={"time": self.now}))
+
     async def run(self, max_messages: int, until: float = math.inf) -> None:
         """Process messages in time order until none are left up to ``until`` (simulated minutes),
         or ``max_messages`` have been processed in total (a cost brake)."""
         while self._heap and self._heap[0][0] <= until and len(self.log) < max_messages:
             self.now, _, message = heapq.heappop(self._heap)
-            self.log.append(message)
-            for new in await self.handler(message):
-                self.put(new)
+            await self._process(message)
+
+    async def _process(self, message: Message) -> list[Message]:
+        self.log.append(message)
+        if self.run_log:
+            self.run_log.write(message)
+        new = await self.handler(message, self)
+        for following in new:
+            self.put(following)
+        return new

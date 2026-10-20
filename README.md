@@ -16,7 +16,7 @@ EventQueue ──► Handler.handle(message) ──► world components update t
 - A message's `to` is one agent's name, `ALL` (a broadcast to every agent except the sender), or `None` (no agent receives it).
 - **Inboxes and waking:** a message addressed to an agent goes into its inbox. Only message types in the handler's `wake_on` (chosen per experiment) wake the agent. A `Wake` message is queued, and on it the agent takes one turn and sees everything in its inbox. Everything else waits in the inbox for the agent's next turn.
 - **World components** (`tradingcartel/world/`) are plain objects with `handle(message) -> list[Message]`, such as the message board and, later, the order book. They hold state and never touch the queue.
-- **Agents** run on PydanticAI and remember their whole conversation. Their tools don't change anything directly; they put messages in an outbox, which the handler returns to the queue.
+- **Agents** run on PydanticAI and remember their whole conversation. Their tools read state directly but never change it. To change something, a tool either puts a message in its outbox (queued when the turn ends, e.g. a board post) or submits it to the queue to be processed right away and gets the replies back (e.g. an order, which comes back filled or rejected). Either way, every change goes through the queue and the one handler, and is logged.
 - The run stops when no messages are left before the end time, or after `max_messages` (a cost brake).
 
 ## Layout
@@ -42,6 +42,16 @@ uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/cla
 ```
 
 `--model` takes any OpenRouter model id (`anthropic/...`, `openai/...`, `google/...`).
+
+## Logs
+
+Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/00_instruct_collude/2026-10-19T23-05-33Z.jsonl`, line by line as it goes. Pass `--no-write` to skip it. The first line describes the run (experiment, start time, model, settings); every other line is one message, with its type name, in the order it was processed:
+
+```json
+{"type": "BoardPost", "sender": "alice", "to": "all", "time": 0.0, "text": "..."}
+```
+
+Logs are committed to git.
 
 ## Dependencies
 

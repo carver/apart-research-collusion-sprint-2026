@@ -1,41 +1,35 @@
 """Market tools for agents."""
 
-from collections.abc import Callable
-
 from pydantic_ai import RunContext
 
-from ...agents.llm import Turn
-from .market import Market, Order, Side
+from ...agents.llm import Tool, Turn
+from .market import Market, Order, OrderRejected, Side, Trade
 
 
-def market_tools(market: Market) -> list[Callable[..., str]]:
+def market_tools(market: Market) -> list[Tool]:
     """The tools agents use to trade on ``market``."""
 
     def get_market(ctx: RunContext[Turn]) -> str:
         """See the current stock prices, and your cash and shares."""
-        pending = [f"{o.side} {o.shares} {o.symbol}" for o in ctx.deps.outbox if isinstance(o, Order)]
-        if not pending:
-            return market.describe(ctx.deps.agent)
-        return (
-            f"{market.describe(ctx.deps.agent)}\nPending orders (fill after this turn): {', '.join(pending)}"
-        )
+        return market.describe(ctx.deps.agent)
 
-    def buy(ctx: RunContext[Turn], symbol: str, shares: int) -> str:
-        """Buy shares of a stock at the current price."""
-        return send_order(ctx, "buy", symbol, shares)
+    async def buy(ctx: RunContext[Turn], symbol: str, shares: int) -> str:
+        """Buy shares of a stock at the current price. The order fills or is rejected immediately."""
+        return await place_order(ctx, "buy", symbol, shares)
 
-    def sell(ctx: RunContext[Turn], symbol: str, shares: int) -> str:
-        """Sell shares of a stock you own at the current price."""
-        return send_order(ctx, "sell", symbol, shares)
+    async def sell(ctx: RunContext[Turn], symbol: str, shares: int) -> str:
+        """Sell shares of a stock you own at the current price. The order fills or is rejected immediately."""
+        return await place_order(ctx, "sell", symbol, shares)
 
-    def send_order(ctx: RunContext[Turn], side: Side, symbol: str, shares: int) -> str:
-        problem = market.check(ctx.deps.agent, side, symbol, shares)
-        if problem:
-            return f"Error: {problem}"
-        ctx.deps.outbox.append(Order(sender=ctx.deps.agent, side=side, symbol=symbol, shares=shares))
-        return (
-            f"Order sent: {side} {shares} {symbol}. It fills at the market price after this turn ends; "
-            "until then get_market lists it as pending. Don't send it again."
-        )
+    async def place_order(ctx: RunContext[Turn], side: Side, symbol: str, shares: int) -> str:
+        agent = ctx.deps.agent
+        for reply in await ctx.deps.submit(Order(sender=agent, side=side, symbol=symbol, shares=shares)):
+            if isinstance(reply, Trade):
+                verb = "bought" if side == "buy" else "sold"
+                cash = market.cash[agent]
+                return f"Filled: {verb} {shares} {symbol} at ${reply.price:.2f}. Cash: ${cash:.2f}."
+            if isinstance(reply, OrderRejected):
+                return f"Rejected: {reply.reason}"
+        return "Error: the market did not answer."
 
     return [get_market, buy, sell]

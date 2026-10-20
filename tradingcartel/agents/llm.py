@@ -2,7 +2,7 @@
 
 import os
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -13,6 +13,7 @@ from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models import Model
 from pydantic_ai.models.openrouter import OpenRouterModel
 from pydantic_ai.models.test import TestModel
+from pydantic_ai.tool_manager import ToolManager
 
 from ..core.messages import Message
 
@@ -21,35 +22,42 @@ pydantic_ai.BANNER_ENABLED = False  # no first-run banner in our output
 ENV_FILE = Path(__file__).resolve().parents[2] / ".env"  # in the project root
 MAX_REQUESTS_PER_TURN = 10  # a normal turn takes 2-3 model requests
 
+Submit = Callable[[Message], Awaitable[list[Message]]]
+Tool = Callable[..., str | Awaitable[str]]
+
 
 @dataclass
 class Turn:
     """What a tool can see during one agent turn (PydanticAI's ``deps``). Tools never change state
-    themselves: they put messages in ``outbox``, and the handler sends those to the event queue."""
+    themselves. They either put messages in ``outbox``, which the handler queues after the turn, or
+    ``submit`` a message to the queue to be processed right away and get the replies back."""
 
     agent: str
+    submit: Submit
     outbox: list[Message] = field(default_factory=list)
 
 
 class LLMAgent:
     """One LLM participant. It keeps its whole conversation across turns."""
 
-    def __init__(self, name: str, model: str, instructions: str, tools: Sequence[Callable[..., str]]) -> None:
+    def __init__(self, name: str, model: str, instructions: str, tools: Sequence[Tool]) -> None:
         self.name = name
         self.agent = Agent(make_model(model), instructions=instructions, deps_type=Turn, tools=tools)
         self.history: list[ModelMessage] = []
 
-    async def act(self, prompt: str) -> list[Message]:
+    async def act(self, prompt: str, submit: Submit) -> list[Message]:
         """Run one turn and return the messages the agent sent. If the turn fails (for example it
         makes too many model requests), the failure is reported and what was sent before it counts."""
-        turn = Turn(agent=self.name)
+        turn = Turn(agent=self.name, submit=submit)
         try:
-            result = await self.agent.run(
-                prompt,
-                deps=turn,
-                message_history=self.history,
-                usage_limits=UsageLimits(request_limit=MAX_REQUESTS_PER_TURN),
-            )
+            # Run tool calls one at a time, in the order the model made them (sell, then buy).
+            with ToolManager.parallel_execution_mode("sequential"):
+                result = await self.agent.run(
+                    prompt,
+                    deps=turn,
+                    message_history=self.history,
+                    usage_limits=UsageLimits(request_limit=MAX_REQUESTS_PER_TURN),
+                )
         except AgentRunError as exc:
             print(f"[{self.name}] turn failed: {exc}", file=sys.stderr)
             return turn.outbox
