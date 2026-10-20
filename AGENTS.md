@@ -9,3 +9,15 @@ When running `/upskill`, also list every global tool the session called that isn
 ## Git
 
 Commit straight to `main` and push; no branches or PRs. This holds for every collaborator.
+
+## Checks
+
+Committing runs ruff, and for agents the tests too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows.
+
+## Tests
+
+Red/green, one test at a time: write a test, run it and watch it fail, then write the code that passes it. A test that passes on its first run never went red and proves nothing new: delete it, or change it until it fails for the reason you meant.
+
+## Pilots
+
+Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `--model claude-cli:haiku --no-write`. Drop `--no-write` only when you need the usage totals, and delete that log afterwards.
