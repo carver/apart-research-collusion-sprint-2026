@@ -11,6 +11,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pyright==1.1.414",
     "pytest==9.1.1",
     "ruff==0.16.9",
 ]
@@ -31,6 +32,11 @@ module-root = ""  # the package lives in ./tradingcartel, no src/ folder
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.pyright]
+include = ["tradingcartel"]  # not tests/: they read subclass fields off plain Messages, fine at runtime
+typeCheckingMode = "standard"
+pythonVersion = "3.12"
 
 [tool.ruff]
 line-length = 110

@@ -1,4 +1,4 @@
-# Lint, format check and tests on every push to main and every pull request.
+# Lint, format check, tests and type check on every push to main and every pull request.
 # The tests use PydanticAI's TestModel, so they make no API calls and need no secrets.
 name: CI
 
@@ -17,3 +17,4 @@ jobs:
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run pytest
+      - run: uv run pyright

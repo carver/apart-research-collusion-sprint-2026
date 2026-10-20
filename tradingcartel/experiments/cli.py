@@ -1,8 +1,9 @@
 """Running an experiment from the command line, the same way for every experiment."""
 
 import asyncio
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable, Coroutine
 from pathlib import Path
+from typing import Any
 
 from tradingcartel.core.record import RunLog
 from tradingcartel.experiments.settings import RunSettings
@@ -10,9 +11,9 @@ from tradingcartel.experiments.settings import RunSettings
 
 def run_from_command_line[S: RunSettings, R](
     settings_type: type[S],
-    description: str,
+    description: str | None,
     experiment_file: str,
-    run: Callable[[S, RunLog | None], Awaitable[R]],
+    run: Callable[[S, RunLog | None], Coroutine[Any, Any, R]],
     report: Callable[[R], None],
 ) -> None:
     """Run an experiment with the settings and log the command line asks for, print its

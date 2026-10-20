@@ -38,6 +38,7 @@ Real models go through OpenRouter, paid per token: put `OPENROUTER_API_KEY=...` 
 ```bash
 uv sync
 uv run pytest                                                   # no API calls
+uv run pyright                                                  # type-check the package
 uv run python -m tradingcartel.experiments.hello_board.run      # free: PydanticAI's TestModel
 uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/claude-opus-5.5 --max-messages 4
 ```

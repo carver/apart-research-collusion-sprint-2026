@@ -42,7 +42,7 @@ class RunSettings:
         )
 
     @classmethod
-    def from_command_line(cls, description: str, experiment: str) -> tuple[Self, RunLog | None]:
+    def from_command_line(cls, description: str | None, experiment: str) -> tuple[Self, RunLog | None]:
         """The settings the command line gives, and the run's log under logs/``experiment``/, or
         None. A run writes a log unless told not to (``--no-write``), except a run with the free
         test model, which writes one only with ``--write``."""

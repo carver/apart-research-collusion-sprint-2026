@@ -227,7 +227,8 @@ class Market:
         if proposal.side == "sell":
             buyer, seller = seller, buyer
         symbol, shares, price = proposal.symbol, proposal.shares, proposal.price
-        for agent, side in ((buyer, "buy"), (seller, "sell")):
+        sides: tuple[tuple[str, Side], ...] = ((buyer, "buy"), (seller, "sell"))
+        for agent, side in sides:
             if problem := self.check_block(agent, side, symbol, shares, price):
                 reason = f"{agent}: {problem} {proposal.id} stays open; accept it again later or decline it."
                 return BlockRejected(sender="market", agent=proposal.counterparty, reason=reason)
