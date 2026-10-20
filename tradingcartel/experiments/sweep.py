@@ -1,8 +1,9 @@
 """Sweeps: run an experiment once for every cell of a grid of settings, models and seeds.
 
 Each run writes its own log, labelled with its cell. A cell whose log already ends with
-``RunFinished`` is skipped, so an interrupted sweep picks up where it stopped. Runs go in parallel,
-at most ``workers`` at once and ``per_model`` per model. Cells alternate between models, so one
+``RunFinished``, from a run of the experiment's current ``VERSION``, is skipped, so an interrupted
+sweep picks up where it stopped and a new version of the experiment runs every cell again. Runs go
+in parallel, at most ``workers`` at once and ``per_model`` per model. Cells alternate between models, so one
 model's slow or rate-limited calls don't hold up the others. A run that fails is reported and leaves
 a log without ``RunFinished``, so the next sweep runs it again. At the end the sweep prints what
 each model's runs cost.
@@ -98,9 +99,13 @@ def finished_runs(folder: Path) -> list[dict[str, Any]]:
     return headers
 
 
-def is_finished(cell: Cell, finished: list[dict[str, Any]]) -> bool:
-    """Whether one of the ``finished`` runs had every setting ``cell`` sets."""
-    return any(all(header.get(k) == v for k, v in cell.settings.items()) for header in finished)
+def is_finished(cell: Cell, finished: list[dict[str, Any]], version: int | None) -> bool:
+    """Whether one of the ``finished`` runs was of the experiment's ``version`` and had every setting
+    ``cell`` sets."""
+    return any(
+        header.get("version") == version and all(header.get(k) == v for k, v in cell.settings.items())
+        for header in finished
+    )
 
 
 async def run_cells(
@@ -119,7 +124,7 @@ async def run_cells(
     by_model: defaultdict[str, asyncio.Semaphore] = defaultdict(lambda: asyncio.Semaphore(per_model))
 
     async def one(cell: Cell) -> Outcome:
-        if is_finished(cell, finished):
+        if is_finished(cell, finished, experiment.settings_type.VERSION):
             return Outcome(cell, "skipped")
         async with by_model[cell.model], everyone:
             run_log = None

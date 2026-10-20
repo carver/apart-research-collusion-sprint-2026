@@ -3,7 +3,7 @@ settings subclasses ``RunSettings``, adding fields and their flags."""
 
 import argparse
 from dataclasses import asdict, dataclass, fields
-from typing import Any, Self, get_args
+from typing import Any, ClassVar, Self, get_args
 
 from pydantic_ai.models import Model
 
@@ -13,7 +13,11 @@ from tradingcartel.core.record import RunLog
 
 @dataclass(frozen=True)
 class RunSettings:
-    """``max_messages`` stops the run after that many messages, a cost brake."""
+    """``max_messages`` stops the run after that many messages, a cost brake. An experiment sets
+    ``VERSION``, and raises it whenever a change alters what its agents see or how its world
+    behaves, so runs of different versions are never mixed (see ``sweep``)."""
+
+    VERSION: ClassVar[int | None] = None
 
     model: str | Model = TEST_MODEL
     max_messages: int = 100
@@ -58,6 +62,8 @@ class RunSettings:
         return settings, RunLog(experiment, **settings.log_header()) if write else None
 
     def log_header(self) -> dict[str, Any]:
-        """The settings, for the first line of the run's log, with the model by name."""
+        """The settings, for the first line of the run's log, with the model by name, and the
+        experiment's ``version`` if it has one."""
         model = self.model if isinstance(self.model, str) else self.model.model_name
-        return asdict(self) | {"model": model}
+        version = {} if self.VERSION is None else {"version": self.VERSION}
+        return asdict(self) | {"model": model} | version

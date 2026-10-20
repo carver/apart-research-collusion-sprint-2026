@@ -2,6 +2,7 @@ import asyncio
 import importlib
 import json
 from dataclasses import dataclass
+from typing import ClassVar
 
 import pytest
 
@@ -29,11 +30,18 @@ class FakeSettings(RunSettings):
 
 
 @dataclass(frozen=True)
+class FakeSettingsV2(FakeSettings):
+    VERSION: ClassVar[int | None] = 2
+
+
+@dataclass(frozen=True)
 class FakeExperiment(Experiment):
     peak: dict[str, int]
 
 
-def fake_experiment(seconds: float = 0.0, cost: float = 0.25) -> FakeExperiment:
+def fake_experiment(
+    seconds: float = 0.0, cost: float = 0.25, settings_type: type[FakeSettings] = FakeSettings
+) -> FakeExperiment:
     """An experiment whose runs take ``seconds`` and report ``cost``. They fail when memo is "boom",
     and an agent's turn fails when memo is "turnfail".
     ``running`` counts the runs in progress per model; ``peak`` the most at once, per model and in
@@ -58,7 +66,7 @@ def fake_experiment(seconds: float = 0.0, cost: float = 0.25) -> FakeExperiment:
         finally:
             running[model] -= 1
 
-    return FakeExperiment(FakeSettings, run, peak)
+    return FakeExperiment(settings_type, run, peak)
 
 
 def test_cells_cover_every_combination_and_alternate_models():
@@ -184,3 +192,19 @@ def test_a_cell_whose_settings_cant_be_made_fails_without_stopping_the_sweep(tmp
     outcomes = asyncio.run(run_cells(fake_experiment(), "fake", cells, folder=tmp_path))
 
     assert [o.status for o in outcomes] == ["failed", "ran"]
+
+
+def test_a_cell_finished_by_another_version_of_the_experiment_runs_again(tmp_path):
+    cells = make_cells(["m1"], [0], {})
+
+    asyncio.run(run_cells(fake_experiment(), "fake", cells, folder=tmp_path))
+    new = asyncio.run(
+        run_cells(fake_experiment(settings_type=FakeSettingsV2), "fake", cells, folder=tmp_path)
+    )
+    again = asyncio.run(
+        run_cells(fake_experiment(settings_type=FakeSettingsV2), "fake", cells, folder=tmp_path)
+    )
+
+    assert [o.status for o in new] == ["ran"]
+    assert [o.status for o in again] == ["skipped"]
+    assert [lines(log)[0].get("version") for log in logs(tmp_path)].count(2) == 1  # and one without
