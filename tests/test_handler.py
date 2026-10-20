@@ -2,9 +2,9 @@ import asyncio
 
 from pydantic_ai.messages import UserPromptPart
 
-from tradingcartel.agents.llm import LLMAgent
+from tradingcartel.agents.llm import AgentTurn, LLMAgent
 from tradingcartel.core.handler import Handler
-from tradingcartel.core.messages import Message, Notice
+from tradingcartel.core.messages import Message, Notice, Wake
 from tradingcartel.core.queue import EventQueue
 from tradingcartel.world.messageboard.board import BoardPost, MessageBoard
 from tradingcartel.world.messageboard.tools import post_to_board
@@ -31,7 +31,7 @@ def test_a_broadcast_wakes_every_agent_but_the_sender():
     queue = EventQueue(Handler([alice, bob, carol], world=[board], wake_on=(BoardPost,)).handle)
     post = BoardPost(sender="alice", text="Buy ACME.")
 
-    process(queue, post, max_messages=3)  # the post, then bob's and carol's wake-ups
+    process(queue, post, max_messages=5)  # the post, then bob's and carol's wake-ups and turn records
 
     assert board.posts == [post]
     assert received(alice) == []
@@ -57,3 +57,16 @@ def test_messages_that_dont_wake_wait_in_the_inbox_for_the_next_turn():
 
     process(queue, Notice(to="bob", text="Hello, Bob."), max_messages=3)
     assert received(bob) == ["alice posted on the message board: Buy ACME.\n\nHello, Bob."]
+
+
+def test_each_turn_is_recorded_right_after_it_happens():
+    alice, bob = make_agents("alice", "bob")
+    queue = EventQueue(Handler([alice, bob], world=[], wake_on=(Notice,)).handle)
+
+    process(queue, Notice(to="bob", text="Hello, Bob."), max_messages=2)
+
+    assert [type(m) for m in queue.log] == [Notice, Wake, AgentTurn]
+    record = queue.log[2]
+    assert record.sender == "bob"
+    assert record.messages == bob.history  # its first turn: the prompt, the post, and the reply
+    assert record.error is None

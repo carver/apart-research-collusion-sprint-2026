@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Literal
 
 import pydantic_ai
+from pydantic import Field
 from pydantic_ai import Agent, UsageLimits, capture_run_messages
 from pydantic_ai.exceptions import AgentRunError
 from pydantic_ai.messages import ModelMessage, ModelResponse
@@ -39,6 +40,16 @@ class Turn:
     agent: str
     submit: Submit
     outbox: list[Message] = field(default_factory=list)
+
+
+class AgentTurn(Message):
+    """The record of one agent turn, for the log: everything the agent was shown, said and did. No
+    agent receives it. What the turn used is logged separately, as a ``TurnUsage`` line."""
+
+    error: str | None = None  # why the turn failed, if it did
+    # The turn's new messages, in PydanticAI's format: the prompt (the agent's inbox), the model's
+    # text, its tool calls and their results, and the token usage of each request.
+    messages: list[ModelMessage] = Field(repr=False)
 
 
 @dataclass
@@ -83,11 +94,14 @@ class LLMAgent:
         self.history: list[ModelMessage] = []
 
     async def act(self, prompt: str, submit: Submit) -> tuple[list[Message], TurnUsage]:
-        """Run one turn and return the messages the agent sent and what the turn used. If the turn
-        fails (for example it makes too many model requests), the failure is reported, and what was
-        sent and used before it counts."""
+        """Run one turn, submit a record of it (an ``AgentTurn``), and return the messages the agent
+        sent and what the turn used. If the turn fails (for example it makes too many model
+        requests), the failure is reported and recorded, and what was sent and used before it
+        counts."""
         turn = Turn(agent=self.name, submit=submit)
-        # Captures the messages even when the run fails, so a failed turn's usage is counted too.
+        error = None
+        # Captures the messages even when the run fails, so a failed turn is recorded and its usage
+        # counted too.
         with capture_run_messages() as messages:
             try:
                 # Run tool calls one at a time, in the order the model made them (sell, then buy).
@@ -99,11 +113,13 @@ class LLMAgent:
                         usage_limits=UsageLimits(request_limit=MAX_REQUESTS_PER_TURN),
                     )
             except AgentRunError as exc:
-                print(f"[{self.name}] turn failed: {exc}", file=sys.stderr)
+                error = f"{type(exc).__name__}: {exc}"
+                print(f"[{self.name}] turn failed: {error}", file=sys.stderr)
                 new = messages[len(self.history) :]  # the history, then this turn's messages
             else:
                 new = result.new_messages()
                 self.history = result.all_messages()
+        await submit(AgentTurn(sender=self.name, error=error, messages=new))
         responses = [m for m in new if isinstance(m, ModelResponse)]
         return turn.outbox, TurnUsage.from_responses(self.model.model_name, responses)
 

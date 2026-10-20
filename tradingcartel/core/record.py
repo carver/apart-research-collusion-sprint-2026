@@ -1,13 +1,15 @@
 """Run logs: every message a run processes, one JSON object per line, written as it goes.
 
 A run's log is ``logs/<experiment>/<start time, UTC>.jsonl`` in the project root. The first line
-describes the run (experiment, start time, settings). After it, in the order they happened, come the
-messages, with their type names, in the order the queue processed them, and after each agent turn a
-``TurnUsage`` line: the tokens and dollar cost of that turn's model requests. ``finish`` writes the
-last line, ``RunFinished``, with the usage totals for the run, per model and per agent.
+describes the run (experiment, start time, git commit, settings). After it, in the order they
+happened, come the messages, with their type names, in the order the queue processed them, and after
+each agent turn a ``TurnUsage`` line: the tokens and dollar cost of that turn's model requests.
+``finish`` writes the last line, ``RunFinished``, with the usage totals for the run, per model and
+per agent.
 """
 
 import json
+import subprocess
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
@@ -17,7 +19,8 @@ from typing import Any
 from ..agents.llm import TurnUsage
 from .messages import Message
 
-LOGS_DIR = Path(__file__).resolve().parents[2] / "logs"
+ROOT = Path(__file__).resolve().parents[2]  # the project root
+LOGS_DIR = ROOT / "logs"
 
 
 @dataclass
@@ -63,6 +66,7 @@ class RunLog:
             "type": "RunStarted",
             "experiment": experiment,
             "started": started.isoformat(timespec="seconds"),
+            **git_state(),
         }
         with self.path.open("x") as file:  # "x": never overwrite an existing log
             file.write(json.dumps({**header, **settings}, ensure_ascii=False) + "\n")
@@ -97,3 +101,18 @@ class RunLog:
     def _append(self, record: dict[str, Any]) -> None:
         with self.path.open("a") as file:
             file.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def git_state() -> dict[str, Any]:
+    """Which code a run used: the current git commit, and whether any files other than logs had
+    uncommitted changes. Both are None if git can't tell."""
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout
+
+    try:
+        commit = git("rev-parse", "HEAD").strip()
+        changes = git("status", "--porcelain", "--", ".", ":(exclude)logs")
+    except (OSError, subprocess.CalledProcessError):
+        return {"commit": None, "uncommitted_changes": None}
+    return {"commit": commit, "uncommitted_changes": bool(changes)}

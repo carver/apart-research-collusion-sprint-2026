@@ -1,6 +1,6 @@
 # tradingcartel
 
-LLM agents trading on a simulated stock market, for studying when collusion emerges and what stops it (Apart Research AI Collusion Research Sprint, Track 1.1). Goals: `~/workspace/ai_safety_old/specs/IMPLEMENTATION_SPEC.md`.
+A project for the Apart Research AI Collusion Research Sprint (Track 1.1). We run experiments on collusion between LLM agents trading on a simulated stock market. The focus is insider trading: whether agents with inside information form a cartel, sharing what they know and trading on each other's tips, and what makes that more or less likely.
 
 ## How it works
 
@@ -49,7 +49,7 @@ uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/cla
 
 ## Logs
 
-Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/00_instruct_collude/2026-10-19T23-05-33Z.jsonl`, line by line as it goes. Pass `--no-write` to skip it (and the usage totals). The first line describes the run (experiment, start time, model, settings). Then each message, with its type name, in the order it was processed:
+Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/00_instruct_collude/2026-10-19T23-05-33Z.jsonl`, line by line as it goes. Pass `--no-write` to skip it (and the usage totals). The first line describes the run (experiment, start time, git commit and whether there were uncommitted changes, model, settings). Then each message, with its type name, in the order it was processed:
 
 ```json
 {"type": "BoardPost", "sender": "alice", "to": "all", "time": 0.0, "text": "..."}
@@ -58,6 +58,12 @@ Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/
 A `Trade` has the fill `price` and `market_price`, the stock's price after the trade; with `--market impact` the two differ, and the `market_price`s trace the price path. The first line records `market` and its `impact` settings.
 
 Side deals log the request (`Payment`, `ProposeBlock`, `BlockAnswer`, addressed to no agent) and then the market's answer: `FundsTransferred` (to the recipient), `BlockProposed` (to the counterparty, with its id), `BlockTrade` or `BlockClosed` (to the other party), or `PaymentRejected`/`BlockRejected`.
+
+Each agent turn is recorded, right after it, as an `AgentTurn` message: an `error` if the turn failed, and its new `messages` in PydanticAI's format, which hold what the agent was shown (its inbox), its text, and its tool calls with their results. An agent's whole conversation is its `AgentTurn` messages in order:
+
+```json
+{"type": "AgentTurn", "sender": "alice", "to": null, "time": 0.0, "error": null, "messages": [...]}
+```
 
 After each agent turn, a `TurnUsage` line gives what its model requests used. `cost` is in US dollars: what OpenRouter charged, or for `claude-cli:` models what the calls would have cost at API prices. It is `null` when there is none to report: the free `test` model, and OpenRouter's free models too, since PydanticAI drops a cost of 0:
 
