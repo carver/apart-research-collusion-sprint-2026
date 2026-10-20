@@ -10,6 +10,7 @@ class Message(BaseModel):
 
     sender: str = "system"
     to: str | None = None  # an agent's name, ALL, or None if no agent should receive it
+    time: float = 0.0  # simulated minutes since the start, set by the queue
 
     def describe(self) -> str:
         """How the message reads to an agent that receives it. Subclasses override this."""

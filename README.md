@@ -7,15 +7,16 @@ LLM agents trading on a simulated stock market, for studying when collusion emer
 Everything is a message on **one running event queue**, and **one handler** processes every message.
 
 ```
-EventQueue (FIFO) ──► Handler.handle(message) ──► world components update their state
-                                              └─► agents the message is addressed to take a turn
-                       new messages from both ◄──┘  go to the back of the queue
+EventQueue ──► Handler.handle(message) ──► world components update their state
+                                       └─► agents the message is addressed to take a turn
+               new messages from both ◄──┘  are queued at the current time
 ```
 
+- **Simulated time:** every message has a `time`, in simulated minutes since the start. The queue always processes the earliest message next (ties in the order they were queued), and its clock jumps to each message's time. It never reads the computer's clock. Experiments schedule future events with `queue.put(message, delay=minutes)`.
 - A message's `to` is one agent's name, `ALL` (a broadcast to every agent except the sender), or `None` (no agent receives it).
 - **World components** (`tradingcartel/world/`) are plain objects with `handle(message) -> list[Message]`, such as the message board and, later, the order book. They hold state and never touch the queue.
 - **Agents** run on PydanticAI and remember their whole conversation. Their tools don't change anything directly; they put messages in an outbox, which the handler returns to the queue.
-- The run stops when the queue is empty or after `max_messages` (a stand-in until there is simulated time).
+- The run stops when no messages are left before the end time, or after `max_messages` (a cost brake).
 
 ## Layout
 
