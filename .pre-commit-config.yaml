@@ -1,0 +1,10 @@
+# Ruff comes from its own pre-commit repo, not the project's .venv, so the hook also works
+# on the host, which shares this checkout (and its sandbox-built .venv) with the sandbox.
+# Keep rev in step with ruff in pyproject.toml.
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
+    hooks:
+      - id: ruff-format
+      - id: ruff-check
+        args: [--fix]

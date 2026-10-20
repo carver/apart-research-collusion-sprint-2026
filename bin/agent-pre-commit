@@ -1,0 +1,3 @@
+#!/bin/sh
+# Slow checks for agent commits; bin/git-pre-commit runs this first when $AI_AGENT is set.
+uv run pytest -q
