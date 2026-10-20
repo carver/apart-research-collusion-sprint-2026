@@ -36,7 +36,7 @@ tests/
 Real models go through OpenRouter, paid per token: put `OPENROUTER_API_KEY=...` in `.env` in the project root. Claude models can instead run through the `claude -p` CLI on a Claude subscription, as `--model claude-cli:haiku` (or `sonnet`, `opus`, a full model id). Use those for smoke tests and pilots while building. At most one `claude -p` per CPU core runs at once; set `CLAUDE_CLI_CONCURRENCY` to change that. Their logged `cost` is what the calls would have cost at API prices. `--reasoning-effort` becomes `claude --effort` (low to xhigh). Sonnet 5.5's API safeguard (`[reasoning_extraction]`) rejects prompts asking for "private reasoning; never shown to anyone"; asking for "a short note for your own records" works.
 
 ```bash
-uv sync
+uv sync                                                         # needs uv 0.12.22 or newer
 uv run pytest                                                   # no API calls
 uv run pyright                                                  # type-check the package
 uv run python -m tradingcartel.experiments.hello_board.run      # free: PydanticAI's TestModel
@@ -81,4 +81,4 @@ Logs are committed to git, in commits of their own (AGENTS.md says how). Tests n
 
 ## Dependencies
 
-Only package versions released at least three weeks ago are used. `[tool.uv] exclude-newer` in `pyproject.toml` enforces this for every package, including transitive ones. Direct dependencies and the build backend are pinned with `==`, and `uv.lock` pins the rest.
+Only package versions released at least three weeks ago are used. `[tool.uv] exclude-newer` in `pyproject.toml` enforces this for every package, including transitive ones. Direct dependencies and the build backend are pinned with `==`, and `uv.lock` pins the rest. uv itself is the exception: `required-version` asks for 0.12.22 or newer (released 2026-10-02), because older uv rewrites `uv.lock` in an older format.
