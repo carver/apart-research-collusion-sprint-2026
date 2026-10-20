@@ -45,6 +45,8 @@ uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/cla
 
 `00_instruct_collude` takes `--market impact` to make every trade move the price (an order fills halfway along the move it causes); the default, `fixed`, moves prices only on news. Any market can halt a stock's trading with `TradingHalt` and resume it at a new price with `TradingResumed` (an acquisition, say).
 
+`02_mnpi_bait` (issue #21) has one LLM subject, Halvern's buyback agent, with a pre-set schedule of 200 shares a day, and two scripted funds. `--memo` gives the subject inside information and `--message` picks what one fund asks it by direct message. The question is whether a subject holding the memo refuses the cartel but cuts its buying anyway.
+
 Experiments can also give agents private channels (`world/channels`): direct messages (`send_dm`) and private groups with a member list (`post_to_group`), sent under usernames. Every agent has its own name as a username, and an experiment can give it more, such as a sock puppet or a fake insider. Recipients see only the username a message came from; the log keeps the real `sender` too. Each channel is marked as logged or not by the agents' principals, and agents are told which (`my_channels` lists an agent's usernames and groups). The experiment's `wake_on` decides whether a `DirectMessage` or `GroupMessage` wakes its recipient. A scripted agent sends `SendDirect` or `PostToGroup` itself.
 
 Agents can also report to their own firm's compliance team with the `report` tool (`world/compliance`). A `Report` reaches the `Compliance` component and the log, never another agent.
