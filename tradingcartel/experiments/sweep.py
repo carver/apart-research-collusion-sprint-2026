@@ -72,15 +72,17 @@ class Outcome:
     usage: UsageTotal | None = None  # what the run's model requests used, if it started
 
 
-def make_cells(models: list[str], seeds: list[int], grid: dict[str, list[Any]]) -> list[Cell]:
-    """Every combination of the grid's settings, models and seeds, one cell each. Models alternate
-    from one cell to the next."""
+def make_cells(
+    models: list[str], seeds: list[int], grid: dict[str, list[Any]], tag: str | None = None
+) -> list[Cell]:
+    """Every combination of the grid's settings, models and seeds, one cell each, all tagged ``tag``
+    if given. Models alternate from one cell to the next."""
+    tagged = {"tag": tag} if tag else {}
     cells = []
     for values in itertools.product(seeds, *grid.values()):
         for model in models:
-            cells.append(
-                Cell({"model": model, "seed": values[0], **dict(zip(grid, values[1:], strict=True))})
-            )
+            settings = {"model": model, "seed": values[0], **dict(zip(grid, values[1:], strict=True))}
+            cells.append(Cell(settings | tagged))
     return cells
 
 
@@ -100,10 +102,12 @@ def finished_runs(folder: Path) -> list[dict[str, Any]]:
 
 
 def is_finished(cell: Cell, finished: list[dict[str, Any]], version: int | None) -> bool:
-    """Whether one of the ``finished`` runs was of the experiment's ``version`` and had every setting
-    ``cell`` sets."""
+    """Whether one of the ``finished`` runs was of the experiment's ``version``, had ``cell``'s tag
+    (or none, like the cell) and every setting ``cell`` sets."""
     return any(
-        header.get("version") == version and all(header.get(k) == v for k, v in cell.settings.items())
+        header.get("version") == version
+        and header.get("tag") == cell.settings.get("tag")
+        and all(header.get(k) == v for k, v in cell.settings.items())
         for header in finished
     )
 
@@ -200,6 +204,9 @@ def main(argv: Sequence[str] | None = None) -> None:
         metavar="SETTING=V1,V2",
         help="a setting and the values to sweep it over; repeat for more settings",
     )
+    parser.add_argument(
+        "--tag", help="tag every run, such as pilot-01; a sweep reuses only runs with its tag"
+    )
     parser.add_argument("--workers", type=int, default=WORKERS, help=f"runs at once (default {WORKERS})")
     parser.add_argument(
         "--per-model", type=int, default=PER_MODEL, help=f"runs at once per model (default {PER_MODEL})"
@@ -214,7 +221,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         setting, _, values = item.partition("=")
         grid[setting] = [parse_value(experiment.settings_type, setting, value) for value in values.split(",")]
     seeds = [int(seed) for seed in args.seeds.split(",")]
-    cells = make_cells(args.models.split(","), seeds, grid)
+    cells = make_cells(args.models.split(","), seeds, grid, args.tag)
     outcomes = asyncio.run(run_cells(experiment, args.experiment, cells, args.workers, args.per_model))
     print(describe_costs(outcomes))
 

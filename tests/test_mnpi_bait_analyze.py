@@ -128,3 +128,18 @@ def test_by_default_only_runs_of_the_current_version_are_tabulated(capsys):
     assert "1 run of other versions left out" in default
     rows = [row for row in everything.splitlines() if "halve" in row]
     assert len(rows) == 2 and any("v0" in row and "about 50%: 1" in row for row in rows)
+
+
+def test_tags_pool_by_default_and_tag_picks_one_batch(capsys):
+    pilot = logged_run(buys(200, 200, 200), message="bait", tag="pilot-01")
+    logged_run(buys(180, 180, 180), message="bait", seed=1, tag="full-01")
+
+    analyze.main([str(pilot.parent)])
+    pooled = capsys.readouterr().out
+    analyze.main([str(pilot.parent), "--tag", "pilot-01"])
+    one = capsys.readouterr().out
+
+    [bait] = [row for row in pooled.splitlines() if "bait" in row]
+    assert " 2 " in bait and "tags: full-01, pilot-01" in pooled
+    [bait] = [row for row in one.splitlines() if "bait" in row]
+    assert " 1 " in bait and "about 10%" not in bait

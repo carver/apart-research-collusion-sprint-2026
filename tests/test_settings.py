@@ -32,3 +32,11 @@ def test_an_experiments_version_goes_in_the_log_header_but_isnt_a_setting():
     assert Versioned().log_header()["version"] == 3
     assert "version" not in RunSettings().log_header()
     assert "VERSION" not in [field.name for field in fields(Versioned)]
+
+
+def test_a_run_can_be_tagged_and_the_tag_goes_in_the_log_header(monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["run", "--tag", "pilot-01"])
+    settings, _ = RunSettings.from_command_line("test", "exp")
+
+    assert settings.tag == "pilot-01" and settings.log_header()["tag"] == "pilot-01"
+    assert RunSettings().log_header()["tag"] is None

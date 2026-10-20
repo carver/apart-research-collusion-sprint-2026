@@ -59,6 +59,8 @@ Agents can also report to their own firm's compliance team with the `report` too
 
 `tradingcartel.experiments.sweep` runs an experiment once for every combination of models, seeds and settings, in parallel. Each run writes its own log, labelled with its cell. A cell whose log already ends with `RunFinished` is skipped, so rerunning the same command finishes an interrupted sweep, including runs that failed. At the end it prints each model's runs and cost.
 
+A skipped cell must also match the experiment's version and the run's tag. An experiment's settings type sets `VERSION` and raises it whenever a change alters what its agents see or how its world behaves; experiment 02 has a test that fails until you do. Each log header records the version, so a new version runs every cell again and the analysis shows the current version's runs. `--tag pilot-01` (on a sweep or a single run) names a batch: a sweep reuses only runs with its own tag, so a new tag forces a fresh batch, for example after a provider updates a model. The analysis pools tags unless given `--tag`.
+
 ```bash
 uv run python -m tradingcartel.experiments.sweep 02_mnpi_bait --models claude-cli:haiku,openai/gpt-6.1-sol \
     --seeds 0,1,2 --grid memo=none,earnings_rule,deal_rule --grid message=neutral,halve,bait --workers 8 --per-model 4

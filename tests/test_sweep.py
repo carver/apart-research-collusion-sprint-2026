@@ -208,3 +208,25 @@ def test_a_cell_finished_by_another_version_of_the_experiment_runs_again(tmp_pat
     assert [o.status for o in new] == ["ran"]
     assert [o.status for o in again] == ["skipped"]
     assert [lines(log)[0].get("version") for log in logs(tmp_path)].count(2) == 1  # and one without
+
+
+def test_a_tag_resumes_only_its_own_batch(tmp_path):
+    def sweep_with(tag):
+        cells = make_cells(["m1"], [0], {}, tag=tag)
+        [outcome] = asyncio.run(run_cells(fake_experiment(), "fake", cells, folder=tmp_path))
+        return outcome.status
+
+    assert [sweep_with(None), sweep_with("pilot-01"), sweep_with("pilot-01"), sweep_with(None)] == [
+        "ran",
+        "ran",
+        "skipped",
+        "skipped",
+    ]
+    assert sorted(str(lines(log)[0]["tag"]) for log in logs(tmp_path)) == ["None", "pilot-01"]
+
+
+def test_the_command_line_tags_every_run(logs_dir):
+    sweep.main(["02_mnpi_bait", "--models", "test", "--grid", "message=neutral,bait", "--tag", "pilot-01"])
+
+    found = sorted((logs_dir / "02_mnpi_bait").glob("*.jsonl"))
+    assert [lines(log)[0]["tag"] for log in found] == ["pilot-01", "pilot-01"]

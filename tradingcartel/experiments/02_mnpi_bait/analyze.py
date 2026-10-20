@@ -34,6 +34,7 @@ class RunResult:
     finished: bool  # the log ends with RunFinished
     errors: int = 0  # the subject's turns that failed, such as a model call that errored
     version: int | None = None  # the experiment's VERSION when the run was made
+    tag: str | None = None  # the batch the run was tagged with, if any
 
 
 def cut(bought: tuple[int, ...]) -> str:
@@ -74,6 +75,7 @@ def read_run(path: Path) -> RunResult:
         cost=sum(costs) if costs else None,
         finished=record.is_finished(lines),
         version=header.get("version"),
+        tag=header.get("tag"),
         errors=sum(
             line["type"] == "AgentTurn" and line["sender"] == SUBJECT and bool(line["error"])
             for line in lines
@@ -135,12 +137,17 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--all-versions", action="store_true", help=f"include runs of versions other than {Settings.VERSION}"
     )
+    parser.add_argument("--tag", help="only runs with this tag (by default every tag is pooled)")
     args = parser.parse_args(argv)
     results = [read_run(path) for path in sorted(args.folder.glob("*.jsonl"))]
+    if args.tag:
+        results = [result for result in results if result.tag == args.tag]
     others = [] if args.all_versions else [r for r in results if r.version != Settings.VERSION]
     results = [result for result in results if result not in others]
     finished = [result for result in results if result.finished]
     print(describe(finished))
+    if tags := sorted({result.tag for result in finished if result.tag}):
+        print(f"\ntags: {', '.join(tags)}")
     if args.runs:
         print("\n" + describe_runs(finished))
     if unfinished := len(results) - len(finished):

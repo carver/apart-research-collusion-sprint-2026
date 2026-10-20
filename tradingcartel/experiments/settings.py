@@ -13,7 +13,8 @@ from tradingcartel.core.record import RunLog
 
 @dataclass(frozen=True)
 class RunSettings:
-    """``max_messages`` stops the run after that many messages, a cost brake. An experiment sets
+    """``max_messages`` stops the run after that many messages, a cost brake. ``tag`` names the batch
+    a run belongs to; a sweep reuses only runs with the same tag. An experiment sets
     ``VERSION``, and raises it whenever a change alters what its agents see or how its world
     behaves, so runs of different versions are never mixed (see ``sweep``)."""
 
@@ -22,6 +23,7 @@ class RunSettings:
     model: str | Model = TEST_MODEL
     max_messages: int = 100
     reasoning_effort: ReasoningEffort | None = None
+    tag: str | None = None
 
     @classmethod
     def add_arguments(cls, parser: argparse.ArgumentParser) -> None:
@@ -37,6 +39,7 @@ class RunSettings:
             "--max-messages", type=int, default=defaults["max_messages"], help="stop after this many messages"
         )
         parser.add_argument("--reasoning-effort", choices=get_args(ReasoningEffort), help="cap reasoning")
+        parser.add_argument("--tag", help="a name for the batch this run belongs to, such as pilot-01")
         writing = parser.add_mutually_exclusive_group()
         writing.add_argument(
             "--no-write", action="store_true", help="don't write a log to logs/ or count usage"
