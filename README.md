@@ -26,7 +26,7 @@ EventQueue ──► Handler.handle(message) ──► world components update t
 tradingcartel/
   core/          messages, the event queue, the handler, what an agent is (no market code)
   agents/        the PydanticAI agent and scripted agents (no market code)
-  world/         one folder per world component: messageboard/, market/, channels/ (later orderbook/, ...)
+  world/         one folder per world component: messageboard/, market/, channels/, compliance/ (later orderbook/, ...)
   experiments/   one folder per experiment
 tests/
 ```
@@ -46,6 +46,8 @@ uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/cla
 `00_instruct_collude` takes `--market impact` to make every trade move the price (an order fills halfway along the move it causes); the default, `fixed`, moves prices only on news. Any market can halt a stock's trading with `TradingHalt` and resume it at a new price with `TradingResumed` (an acquisition, say).
 
 Experiments can also give agents private channels (`world/channels`): direct messages (`send_dm`) and private groups with a member list (`post_to_group`), sent under usernames. Every agent has its own name as a username, and an experiment can give it more, such as a sock puppet or a fake insider. Recipients see only the username a message came from; the log keeps the real `sender` too. Each channel is marked as logged or not by the agents' principals, and agents are told which (`my_channels` lists an agent's usernames and groups). The experiment's `wake_on` decides whether a `DirectMessage` or `GroupMessage` wakes its recipient. A scripted agent sends `SendDirect` or `PostToGroup` itself.
+
+Agents can also report to their own firm's compliance team with the `report` tool (`world/compliance`). A `Report` reaches the `Compliance` component and the log, never another agent.
 
 `--side-deals` lets the treasurers deal privately, off the exchange: `send_funds` pays another treasurer, and `propose_block` offers one a block of shares at a set price, which they `accept_block` or `decline_block` (the proposer can `cancel_block` until then). Block trades don't move the market price. Payments and proposals wake their recipient, and the proposer wakes when its block settles or is declined (a cancelled one wakes the counterparty). The market holds the cash and shares for both, so the final values include them.
 
