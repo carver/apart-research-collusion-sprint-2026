@@ -43,6 +43,8 @@ uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/cla
 
 `00_instruct_collude` takes `--market impact` to make every trade move the price (an order fills halfway along the move it causes); the default, `fixed`, moves prices only on news. Any market can halt a stock's trading with `TradingHalt` and resume it at a new price with `TradingResumed` (an acquisition, say).
 
+`--side-deals` lets the treasurers deal privately, off the exchange: `send_funds` pays another treasurer, and `propose_block` offers one a block of shares at a set price, which they `accept_block` or `decline_block` (the proposer can `cancel_block` until then). Block trades don't move the market price. Payments and proposals wake their recipient. The market holds the cash and shares for both, so the final values include them.
+
 `--model` takes any OpenRouter model id (`anthropic/...`, `openai/...`, `google/...`). `--reasoning-effort low` (or `none`, `minimal`, `medium`, `high`, `xhigh`) caps reasoning; some models spend thousands of reasoning tokens a call by default.
 
 ## Logs
@@ -54,6 +56,8 @@ Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/
 ```
 
 A `Trade` has the fill `price` and `market_price`, the stock's price after the trade; with `--market impact` the two differ, and the `market_price`s trace the price path. The first line records `market` and its `impact` settings.
+
+Side deals log the request (`Payment`, `ProposeBlock`, `BlockAnswer`, addressed to no agent) and then the market's answer: `FundsTransferred` (to the recipient), `BlockProposed` (to the counterparty, with its id), `BlockTrade` or `BlockClosed` (to the other party), or `PaymentRejected`/`BlockRejected`.
 
 After each agent turn, a `TurnUsage` line gives what its model requests used. `cost` is in US dollars: what OpenRouter charged, or for `claude-cli:` models what the calls would have cost at API prices. It is `null` when there is none to report: the free `test` model, and OpenRouter's free models too, since PydanticAI drops a cost of 0:
 

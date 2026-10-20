@@ -2,13 +2,23 @@
 that price. Prices move when an earnings report is published and, if the market has ``impact``,
 with every trade."""
 
+import itertools
 import math
 from dataclasses import dataclass
-from typing import Literal
 
 from ...core.messages import ALL, Message
-
-Side = Literal["buy", "sell"]
+from .side_deals import (
+    BlockAnswer,
+    BlockClosed,
+    BlockProposed,
+    BlockRejected,
+    BlockTrade,
+    FundsTransferred,
+    Payment,
+    PaymentRejected,
+    ProposeBlock,
+    Side,
+)
 
 
 class Order(Message):
@@ -100,6 +110,8 @@ class Market:
         self.halted: set[str] = set()
         self.cash = dict.fromkeys(agents, cash)
         self.holdings = {agent: dict.fromkeys(prices, shares) for agent in agents}
+        self.open_blocks: dict[str, BlockProposed] = {}
+        self._block_ids = (f"B{n}" for n in itertools.count(1))
 
     def handle(self, message: Message) -> list[Message]:
         if isinstance(message, News) and message.symbol not in self.prices:
@@ -107,6 +119,12 @@ class Market:
         match message:
             case Order():
                 return [self.fill(message)]
+            case Payment():
+                return [self.pay(message)]
+            case ProposeBlock():
+                return [self.propose_block(message)]
+            case BlockAnswer():
+                return [self.answer_block(message)]
             case EarningsReport():
                 self.prices[message.symbol] = round(self.prices[message.symbol] * (1 + message.change), 2)
             case TradingHalt():
@@ -134,6 +152,114 @@ class Market:
             price=price,
             market_price=after,
         )
+
+    def pay(self, payment: Payment) -> Message:
+        payer, recipient, amount = payment.sender, payment.recipient, round(payment.amount, 2)
+        if problem := self.check_payment(payer, recipient, amount):
+            return PaymentRejected(sender="market", agent=payer, reason=problem)
+        self.cash[payer] -= amount
+        self.cash[recipient] += amount
+        return FundsTransferred(sender="market", to=recipient, payer=payer, amount=amount, memo=payment.memo)
+
+    def check_payment(self, payer: str, recipient: str, amount: float) -> str | None:
+        """Why the payment can't be made, or None if it can."""
+        if recipient not in self.cash:
+            return f"Unknown agent {recipient!r}."
+        if recipient == payer:
+            return "You can't pay yourself."
+        if not (math.isfinite(amount) and amount > 0):
+            return "The amount must be a positive number."
+        if amount > self.cash[payer]:
+            return "Not enough cash."
+        return None
+
+    def propose_block(self, request: ProposeBlock) -> Message:
+        proposer, counterparty = request.sender, request.counterparty
+        if problem := self.check_proposal(request):
+            return BlockRejected(sender="market", agent=proposer, reason=problem)
+        proposal = BlockProposed(
+            sender="market",
+            to=counterparty,
+            id=next(self._block_ids),
+            proposer=proposer,
+            counterparty=counterparty,
+            side=request.side,
+            symbol=request.symbol,
+            shares=request.shares,
+            price=round(request.price, 2),
+        )
+        self.open_blocks[proposal.id] = proposal
+        return proposal
+
+    def check_proposal(self, request: ProposeBlock) -> str | None:
+        """Why the proposal can't be made, or None if it can."""
+        if request.counterparty not in self.cash:
+            return f"Unknown agent {request.counterparty!r}."
+        if request.counterparty == request.sender:
+            return "You can't trade with yourself."
+        if request.shares <= 0:
+            return "The number of shares must be positive."
+        if not (math.isfinite(request.price) and request.price > 0):
+            return "The price must be a positive number."
+        return self.check_block(request.sender, request.side, request.symbol, request.shares, request.price)
+
+    def answer_block(self, answer: BlockAnswer) -> Message:
+        agent = answer.sender
+        proposal = self.open_blocks.get(answer.id)
+        if proposal is None:
+            return BlockRejected(sender="market", agent=agent, reason=f"No open block trade {answer.id}.")
+        if answer.answer == "cancel" and agent != proposal.proposer:
+            reason = f"Only {proposal.proposer} can cancel {answer.id}."
+            return BlockRejected(sender="market", agent=agent, reason=reason)
+        if answer.answer != "cancel" and agent != proposal.counterparty:
+            reason = f"Only {proposal.counterparty} can accept or decline {answer.id}."
+            return BlockRejected(sender="market", agent=agent, reason=reason)
+        if answer.answer != "accept":
+            del self.open_blocks[proposal.id]
+            outcome = "cancelled" if answer.answer == "cancel" else "declined"
+            other = proposal.counterparty if agent == proposal.proposer else proposal.proposer
+            return BlockClosed(sender="market", to=other, id=proposal.id, by=agent, outcome=outcome)
+        return self.settle_block(proposal)
+
+    def settle_block(self, proposal: BlockProposed) -> Message:
+        """Settle an accepted proposal, if both parties can still honour it."""
+        buyer, seller = proposal.proposer, proposal.counterparty
+        if proposal.side == "sell":
+            buyer, seller = seller, buyer
+        symbol, shares, price = proposal.symbol, proposal.shares, proposal.price
+        for agent, side in ((buyer, "buy"), (seller, "sell")):
+            if problem := self.check_block(agent, side, symbol, shares, price):
+                return BlockRejected(
+                    sender="market", agent=proposal.counterparty, reason=f"{agent}: {problem}"
+                )
+        del self.open_blocks[proposal.id]
+        cost = round(shares * price, 2)
+        self.cash[buyer] -= cost
+        self.cash[seller] += cost
+        self.holdings[buyer][symbol] += shares
+        self.holdings[seller][symbol] -= shares
+        return BlockTrade(
+            sender="market",
+            to=proposal.proposer,
+            id=proposal.id,
+            buyer=buyer,
+            seller=seller,
+            symbol=symbol,
+            shares=shares,
+            price=price,
+        )
+
+    def check_block(self, agent: str, side: Side, symbol: str, shares: int, price: float) -> str | None:
+        """Why ``agent`` can't take its side of a block trade right now, or None if it can."""
+        if symbol not in self.prices:
+            return f"Unknown stock {symbol!r}."
+        if symbol in self.halted:
+            return f"Trading in {symbol} is halted."
+        if side == "buy" and shares * price > self.cash[agent]:
+            return "Not enough cash."
+        if side == "sell" and shares > self.holdings[agent][symbol]:
+            return "Not enough shares."
+        return None
 
     def quote(self, symbol: str, signed_shares: int) -> tuple[float, float]:
         """The price a share an order of ``signed_shares`` (negative to sell) would fill at, and the
@@ -164,7 +290,11 @@ class Market:
     def describe(self, agent: str) -> str:
         prices = ", ".join(f"{symbol} ${price:.2f}" for symbol, price in self.prices.items())
         shares = ", ".join(f"{n} {symbol}" for symbol, n in self.holdings[agent].items())
-        return (
+        text = (
             f"Prices: {prices}\nYour cash: ${self.cash[agent]:.2f}\nYour shares: {shares}\n"
             f"Your total value: ${self.value(agent):.2f}"
         )
+        blocks = [b for b in self.open_blocks.values() if agent in (b.proposer, b.counterparty)]
+        if blocks:
+            text += "\nOpen block trades: " + "; ".join(f"{b.id}: {b.terms()}" for b in blocks)
+        return text
