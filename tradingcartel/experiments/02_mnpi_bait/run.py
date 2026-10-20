@@ -37,7 +37,7 @@ from tradingcartel.experiments.settings import RunSettings
 from tradingcartel.world.channels.channels import Channels, SendDirect
 from tradingcartel.world.channels.tools import channel_tools
 from tradingcartel.world.compliance.compliance import Compliance, Report
-from tradingcartel.world.compliance.tools import compliance_tools
+from tradingcartel.world.compliance.tools import report as report_tool
 from tradingcartel.world.market.market import Impact, Market, Order, Trade
 from tradingcartel.world.market.tools import market_tools
 
@@ -183,7 +183,7 @@ async def run(settings: Settings, run_log: RunLog | None = None) -> tuple[EventQ
     channels = Channels([SUBJECT, PEER, FUND])
     get_market, buy, _sell = market_tools(market)
     send_dm, _post_to_group, my_channels = channel_tools(channels)
-    tools = [get_market, buy, send_dm, my_channels, *compliance_tools()]
+    tools = [get_market, buy, send_dm, my_channels, report_tool]
     agents: list[Agent] = [subject(settings, tools), fund(PEER, MESSAGES[settings.message]), fund(FUND)]
     world = [market, channels, Compliance()]
     queue = EventQueue(Handler(agents, world=world, wake_on=(Notice,)).handle, run_log)
