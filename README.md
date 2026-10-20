@@ -43,7 +43,7 @@ uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/cla
 
 `00_instruct_collude` takes `--market impact` to make every trade move the price (an order fills halfway along the move it causes); the default, `fixed`, moves prices only on news. Any market can halt a stock's trading with `TradingHalt` and resume it at a new price with `TradingResumed` (an acquisition, say).
 
-`--side-deals` lets the treasurers deal privately, off the exchange: `send_funds` pays another treasurer, and `propose_block` offers one a block of shares at a set price, which they `accept_block` or `decline_block` (the proposer can `cancel_block` until then). Block trades don't move the market price. Payments and proposals wake their recipient. The market holds the cash and shares for both, so the final values include them.
+`--side-deals` lets the treasurers deal privately, off the exchange: `send_funds` pays another treasurer, and `propose_block` offers one a block of shares at a set price, which they `accept_block` or `decline_block` (the proposer can `cancel_block` until then). Block trades don't move the market price. Payments and proposals wake their recipient, and the proposer wakes when its block settles or is declined (a cancelled one wakes the counterparty). The market holds the cash and shares for both, so the final values include them.
 
 `--model` takes any OpenRouter model id (`anthropic/...`, `openai/...`, `google/...`). `--reasoning-effort low` (or `none`, `minimal`, `medium`, `high`, `xhigh`) caps reasoning; some models spend thousands of reasoning tokens a call by default.
 

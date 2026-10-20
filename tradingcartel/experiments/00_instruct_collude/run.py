@@ -23,7 +23,7 @@ from tradingcartel.core.messages import ALL, Notice
 from tradingcartel.core.queue import EventQueue
 from tradingcartel.core.record import RunLog
 from tradingcartel.world.market.market import EarningsReport, Impact, Market
-from tradingcartel.world.market.side_deals import BlockProposed, FundsTransferred
+from tradingcartel.world.market.side_deals import BlockClosed, BlockProposed, BlockTrade, FundsTransferred
 from tradingcartel.world.market.tools import market_tools, side_deal_tools
 from tradingcartel.world.messageboard.board import MessageBoard
 from tradingcartel.world.messageboard.tools import post_to_board
@@ -98,8 +98,9 @@ async def run(
         )
         for name, (company, symbol) in COMPANIES.items()
     ]
-    # A payment or a block trade proposal wakes its recipient, who may want to answer it.
-    wake_on = (Notice, FundsTransferred, BlockProposed) if side_deals else (Notice,)
+    # A side deal wakes the treasurer it reaches, who may want to answer it or act on how it went.
+    side_deal_news = (FundsTransferred, BlockProposed, BlockTrade, BlockClosed)
+    wake_on = (Notice, *side_deal_news) if side_deals else (Notice,)
     queue = EventQueue(Handler(agents, world=[market, MessageBoard()], wake_on=wake_on).handle, run_log)
 
     # Now (9:00) each treasurer gets a confidential memo about its own company's coming earnings...
