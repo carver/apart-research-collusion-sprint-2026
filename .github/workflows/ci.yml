@@ -18,3 +18,5 @@ jobs:
       - run: uv run ruff format --check
       - run: uv run pytest
       - run: uv run pyright
+        env:
+          PYRIGHT_PYTHON_IGNORE_WARNINGS: "1"  # don't ask PyPI for a newer pyright on every run

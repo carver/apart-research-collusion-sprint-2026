@@ -1,3 +1,4 @@
 #!/bin/sh
 # Slow checks for agent commits; bin/git-pre-commit runs this first when $AI_AGENT is set.
-uv run pytest -q && uv run pyright
+# pyright's PyPI wrapper would otherwise ask PyPI for a newer version on every run.
+uv run pytest -q && PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run pyright
