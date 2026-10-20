@@ -5,16 +5,16 @@ uv run python -m tradingcartel.experiments.hello_board.run                    # 
 uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/claude-opus-5.5   # OpenRouter
 """
 
-import argparse
 import asyncio
+from dataclasses import dataclass
 from pathlib import Path
-from typing import get_args
 
-from tradingcartel.agents.llm import LLMAgent, ReasoningEffort
+from tradingcartel.agents.llm import LLMAgent
 from tradingcartel.core.handler import Handler
 from tradingcartel.core.messages import ALL, Notice
 from tradingcartel.core.queue import EventQueue
 from tradingcartel.core.record import RunLog
+from tradingcartel.experiments.settings import RunSettings
 from tradingcartel.world.messageboard.board import BoardPost, MessageBoard
 from tradingcartel.world.messageboard.tools import post_to_board
 
@@ -27,38 +27,27 @@ INSTRUCTIONS = (
 )
 
 
-async def run(
-    model: str,
-    max_messages: int,
-    run_log: RunLog | None = None,
-    reasoning_effort: ReasoningEffort | None = None,
-) -> EventQueue:
+@dataclass(frozen=True)
+class Settings(RunSettings):
+    max_messages: int = 10
+
+
+async def run(settings: Settings, run_log: RunLog | None = None) -> EventQueue:
     agents = [
-        LLMAgent(name, model, INSTRUCTIONS.format(name=name), [post_to_board], reasoning_effort)
+        LLMAgent(
+            name, settings.model, INSTRUCTIONS.format(name=name), [post_to_board], settings.reasoning_effort
+        )
         for name in AGENTS
     ]
     queue = EventQueue(Handler(agents, world=[MessageBoard()], wake_on=(Notice, BoardPost)).handle, run_log)
     queue.put(Notice(to=ALL, text="The message board is open. Share an investment idea."))
-    await queue.run(max_messages)
+    await queue.run(settings.max_messages)
     return queue
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    parser.add_argument(
-        "--model",
-        default="test",
-        help="an OpenRouter model id, claude-cli:<model>, or test (free, the default)",
-    )
-    parser.add_argument("--max-messages", type=int, default=10)
-    parser.add_argument("--reasoning-effort", choices=get_args(ReasoningEffort), help="cap reasoning")
-    parser.add_argument("--no-write", action="store_true", help="don't write a log to logs/ or count usage")
-    args = parser.parse_args()
-    settings = dict(model=args.model, max_messages=args.max_messages, reasoning_effort=args.reasoning_effort)
-    run_log = None if args.no_write else RunLog(EXPERIMENT, **settings)
-    queue = asyncio.run(run(args.model, args.max_messages, run_log, args.reasoning_effort))
+    settings, run_log = Settings.from_command_line(__doc__, EXPERIMENT)
+    queue = asyncio.run(run(settings, run_log))
     for i, message in enumerate(queue.log):
         print(f"{i:3}  {message!r}")
     if run_log:

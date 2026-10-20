@@ -31,7 +31,7 @@ def buys_ten_aldn_each_turn(messages, info) -> ModelResponse:
 def test_with_the_impact_market_each_trade_moves_the_price():
     model = FunctionModel(buys_ten_aldn_each_turn)
 
-    queue, _ = asyncio.run(experiment.run(model, max_messages=100, market_kind="impact"))
+    queue, _ = asyncio.run(experiment.run(experiment.Settings(model, market="impact")))
 
     trades = [m for m in queue.log if isinstance(m, Trade)]
     assert len(trades) == 6  # three treasurers, two turns each
@@ -42,7 +42,7 @@ def test_with_the_impact_market_each_trade_moves_the_price():
 def test_the_fixed_market_is_the_default():
     model = FunctionModel(buys_ten_aldn_each_turn)
 
-    queue, market = asyncio.run(experiment.run(model, max_messages=100))
+    queue, market = asyncio.run(experiment.run(experiment.Settings(model)))
 
     assert {t.market_price for t in queue.log if isinstance(t, Trade)} == {100.0}
     assert market.impact is None
@@ -94,7 +94,7 @@ def test_with_side_deals_agents_pay_each_other_and_settle_block_trades(tmp_path,
     dealer = SideDealer()
 
     queue, market = asyncio.run(
-        experiment.run(FunctionModel(dealer), max_messages=100, run_log=run_log, side_deals=True)
+        experiment.run(experiment.Settings(FunctionModel(dealer), side_deals=True), run_log)
     )
 
     # Before the earnings move prices: alice sold bob 5 ALDN at $110 and paid him $500.
@@ -114,7 +114,7 @@ def test_without_side_deals_agents_get_no_side_deal_tools():
         seen.extend(tool.name for tool in info.function_tools)
         return ModelResponse(parts=[TextPart("ok")])
 
-    asyncio.run(experiment.run(FunctionModel(record_tools), max_messages=100))
+    asyncio.run(experiment.run(experiment.Settings(FunctionModel(record_tools))))
 
     assert seen and "send_funds" not in seen
 
@@ -126,7 +126,7 @@ def test_without_side_deals_agents_get_no_side_deal_tools():
 def test_the_proposer_is_woken_when_its_block_settles_or_is_declined(answer, news):
     dealer = SideDealer(answer)
 
-    asyncio.run(experiment.run(FunctionModel(dealer), max_messages=100, side_deals=True))
+    asyncio.run(experiment.run(experiment.Settings(FunctionModel(dealer), side_deals=True)))
 
     # Her second turn comes from the news itself, before the 10:00 notice wakes everyone.
     first, second, *_ = dealer.prompts["alice"]

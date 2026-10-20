@@ -10,18 +10,17 @@ uv run python -m tradingcartel.experiments.00_instruct_collude.run --model anthr
 
 import argparse
 import asyncio
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Literal, get_args
+from typing import Any, Literal, get_args
 
-from pydantic_ai.models import Model
-
-from tradingcartel.agents.llm import LLMAgent, ReasoningEffort
+from tradingcartel.agents.llm import LLMAgent
 from tradingcartel.core.handler import Handler
 from tradingcartel.core.messages import ALL, Notice
 from tradingcartel.core.queue import EventQueue
 from tradingcartel.core.record import RunLog
+from tradingcartel.experiments.settings import RunSettings
 from tradingcartel.world.market.market import EarningsReport, Impact, Market
 from tradingcartel.world.market.side_deals import BlockClosed, BlockProposed, BlockTrade, FundsTransferred
 from tradingcartel.world.market.tools import market_tools, side_deal_tools
@@ -76,25 +75,46 @@ trade (shares at a price you set), which they accept_block or decline_block, and
 cancel_block until they answer."""
 
 
-async def run(
-    model: str | Model,
-    max_messages: int,
-    run_log: RunLog | None = None,
-    reasoning_effort: ReasoningEffort | None = None,
-    market_kind: MarketKind = "fixed",
-    side_deals: bool = False,
-) -> tuple[EventQueue, Market]:
-    impact, trading = MARKETS[market_kind]
+@dataclass(frozen=True)
+class Settings(RunSettings):
+    """``market`` picks a row of MARKETS; ``side_deals`` lets the treasurers deal off the exchange."""
+
+    market: MarketKind = "fixed"
+    side_deals: bool = False
+
+    @classmethod
+    def add_arguments(cls, parser: argparse.ArgumentParser) -> None:
+        super().add_arguments(parser)
+        parser.add_argument(
+            "--market",
+            choices=get_args(MarketKind),
+            default=cls.market,
+            help="fixed: prices move only on news; impact: trades move prices too (default: fixed)",
+        )
+        parser.add_argument(
+            "--side-deals",
+            action="store_true",
+            help="let treasurers pay each other and trade blocks off the exchange",
+        )
+
+    def log_header(self) -> dict[str, Any]:
+        impact, _ = MARKETS[self.market]
+        return super().log_header() | {"impact": None if impact is None else asdict(impact)}
+
+
+async def run(settings: Settings, run_log: RunLog | None = None) -> tuple[EventQueue, Market]:
+    impact, trading = MARKETS[settings.market]
     market = Market(list(COMPANIES), dict.fromkeys(EARNINGS, START_PRICE), START_CASH, START_SHARES, impact)
+    side_deals = settings.side_deals
     tools = [*market_tools(market), post_to_board, *(side_deal_tools(market) if side_deals else [])]
     deals = SIDE_DEALS if side_deals else ""
     agents = [
         LLMAgent(
             name,
-            model,
+            settings.model,
             INSTRUCTIONS.format(name=name, company=company, symbol=symbol, trading=trading, side_deals=deals),
             tools,
-            reasoning_effort,
+            settings.reasoning_effort,
         )
         for name, (company, symbol) in COMPANIES.items()
     ]
@@ -114,47 +134,13 @@ async def run(
     for symbol, (change, news) in EARNINGS.items():
         queue.put(EarningsReport(symbol=symbol, change=change, text=news), delay=EARNINGS_AT)
 
-    await queue.run(max_messages, until=EARNINGS_AT)
+    await queue.run(settings.max_messages, until=EARNINGS_AT)
     return queue, market
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    parser.add_argument(
-        "--model",
-        default="test",
-        help="an OpenRouter model id, claude-cli:<model>, or test (free, the default)",
-    )
-    parser.add_argument("--max-messages", type=int, default=100, help="stop after this many messages")
-    parser.add_argument("--reasoning-effort", choices=get_args(ReasoningEffort), help="cap reasoning")
-    parser.add_argument(
-        "--market",
-        choices=get_args(MarketKind),
-        default="fixed",
-        help="fixed: prices move only on news; impact: trades move prices too (default: fixed)",
-    )
-    parser.add_argument(
-        "--side-deals",
-        action="store_true",
-        help="let treasurers pay each other and trade blocks off the exchange",
-    )
-    parser.add_argument("--no-write", action="store_true", help="don't write a log to logs/ or count usage")
-    args = parser.parse_args()
-    impact, _ = MARKETS[args.market]
-    settings = dict(
-        model=args.model,
-        max_messages=args.max_messages,
-        reasoning_effort=args.reasoning_effort,
-        market=args.market,
-        impact=None if impact is None else asdict(impact),
-        side_deals=args.side_deals,
-    )
-    run_log = None if args.no_write else RunLog(EXPERIMENT, **settings)
-    queue, market = asyncio.run(
-        run(args.model, args.max_messages, run_log, args.reasoning_effort, args.market, args.side_deals)
-    )
+    settings, run_log = Settings.from_command_line(__doc__, EXPERIMENT)
+    queue, market = asyncio.run(run(settings, run_log))
 
     for i, message in enumerate(queue.log):
         clock = (START + timedelta(minutes=message.time)).strftime("%H:%M")
