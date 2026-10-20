@@ -9,6 +9,7 @@ uv run python -m tradingcartel.experiments.02_mnpi_bait.analyze [LOG_FOLDER] [--
 import argparse
 import statistics
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -35,6 +36,16 @@ class RunResult:
     errors: int = 0  # the subject's turns that failed, such as a model call that errored
     version: int | None = None  # the experiment's VERSION when the run was made
     tag: str | None = None  # the batch the run was tagged with, if any
+
+
+def runs(count: int) -> str:
+    """``count`` runs, in words: "1 run", "3 runs"."""
+    return f"{count} run{'' if count == 1 else 's'}"
+
+
+def version_name(version: int | None) -> str:
+    """How a run's version reads in tables: "v1", or "unversioned" for logs older than versions."""
+    return "unversioned" if version is None else f"v{version}"
 
 
 def cut(bought: tuple[int, ...]) -> str:
@@ -87,25 +98,27 @@ def describe(results: list[RunResult]) -> str:
     """A table: per model, memo and message, the runs, mean shares bought each day, how many runs fell
     in each cut, mean reports and direct messages, and mean cost a run. Runs in which a subject's turn
     failed are left out and counted, since a missed day would read as a cut."""
-    arms: defaultdict[tuple[str, str, str, str], list[RunResult]] = defaultdict(list)
+    arms: defaultdict[tuple[str, str, str, int], list[RunResult]] = defaultdict(list)
     for result in results:
         if not result.errors:
-            arms[(result.model, result.memo, result.message, f"v{result.version}")].append(result)
-    rows = [f"{'model':<34} {'memo':<14} {'message':<8} {'ver':<4} {'runs':>4}  bought a day, then cuts"]
-    for (model, memo, message, version), runs in sorted(arms.items()):
+            arms[(result.model, result.memo, result.message, result.version or 0)].append(result)
+    rows = [f"{'model':<34} {'memo':<14} {'message':<8} {'version':<11} {'runs':>4}  bought a day, then cuts"]
+    for (model, memo, message, _), arm_runs in sorted(arms.items()):
+        version = version_name(arm_runs[0].version)
         days = "  ".join(
-            f"{name[:3]} {statistics.mean(run.bought[i] for run in runs):.0f}" for i, name in enumerate(DAYS)
+            f"{name[:3]} {statistics.mean(run.bought[i] for run in arm_runs):.0f}"
+            for i, name in enumerate(DAYS)
         )
-        counts = {kind: sum(cut(run.bought) == kind for run in runs) for kind in CUTS}
+        counts = {kind: sum(cut(run.bought) == kind for run in arm_runs) for kind in CUTS}
         cuts = ", ".join(f"{kind}: {n}" for kind, n in counts.items() if n)
-        reports = statistics.mean(run.reports for run in runs)
-        dms = statistics.mean(run.dms for run in runs)
-        costs = [run.cost for run in runs if run.cost is not None]
+        reports = statistics.mean(run.reports for run in arm_runs)
+        dms = statistics.mean(run.dms for run in arm_runs)
+        costs = [run.cost for run in arm_runs if run.cost is not None]
         cost = f"${statistics.mean(costs):.4f} a run" if costs else "no cost"
-        arm = f"{model:<34} {memo:<14} {message:<8} {version:<4} {len(runs):>4}"
+        arm = f"{model:<34} {memo:<14} {message:<8} {version:<11} {len(arm_runs):>4}"
         rows.append(f"{arm}  {days}  {cuts}  reports {reports:.1f}  DMs {dms:.1f}  {cost}")
     if failed := sum(bool(result.errors) for result in results):
-        rows.append(f"\n{failed} run{'s' if failed > 1 else ''} with failed turns left out")
+        rows.append(f"\n{runs(failed)} with failed turns left out")
     return "\n".join(rows)
 
 
@@ -113,20 +126,21 @@ def describe_runs(results: list[RunResult]) -> str:
     """One row per run: its arm, version and seed, the shares bought each day, its cut, reports, direct
     messages, failed turns and cost."""
     rows = [
-        f"{'model':<34} {'memo':<14} {'message':<8} ver  seed  bought  cut, reports, DMs, failed turns, cost"
+        f"{'model':<34} {'memo':<14} {'message':<8} {'version':<11}  seed  bought  "
+        "cut, reports, DMs, failed turns, cost"
     ]
-    for run in sorted(results, key=lambda r: (r.model, r.memo, r.message, r.seed)):
+    for run in sorted(results, key=lambda r: (r.model, r.memo, r.message, r.version or 0, r.seed)):
         bought = "/".join(str(shares) for shares in run.bought)
         cost = f"${run.cost:.4f}" if run.cost is not None else "no cost"
-        rows.append(
-            f"{run.model:<34} {run.memo:<14} {run.message:<8} v{run.version}  seed {run.seed}  {bought}  "
-            f"{cut(run.bought)}, "
-            f"reports {run.reports}, DMs {run.dms}, failed turns {run.errors}, {cost}"
+        arm = f"{run.model:<34} {run.memo:<14} {run.message:<8} {version_name(run.version):<11}"
+        outcome = (
+            f"{cut(run.bought)}, reports {run.reports}, DMs {run.dms}, failed turns {run.errors}, {cost}"
         )
+        rows.append(f"{arm}  seed {run.seed}  {bought}  {outcome}")
     return "\n".join(rows)
 
 
-def main(argv: list[str] | None = None) -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
@@ -142,8 +156,10 @@ def main(argv: list[str] | None = None) -> None:
     results = [read_run(path) for path in sorted(args.folder.glob("*.jsonl"))]
     if args.tag:
         results = [result for result in results if result.tag == args.tag]
-    others = [] if args.all_versions else [r for r in results if r.version != Settings.VERSION]
-    results = [result for result in results if result not in others]
+    others = []
+    if not args.all_versions:
+        others = [result for result in results if result.version != Settings.VERSION]
+        results = [result for result in results if result.version == Settings.VERSION]
     finished = [result for result in results if result.finished]
     print(describe(finished))
     tabulated = [result for result in finished if not result.errors]
@@ -153,11 +169,9 @@ def main(argv: list[str] | None = None) -> None:
     if args.runs:
         print("\n" + describe_runs(finished))
     if unfinished := len(results) - len(finished):
-        print(f"\n{unfinished} unfinished runs left out")
+        print(f"\n{runs(unfinished)} that didn't finish left out")
     if others:
-        print(
-            f"\n{len(others)} run{'s' if len(others) > 1 else ''} of other versions left out (--all-versions)"
-        )
+        print(f"\n{runs(len(others))} of other versions left out (--all-versions)")
 
 
 if __name__ == "__main__":
