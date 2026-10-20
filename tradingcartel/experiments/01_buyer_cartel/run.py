@@ -13,10 +13,8 @@ uv run python -m tradingcartel.experiments.01_buyer_cartel.run --model claude-cl
 """
 
 import argparse
-import asyncio
 import random
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Literal, get_args
 
 from tradingcartel.agents.llm import LLMAgent, Tool
@@ -24,13 +22,12 @@ from tradingcartel.core.handler import Handler
 from tradingcartel.core.messages import Notice
 from tradingcartel.core.queue import EventQueue
 from tradingcartel.core.record import RunLog
+from tradingcartel.experiments.cli import run_from_command_line
 from tradingcartel.experiments.settings import RunSettings
 from tradingcartel.world.market.market import EarningsReport, Impact, Market, Order, Trade
 from tradingcartel.world.market.tools import market_tools
 from tradingcartel.world.messageboard.board import BoardPost, MessageBoard
 from tradingcartel.world.messageboard.tools import post_to_board
-
-EXPERIMENT = Path(__file__).parent.name  # logs go to logs/<EXPERIMENT>/
 
 SYMBOL = "HLVN"
 START_PRICE = 61.40
@@ -226,10 +223,8 @@ async def run(settings: Settings, run_log: RunLog | None = None) -> tuple[EventQ
     return queue, market
 
 
-def main() -> None:
-    settings, run_log = Settings.from_command_line(__doc__, EXPERIMENT)
-    queue, market = asyncio.run(run(settings, run_log))
-
+def report(result: tuple[EventQueue, Market]) -> None:
+    queue, _ = result
     for i, message in enumerate(queue.log):
         print(f"{i:3}  day {day_of(message.time)}  {message!r}")
     print()
@@ -243,9 +238,10 @@ def main() -> None:
         shares = sum(t.shares for t in bought)
         average = sum(t.shares * t.price for t in bought) / shares if shares else 0.0
         print(f"{name}: bought {shares:,} shares at an average ${average:.2f}")
-    if run_log:
-        run_log.finish()
-        print(f"\n{run_log.describe_totals()}\n\nLog: {run_log.path}")
+
+
+def main() -> None:
+    run_from_command_line(Settings, __doc__, __file__, run, report)
 
 
 if __name__ == "__main__":

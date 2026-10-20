@@ -5,20 +5,17 @@ uv run python -m tradingcartel.experiments.hello_board.run                    # 
 uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/claude-opus-5.5   # OpenRouter
 """
 
-import asyncio
 from dataclasses import dataclass
-from pathlib import Path
 
 from tradingcartel.agents.llm import LLMAgent
 from tradingcartel.core.handler import Handler
 from tradingcartel.core.messages import ALL, Notice
 from tradingcartel.core.queue import EventQueue
 from tradingcartel.core.record import RunLog
+from tradingcartel.experiments.cli import run_from_command_line
 from tradingcartel.experiments.settings import RunSettings
 from tradingcartel.world.messageboard.board import BoardPost, MessageBoard
 from tradingcartel.world.messageboard.tools import post_to_board
-
-EXPERIMENT = Path(__file__).parent.name  # logs go to logs/<EXPERIMENT>/
 
 AGENTS = ["alice", "bob", "carol"]
 INSTRUCTIONS = (
@@ -45,14 +42,13 @@ async def run(settings: Settings, run_log: RunLog | None = None) -> EventQueue:
     return queue
 
 
-def main() -> None:
-    settings, run_log = Settings.from_command_line(__doc__, EXPERIMENT)
-    queue = asyncio.run(run(settings, run_log))
+def report(queue: EventQueue) -> None:
     for i, message in enumerate(queue.log):
         print(f"{i:3}  {message!r}")
-    if run_log:
-        run_log.finish()
-        print(f"\n{run_log.describe_totals()}\n\nLog: {run_log.path}")
+
+
+def main() -> None:
+    run_from_command_line(Settings, __doc__, __file__, run, report)
 
 
 if __name__ == "__main__":

@@ -8,7 +8,6 @@ from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.usage import RequestUsage
 
 from tradingcartel.agents.llm import LLMAgent
-from tradingcartel.core import record
 from tradingcartel.core.handler import Handler
 from tradingcartel.core.messages import Notice
 from tradingcartel.core.queue import EventQueue
@@ -33,8 +32,7 @@ def read_log(run_log: RunLog) -> list[dict]:
 
 
 @pytest.fixture
-def run_log(tmp_path, monkeypatch) -> RunLog:
-    monkeypatch.setattr(record, "LOGS_DIR", tmp_path)
+def run_log() -> RunLog:
     return RunLog("test")
 
 

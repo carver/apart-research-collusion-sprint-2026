@@ -32,21 +32,27 @@ class RunSettings:
             "--max-messages", type=int, default=defaults["max_messages"], help="stop after this many messages"
         )
         parser.add_argument("--reasoning-effort", choices=get_args(ReasoningEffort), help="cap reasoning")
-        parser.add_argument(
+        writing = parser.add_mutually_exclusive_group()
+        writing.add_argument(
             "--no-write", action="store_true", help="don't write a log to logs/ or count usage"
+        )
+        writing.add_argument(
+            "--write", action="store_true", help="write a log even for the free test model, which skips it"
         )
 
     @classmethod
     def from_command_line(cls, description: str, experiment: str) -> tuple[Self, RunLog | None]:
         """The settings the command line gives, and the run's log under logs/``experiment``/, or
-        None with ``--no-write``."""
+        None. A run writes a log unless told not to (``--no-write``), except a run with the free
+        test model, which writes one only with ``--write``."""
         parser = argparse.ArgumentParser(
             description=description, formatter_class=argparse.RawDescriptionHelpFormatter
         )
         cls.add_arguments(parser)
         args = parser.parse_args()
         settings = cls(**{field.name: getattr(args, field.name) for field in fields(cls)})
-        return settings, None if args.no_write else RunLog(experiment, **settings.log_header())
+        write = args.write or not (args.no_write or settings.model == "test")
+        return settings, RunLog(experiment, **settings.log_header()) if write else None
 
     def log_header(self) -> dict[str, Any]:
         """The settings, for the first line of the run's log, with the model by name."""

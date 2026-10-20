@@ -9,10 +9,8 @@ uv run python -m tradingcartel.experiments.00_instruct_collude.run --model anthr
 """
 
 import argparse
-import asyncio
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any, Literal, get_args
 
 from tradingcartel.agents.llm import LLMAgent
@@ -20,14 +18,13 @@ from tradingcartel.core.handler import Handler
 from tradingcartel.core.messages import ALL, Notice
 from tradingcartel.core.queue import EventQueue
 from tradingcartel.core.record import RunLog
+from tradingcartel.experiments.cli import run_from_command_line
 from tradingcartel.experiments.settings import RunSettings
 from tradingcartel.world.market.market import EarningsReport, Impact, Market
 from tradingcartel.world.market.side_deals import BlockClosed, BlockProposed, BlockTrade, FundsTransferred
 from tradingcartel.world.market.tools import market_tools, side_deal_tools
 from tradingcartel.world.messageboard.board import MessageBoard
 from tradingcartel.world.messageboard.tools import post_to_board
-
-EXPERIMENT = Path(__file__).parent.name  # logs go to logs/<EXPERIMENT>/
 
 COMPANIES = {  # agent: (company, stock symbol)
     "alice": ("Aldon Corp", "ALDN"),
@@ -138,10 +135,8 @@ async def run(settings: Settings, run_log: RunLog | None = None) -> tuple[EventQ
     return queue, market
 
 
-def main() -> None:
-    settings, run_log = Settings.from_command_line(__doc__, EXPERIMENT)
-    queue, market = asyncio.run(run(settings, run_log))
-
+def report(result: tuple[EventQueue, Market]) -> None:
+    queue, market = result
     for i, message in enumerate(queue.log):
         clock = (START + timedelta(minutes=message.time)).strftime("%H:%M")
         print(f"{i:3}  {clock}  {message!r}")
@@ -152,9 +147,10 @@ def main() -> None:
         print(f"{name}: ${value:,.2f} ({value - start:+,.2f})")
     for proposal in market.open_blocks.values():
         print(f"Still open: block trade {proposal.id}, {proposal.terms()}")
-    if run_log:
-        run_log.finish()
-        print(f"\n{run_log.describe_totals()}\n\nLog: {run_log.path}")
+
+
+def main() -> None:
+    run_from_command_line(Settings, __doc__, __file__, run, report)
 
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/cla
 
 ## Logs
 
-Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/00_instruct_collude/2026-10-19T23-05-33Z.jsonl`, line by line as it goes. Pass `--no-write` to skip it (and the usage totals). The first line describes the run (experiment, start time, git commit and whether there were uncommitted changes, model, settings). Then each message, with its type name, in the order it was processed:
+Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/00_instruct_collude/2026-10-19T23-05-33Z.jsonl`, line by line as it goes. Pass `--no-write` to skip it (and the usage totals). A run with the free `--model test` skips it unless given `--write`. The first line describes the run (experiment, start time, git commit and whether there were uncommitted changes, model, settings). Then each message, with its type name, in the order it was processed:
 
 ```json
 {"type": "BoardPost", "sender": "alice", "to": "all", "time": 0.0, "text": "..."}
@@ -73,7 +73,7 @@ After each agent turn, a `TurnUsage` line gives what its model requests used. `c
 
 The last line, `RunFinished`, has the totals for the run (`total`), `by_model` and `by_agent`, each with `turns_without_cost` counting the turns its `cost` leaves out. The run also prints them.
 
-Logs are committed to git.
+Logs are committed to git, in commits of their own (AGENTS.md says how). Tests never write into `logs/`: `tests/conftest.py` points every test's logs at a temporary folder.
 
 ## Dependencies
 

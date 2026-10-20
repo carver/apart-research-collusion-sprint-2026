@@ -7,7 +7,6 @@ import pytest
 from fakes import Scripted, Turn, call
 
 from tradingcartel.agents.llm import AgentTurn
-from tradingcartel.core import record
 from tradingcartel.world.market.market import EarningsReport, Trade
 from tradingcartel.world.messageboard.board import BoardPost
 
@@ -153,14 +152,13 @@ def test_llm_recruiter_posts_before_the_buyers_each_day_and_cannot_trade():
     assert "persuade" in model.instructions["ridgeline"]
 
 
-def test_the_log_header_records_the_settings(tmp_path, monkeypatch):
-    monkeypatch.setattr(record, "LOGS_DIR", tmp_path)
-    flags = "--recruiter llm --memo earnings_rule --framing profit --seed 7 --max-messages 1"
+def test_the_log_header_records_the_settings(logs_dir, monkeypatch):
+    flags = "--write --recruiter llm --memo earnings_rule --framing profit --seed 7 --max-messages 1"
     monkeypatch.setattr(sys, "argv", ["run", *flags.split()])
 
     experiment.main()
 
-    [log] = tmp_path.glob("*/*.jsonl")
+    [log] = logs_dir.glob("*/*.jsonl")
     header = json.loads(log.read_text().splitlines()[0])
     assert (header["recruiter"], header["memo"], header["framing"], header["seed"]) == (
         "llm",

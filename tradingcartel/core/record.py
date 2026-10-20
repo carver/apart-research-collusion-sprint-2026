@@ -58,9 +58,12 @@ class UsageTotal:
 
 
 class RunLog:
-    def __init__(self, experiment: str, **settings: Any) -> None:
+    """``folder`` is where logs go, one subfolder per experiment; by default the project's
+    ``logs/``."""
+
+    def __init__(self, experiment: str, folder: Path | None = None, **settings: Any) -> None:
         started = datetime.now(UTC)
-        self.path = LOGS_DIR / experiment / f"{started:%Y-%m-%dT%H-%M-%SZ}.jsonl"
+        self.path = (folder or LOGS_DIR) / experiment / f"{started:%Y-%m-%dT%H-%M-%SZ}.jsonl"
         self.path.parent.mkdir(parents=True, exist_ok=True)
         header = {
             "type": "RunStarted",

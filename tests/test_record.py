@@ -1,0 +1,42 @@
+import json
+
+from tradingcartel.agents.llm import TurnUsage
+from tradingcartel.core import record
+from tradingcartel.core.messages import Notice
+from tradingcartel.core.record import RunLog
+
+
+def lines(run_log: RunLog) -> list[dict]:
+    return [json.loads(line) for line in run_log.path.read_text().splitlines()]
+
+
+def test_a_run_log_is_written_under_the_folder_it_is_given(tmp_path):
+    run_log = RunLog("exp", folder=tmp_path, model="m", seed=1)
+
+    assert run_log.path.parent == tmp_path / "exp"
+    [header] = lines(run_log)
+    assert (header["type"], header["experiment"]) == ("RunStarted", "exp")
+    assert (header["model"], header["seed"]) == ("m", 1)
+    assert "folder" not in header
+
+
+def test_messages_then_the_totals_follow_the_header(tmp_path):
+    run_log = RunLog("exp", folder=tmp_path)
+
+    run_log.write(Notice(text="hello"))
+    run_log.write_usage("alice", 5.0, TurnUsage(model="m", requests=1, input_tokens=10, cost=0.5))
+    run_log.finish()
+
+    header, notice, usage, finished = lines(run_log)
+    assert [line["type"] for line in lines(run_log)] == ["RunStarted", "Notice", "TurnUsage", "RunFinished"]
+    assert (usage["agent"], usage["time"], usage["input_tokens"], usage["cost"]) == ("alice", 5.0, 10, 0.5)
+    assert finished["total"]["cost"] == 0.5
+
+
+def test_tests_never_write_into_the_real_logs_folder():
+    run_log = RunLog("exp")
+    try:
+        assert not run_log.path.is_relative_to(record.ROOT / "logs")
+    finally:
+        if run_log.path.is_relative_to(record.ROOT / "logs"):
+            run_log.path.unlink()

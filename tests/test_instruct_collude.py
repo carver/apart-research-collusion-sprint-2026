@@ -39,13 +39,12 @@ def test_the_fixed_market_is_the_default():
     assert market.impact is None
 
 
-def test_the_log_header_records_the_market_and_its_impact(tmp_path, monkeypatch):
-    monkeypatch.setattr(record, "LOGS_DIR", tmp_path)
-    monkeypatch.setattr(sys, "argv", ["run", "--market", "impact", "--max-messages", "1"])
+def test_the_log_header_records_the_market_and_its_impact(logs_dir, monkeypatch):
+    monkeypatch.setattr(sys, "argv", ["run", "--write", "--market", "impact", "--max-messages", "1"])
 
     experiment.main()
 
-    [log] = tmp_path.glob("*/*.jsonl")
+    [log] = logs_dir.glob("*/*.jsonl")
     header = json.loads(log.read_text().splitlines()[0])
     assert header["market"] == "impact"
     assert header["impact"] == {"coefficient": 1.0, "average_volume": 1000}
@@ -66,8 +65,7 @@ def side_dealer(answer: str = "accept_block") -> Scripted:
     return Scripted(script)
 
 
-def test_with_side_deals_agents_pay_each_other_and_settle_block_trades(tmp_path, monkeypatch):
-    monkeypatch.setattr(record, "LOGS_DIR", tmp_path)
+def test_with_side_deals_agents_pay_each_other_and_settle_block_trades():
     run_log = record.RunLog("test")
     dealer = side_dealer()
 

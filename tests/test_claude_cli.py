@@ -12,7 +12,6 @@ from pydantic_ai.tools import ToolDefinition
 
 from tradingcartel.agents import claude_cli
 from tradingcartel.agents.llm import LLMAgent
-from tradingcartel.core import record
 from tradingcartel.core.handler import Handler
 from tradingcartel.core.messages import Notice
 from tradingcartel.core.queue import EventQueue
@@ -74,7 +73,6 @@ def fake_claude(tmp_path, monkeypatch) -> FakeClaude:
     script.chmod(script.stat().st_mode | stat.S_IEXEC)
     monkeypatch.setenv("PATH", f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "must-not-reach-claude")
-    monkeypatch.setattr(record, "LOGS_DIR", tmp_path / "logs")
     return FakeClaude(tmp_path)
 
 
