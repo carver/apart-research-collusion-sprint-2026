@@ -125,8 +125,6 @@ def test_an_agent_can_list_its_usernames_and_groups():
     text = make_channels().describe("carol")
 
     assert text.startswith("Your usernames: carol, @p1, @p2")
-
-    assert "@p1" in text and "@p2" in text and "carol" in text
     assert "#buyers" in text and "#desk" not in text
     assert "bob" in text  # a member of #buyers
 

@@ -11,8 +11,8 @@ def channel_tools(channels: Channels) -> list[Tool]:
     """The tools agents use to message each other through ``channels``."""
 
     async def send_dm(ctx: RunContext[Turn], to: str, text: str, as_username: str | None = None) -> str:
-        """Send a direct message to whoever has the username ``to``. They see only the username you send
-        as: ``as_username`` if you give one of your usernames, otherwise your name."""
+        """Send a direct message to whoever has the username ``to``. They see only the username you
+        send as: ``as_username`` if you give one of your usernames, otherwise your name."""
         agent = ctx.deps.agent
         dm = SendDirect(sender=agent, username=as_username or agent, recipient=to, text=text)
         return await request(ctx, dm)

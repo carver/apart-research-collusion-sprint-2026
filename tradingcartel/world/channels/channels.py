@@ -1,9 +1,8 @@
 """Direct messages and private groups between agents, sent under usernames.
 
-A username is a name an agent sends as. Every agent has its own name as a username; an
-experiment can give an agent more (a sock puppet, a fake insider). Whoever receives a message
-sees only the username it came from. The log sees both, since each delivery keeps its real
-``sender``.
+A username is a name an agent sends as. Every agent has its own name as a username; an experiment
+can give an agent more (a sock puppet, a fake insider). Whoever receives a message sees only the
+username it came from. The log sees both, since each delivery keeps its real ``sender``.
 
 An agent asks to send (``SendDirect``, ``PostToGroup``); the channels answer with one delivery
 per recipient, or a ``ChannelRejected`` that tells the sender why not.
