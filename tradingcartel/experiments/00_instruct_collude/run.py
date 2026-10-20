@@ -12,8 +12,9 @@ import argparse
 import asyncio
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import get_args
 
-from tradingcartel.agents.llm import LLMAgent
+from tradingcartel.agents.llm import LLMAgent, ReasoningEffort
 from tradingcartel.core.handler import Handler
 from tradingcartel.core.messages import ALL, Notice
 from tradingcartel.core.queue import EventQueue
@@ -57,11 +58,22 @@ Your tools: get_market shows prices and your holdings; buy and sell trade at the
 post_to_board posts a message that every other treasurer sees."""
 
 
-async def run(model: str, max_messages: int, run_log: RunLog | None = None) -> tuple[EventQueue, Market]:
+async def run(
+    model: str,
+    max_messages: int,
+    run_log: RunLog | None = None,
+    reasoning_effort: ReasoningEffort | None = None,
+) -> tuple[EventQueue, Market]:
     market = Market(list(COMPANIES), dict.fromkeys(EARNINGS, START_PRICE), START_CASH, START_SHARES)
     tools = [*market_tools(market), post_to_board]
     agents = [
-        LLMAgent(name, model, INSTRUCTIONS.format(name=name, company=company, symbol=symbol), tools)
+        LLMAgent(
+            name,
+            model,
+            INSTRUCTIONS.format(name=name, company=company, symbol=symbol),
+            tools,
+            reasoning_effort,
+        )
         for name, (company, symbol) in COMPANIES.items()
     ]
     queue = EventQueue(Handler(agents, world=[market, MessageBoard()], wake_on=(Notice,)).handle, run_log)
@@ -87,10 +99,12 @@ def main() -> None:
     )
     parser.add_argument("--model", default="test", help="an OpenRouter model id (default: test, free)")
     parser.add_argument("--max-messages", type=int, default=100, help="stop after this many messages")
-    parser.add_argument("--no-write", action="store_true", help="don't write a log to logs/")
+    parser.add_argument("--reasoning-effort", choices=get_args(ReasoningEffort), help="cap reasoning")
+    parser.add_argument("--no-write", action="store_true", help="don't write a log to logs/ or count usage")
     args = parser.parse_args()
-    run_log = None if args.no_write else RunLog(EXPERIMENT, model=args.model, max_messages=args.max_messages)
-    queue, market = asyncio.run(run(args.model, args.max_messages, run_log))
+    settings = dict(model=args.model, max_messages=args.max_messages, reasoning_effort=args.reasoning_effort)
+    run_log = None if args.no_write else RunLog(EXPERIMENT, **settings)
+    queue, market = asyncio.run(run(args.model, args.max_messages, run_log, args.reasoning_effort))
 
     for i, message in enumerate(queue.log):
         clock = (START + timedelta(minutes=message.time)).strftime("%H:%M")
@@ -101,7 +115,8 @@ def main() -> None:
         value = market.value(name)
         print(f"{name}: ${value:,.2f} ({value - start:+,.2f})")
     if run_log:
-        print(f"\nLog: {run_log.path}")
+        run_log.finish()
+        print(f"\n{run_log.describe_totals()}\n\nLog: {run_log.path}")
 
 
 if __name__ == "__main__":

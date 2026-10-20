@@ -51,7 +51,10 @@ class Handler:
         self.waking.discard(name)
         inbox, self.inboxes[name] = self.inboxes[name], []
         prompt = "\n\n".join(message.describe() for message in inbox)
-        return await self.agents[name].act(prompt, submit=queue.submit)
+        sent, usage = await self.agents[name].act(prompt, submit=queue.submit)
+        if queue.run_log:
+            queue.run_log.write_usage(name, queue.now, usage)
+        return sent
 
     def recipients(self, message: Message) -> list[str]:
         if message.to is None:

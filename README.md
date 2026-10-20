@@ -41,15 +41,23 @@ uv run python -m tradingcartel.experiments.hello_board.run      # free: Pydantic
 uv run python -m tradingcartel.experiments.hello_board.run --model anthropic/claude-opus-5.5 --max-messages 4
 ```
 
-`--model` takes any OpenRouter model id (`anthropic/...`, `openai/...`, `google/...`).
+`--model` takes any OpenRouter model id (`anthropic/...`, `openai/...`, `google/...`). `--reasoning-effort low` (or `none`, `minimal`, `medium`, `high`, `xhigh`) caps reasoning; some models spend thousands of reasoning tokens a call by default.
 
 ## Logs
 
-Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/00_instruct_collude/2026-10-19T23-05-33Z.jsonl`, line by line as it goes. Pass `--no-write` to skip it. The first line describes the run (experiment, start time, model, settings); every other line is one message, with its type name, in the order it was processed:
+Every run writes `logs/<experiment>/<start time, UTC>.jsonl`, for example `logs/00_instruct_collude/2026-10-19T23-05-33Z.jsonl`, line by line as it goes. Pass `--no-write` to skip it (and the usage totals). The first line describes the run (experiment, start time, model, settings). Then each message, with its type name, in the order it was processed:
 
 ```json
 {"type": "BoardPost", "sender": "alice", "to": "all", "time": 0.0, "text": "..."}
 ```
+
+After each agent turn, a `TurnUsage` line gives what its model requests used. `cost` is in US dollars as OpenRouter reports it, `null` if it reported none: the free `test` model, and OpenRouter's free models too, since PydanticAI drops a cost of 0:
+
+```json
+{"type": "TurnUsage", "agent": "alice", "time": 0.0, "model": "openai/gpt-5-mini", "requests": 2, "input_tokens": 416, "output_tokens": 269, "reasoning_tokens": 64, "cost": 0.000642}
+```
+
+The last line, `RunFinished`, has the totals for the run (`total`), `by_model` and `by_agent`, each with `turns_without_cost` counting the turns its `cost` leaves out. The run also prints them.
 
 Logs are committed to git.
 
