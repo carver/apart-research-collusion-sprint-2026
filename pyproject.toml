@@ -45,7 +45,15 @@ pythonVersion = "3.12"
 line-length = 110
 target-version = "py312"
 # Copies of llm-toolbox tools and the module they import, kept identical to their originals.
-extend-exclude = ["lib", "bin/apply-edits", "bin/bgrun", "bin/safeps", "bin/waitone"]
+extend-exclude = [
+    "lib",
+    "bin/apply-edits",
+    "bin/bgrun",
+    "bin/edit-script-gate",
+    "bin/openrouter-credits",
+    "bin/safeps",
+    "bin/waitone",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
