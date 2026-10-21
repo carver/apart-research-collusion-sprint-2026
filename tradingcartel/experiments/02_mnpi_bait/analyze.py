@@ -3,7 +3,8 @@ bought each day against its schedule, how far it cut, how often it reported to c
 messaged atlas, and what the run cost; then a table per model and arm. Only runs of the experiment's
 current VERSION count, unless asked for every version.
 
-uv run python -m tradingcartel.experiments.02_mnpi_bait.analyze [LOG_FOLDER] [--runs] [--all-versions]
+uv run python -m tradingcartel.experiments.02_mnpi_bait.analyze [LOG_FOLDER] [--runs] [--show] \\
+    [--all-versions] [--tag T] [--model M] [--memo M] [--message M] [--report R] [--seed S]
 """
 
 import argparse
@@ -12,10 +13,11 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, get_args
 
 from tradingcartel.core import record
 
-from .run import DAYS, SCHEDULE, SUBJECT, Settings, day_index
+from .run import DAYS, SCHEDULE, SUBJECT, MemoKind, MessageKind, ReportKind, Settings, day_index
 
 CUTS = ("none", "about 10%", "about 50%", "halted", "above schedule", "other")
 
@@ -144,7 +146,7 @@ def describe_runs(results: list[RunResult]) -> str:
     """One row per run: its arm, version and seed, the shares bought each day, its cut, reports, direct
     messages, failed turns and cost."""
     rows = [f"{ARM_COLUMNS}  seed  bought  cut, reports, DMs, failed turns, cost"]
-    for run in sorted(results, key=lambda r: (r.arm, r.version or 0, r.seed)):
+    for run in sorted(results, key=run_order):
         bought = "/".join(str(shares) for shares in run.bought)
         cost = f"${run.cost:.4f}" if run.cost is not None else "no cost"
         outcome = (
@@ -154,7 +156,7 @@ def describe_runs(results: list[RunResult]) -> str:
     return "\n".join(rows)
 
 
-def cut_to(text: str, width: int) -> str:
+def one_line(text: str, width: int) -> str:
     """``text`` on one line, cut to ``width`` characters with "…" (no cut for width 0)."""
     text = " ".join(text.split())
     return text if not width or len(text) <= width else text[:width] + "…"
@@ -176,19 +178,39 @@ def transcript(result: RunResult, width: int = 0) -> str:
             case "Trade" if line["agent"] == SUBJECT:
                 rows.append(f"  [{day}] {line['side'].upper()} {line['shares']} @ ${line['price']:.2f}")
             case "DirectMessage" if line["sender"] == SUBJECT:
-                rows.append(f"  [{day}] DM to {line['recipient']}: {cut_to(line['text'], width)}")
+                rows.append(f"  [{day}] DM to {line['recipient']}: {one_line(line['text'], width)}")
             case "DirectMessage" if line["to"] == SUBJECT:
-                rows.append(f"  [{day}] DM from {line['username']}: {cut_to(line['text'], width)}")
+                rows.append(f"  [{day}] DM from {line['username']}: {one_line(line['text'], width)}")
             case "Report" if line["sender"] == SUBJECT:
-                rows.append(f"  [{day}] REPORT: {cut_to(line['text'], width)}")
+                rows.append(f"  [{day}] REPORT: {one_line(line['text'], width)}")
             case "AgentTurn" if line["sender"] == SUBJECT:
                 if line.get("error"):
-                    rows.append(f"  [{day}] TURN FAILED: {cut_to(line['error'], width)}")
-                for message in line["messages"]:
-                    for part in message.get("parts", []):
-                        if part.get("part_kind") == "text" and part.get("content", "").strip():
-                            rows.append(f"  [{day}] SAYS: {cut_to(part['content'], width)}")
+                    rows.append(f"  [{day}] TURN FAILED: {one_line(line['error'], width)}")
+                rows += [f"  [{day}] SAYS: {one_line(text, width)}" for text in turn_texts(line)]
     return "\n".join(rows)
+
+
+def turn_texts(line: dict[str, Any]) -> list[str]:
+    """The texts the agent wrote in an AgentTurn log line, in order."""
+    parts = [part for message in line["messages"] for part in message.get("parts", [])]
+    return [p["content"] for p in parts if p.get("part_kind") == "text" and p.get("content", "").strip()]
+
+
+def run_order(run: RunResult) -> tuple[tuple[str, str, str, str], int, int]:
+    """How runs are listed: by arm, then version, then seed."""
+    return (run.arm, run.version or 0, run.seed)
+
+
+def selected(result: RunResult, args: argparse.Namespace) -> bool:
+    """Whether ``result`` passes the command line's filters."""
+    return (
+        (args.tag is None or result.tag == args.tag)
+        and (args.model is None or args.model in result.model)
+        and (args.memo is None or result.memo == args.memo)
+        and (args.message is None or result.message == args.message)
+        and (args.report is None or result.report == args.report)
+        and (args.seed is None or result.seed == args.seed)
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -204,20 +226,15 @@ def main(argv: Sequence[str] | None = None) -> None:
     )
     parser.add_argument("--tag", help="only runs with this tag (by default every tag is pooled)")
     parser.add_argument("--model", help="only runs whose model name contains this")
-    for setting in ("memo", "message", "report"):
-        parser.add_argument(f"--{setting}", help=f"only runs with this {setting}")
+    parser.add_argument("--memo", choices=get_args(MemoKind), help="only runs with this memo")
+    parser.add_argument("--message", choices=get_args(MessageKind), help="only runs with this message")
+    parser.add_argument("--report", choices=get_args(ReportKind), help="only runs with this report setting")
     parser.add_argument("--seed", type=int, help="only runs with this seed")
     parser.add_argument("--show", action="store_true", help="also print each run's transcript")
     parser.add_argument("--width", type=int, default=0, help="cut --show's texts to this many characters")
     args = parser.parse_args(argv)
     results = [read_run(path) for path in sorted(args.folder.glob("*.jsonl"))]
-    if args.tag:
-        results = [result for result in results if result.tag == args.tag]
-    if args.model:
-        results = [result for result in results if args.model in result.model]
-    for setting in ("memo", "message", "report", "seed"):
-        if (wanted := getattr(args, setting)) is not None:
-            results = [result for result in results if getattr(result, setting) == wanted]
+    results = [result for result in results if selected(result, args)]
     others = []
     if not args.all_versions:
         others = [result for result in results if result.version != Settings.VERSION]
@@ -235,7 +252,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     if others:
         print(f"\n{runs(len(others))} of other versions left out (--all-versions)")
     if args.show:
-        for result in sorted(results, key=lambda r: (r.arm, r.version or 0, r.seed)):
+        for result in sorted(results, key=run_order):
             print("\n" + transcript(result, args.width))
 
 
