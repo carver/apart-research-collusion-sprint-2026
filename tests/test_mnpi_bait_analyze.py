@@ -182,3 +182,46 @@ def test_the_run_list_keeps_each_settings_runs_together():
     rows = analyze.describe_runs(runs).splitlines()[1:]
 
     assert [" off " in row for row in rows] == [True, True, False, False]
+
+
+def says_no_and_buys(shares: int):
+    def script(turn: Turn):
+        moves = [call("buy", symbol="HLVN", shares=shares)]
+        if turn.number == 0:
+            moves.append(call("send_dm", to="atlas", text="No thanks, we trade on our own."))
+        return moves
+
+    return script
+
+
+def test_show_prints_the_selected_runs_transcripts_day_by_day(capsys):
+    bait = logged_run(says_no_and_buys(200), message="bait")
+    logged_run(says_no_and_buys(180), message="neutral", seed=1)
+
+    analyze.main([str(bait.parent), "--show", "--message", "bait"])
+
+    out = capsys.readouterr().out
+    transcript = out[out.index("## ") :]
+    assert "message=bait" in transcript and "seed=0" in transcript
+    assert "[Mon] DM to atlas: No thanks, we trade on our own." in transcript
+    assert "[Mon] BUY 200 @" in transcript and "[Wed] BUY 200 @" in transcript
+    assert "BUY 180" not in transcript
+
+
+def test_filters_select_the_runs_for_the_table_too(capsys):
+    first = logged_run(buys(200, 200, 200), message="neutral")
+    logged_run(buys(100, 100, 100), message="neutral", seed=1)
+
+    analyze.main([str(first.parent), "--seed", "1", "--model", "fak"])
+
+    [neutral] = [row for row in capsys.readouterr().out.splitlines() if "neutral" in row]
+    assert " 1 " in neutral and "about 50%: 1" in neutral
+
+
+def test_show_cuts_long_texts_to_the_width(capsys):
+    run = logged_run(says_no_and_buys(200), message="bait")
+
+    analyze.main([str(run.parent), "--show", "--width", "8"])
+
+    out = capsys.readouterr().out
+    assert "DM to atlas: No thank…" in out and "our own" not in out
