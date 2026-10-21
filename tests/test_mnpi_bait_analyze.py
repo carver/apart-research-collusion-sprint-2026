@@ -156,3 +156,18 @@ def test_the_tag_list_names_untagged_runs_and_only_the_runs_tabulated(capsys):
     analyze.main([str(tagged.parent)])
 
     assert "tags: (untagged), pilot-01" in capsys.readouterr().out
+
+
+def test_a_runs_report_setting_is_read_and_older_logs_had_the_tool():
+    off = analyze.read_run(logged_run(buys(200, 200, 200), report="off"))
+    older = logged_run(buys(200, 200, 200), seed=1)
+    lines = older.read_text().splitlines()
+    header = json.loads(lines[0])
+    del header["report"]
+    older.write_text("\n".join([json.dumps(header), *lines[1:]]) + "\n")
+
+    assert (off.report, analyze.read_run(older).report) == ("off", "on")
+    table = analyze.describe([off, analyze.read_run(older)])
+    assert len([row for row in table.splitlines() if row.startswith("fake")]) == 2
+    [row] = analyze.describe_runs([off]).splitlines()[1:]
+    assert " off " in row

@@ -36,6 +36,7 @@ class RunResult:
     errors: int = 0  # the subject's turns that failed, such as a model call that errored
     version: int | None = None  # the experiment's VERSION when the run was made
     tag: str | None = None  # the batch the run was tagged with, if any
+    report: str = "on"  # whether the subject had the report tool (--report)
 
 
 def runs(count: int) -> str:
@@ -87,6 +88,7 @@ def read_run(path: Path) -> RunResult:
         finished=record.is_finished(lines),
         version=header.get("version"),
         tag=header.get("tag"),
+        report=header.get("report", "on"),  # logs from before the setting had the tool
         errors=sum(
             line["type"] == "AgentTurn" and line["sender"] == SUBJECT and bool(line["error"])
             for line in lines
@@ -98,12 +100,17 @@ def describe(results: list[RunResult]) -> str:
     """A table: per model, memo and message, the runs, mean shares bought each day, how many runs fell
     in each cut, mean reports and direct messages, and mean cost a run. Runs in which a subject's turn
     failed are left out and counted, since a missed day would read as a cut."""
-    arms: defaultdict[tuple[str, str, str, int], list[RunResult]] = defaultdict(list)
+    arms: defaultdict[tuple[str, str, str, str, int], list[RunResult]] = defaultdict(list)
     for result in results:
         if not result.errors:
-            arms[(result.model, result.memo, result.message, result.version or 0)].append(result)
-    rows = [f"{'model':<34} {'memo':<14} {'message':<8} {'version':<11} {'runs':>4}  bought a day, then cuts"]
-    for (model, memo, message, _), arm_runs in sorted(arms.items()):
+            arms[(result.model, result.memo, result.message, result.report, result.version or 0)].append(
+                result
+            )
+    rows = [
+        f"{'model':<34} {'memo':<14} {'message':<8} {'report':<6} {'version':<11} {'runs':>4}  "
+        "bought a day, then cuts"
+    ]
+    for (model, memo, message, report, _), arm_runs in sorted(arms.items()):
         version = version_name(arm_runs[0].version)
         days = "  ".join(
             f"{name[:3]} {statistics.mean(run.bought[i] for run in arm_runs):.0f}"
@@ -115,7 +122,7 @@ def describe(results: list[RunResult]) -> str:
         dms = statistics.mean(run.dms for run in arm_runs)
         costs = [run.cost for run in arm_runs if run.cost is not None]
         cost = f"${statistics.mean(costs):.4f} a run" if costs else "no cost"
-        arm = f"{model:<34} {memo:<14} {message:<8} {version:<11} {len(arm_runs):>4}"
+        arm = f"{model:<34} {memo:<14} {message:<8} {report:<6} {version:<11} {len(arm_runs):>4}"
         rows.append(f"{arm}  {days}  {cuts}  reports {reports:.1f}  DMs {dms:.1f}  {cost}")
     if failed := sum(bool(result.errors) for result in results):
         rows.append(f"\n{runs(failed)} with failed turns left out")
@@ -126,13 +133,15 @@ def describe_runs(results: list[RunResult]) -> str:
     """One row per run: its arm, version and seed, the shares bought each day, its cut, reports, direct
     messages, failed turns and cost."""
     rows = [
-        f"{'model':<34} {'memo':<14} {'message':<8} {'version':<11}  seed  bought  "
+        f"{'model':<34} {'memo':<14} {'message':<8} {'report':<6} {'version':<11}  seed  bought  "
         "cut, reports, DMs, failed turns, cost"
     ]
     for run in sorted(results, key=lambda r: (r.model, r.memo, r.message, r.version or 0, r.seed)):
         bought = "/".join(str(shares) for shares in run.bought)
         cost = f"${run.cost:.4f}" if run.cost is not None else "no cost"
-        arm = f"{run.model:<34} {run.memo:<14} {run.message:<8} {version_name(run.version):<11}"
+        arm = (
+            f"{run.model:<34} {run.memo:<14} {run.message:<8} {run.report:<6} {version_name(run.version):<11}"
+        )
         outcome = (
             f"{cut(run.bought)}, reports {run.reports}, DMs {run.dms}, failed turns {run.errors}, {cost}"
         )
