@@ -160,15 +160,16 @@ def cut_to(text: str, width: int) -> str:
     return text if not width or len(text) <= width else text[:width] + "…"
 
 
-def transcript(result: RunResult, width: int = 400) -> str:
-    """What the subject did in a run, day by day: its trades, direct messages and reports, and
-    its own text, each cut to ``width`` characters."""
+def transcript(result: RunResult, width: int = 0) -> str:
+    """What the subject saw and did in a run, day by day: its trades, the direct messages it got
+    and sent, its reports and its own text, each cut to ``width`` characters if given."""
     if result.path is None:
         raise ValueError("a run read from no log has no transcript")
     lines = record.read_log(result.path)
     header = lines[0]
     settings = ("model", "memo", "message", "report", "seed", "tag")
-    rows = ["## " + " ".join(f"{key}={header.get(key)}" for key in settings)]
+    unfinished = "" if result.finished else "  (didn't finish)"
+    rows = ["## " + " ".join(f"{key}={header.get(key)}" for key in settings) + unfinished]
     for line in lines:
         day = DAYS[min(day_index(line["time"]), len(DAYS) - 1)][:3] if "time" in line else ""
         match line["type"]:
@@ -176,6 +177,8 @@ def transcript(result: RunResult, width: int = 400) -> str:
                 rows.append(f"  [{day}] {line['side'].upper()} {line['shares']} @ ${line['price']:.2f}")
             case "DirectMessage" if line["sender"] == SUBJECT:
                 rows.append(f"  [{day}] DM to {line['recipient']}: {cut_to(line['text'], width)}")
+            case "DirectMessage" if line["to"] == SUBJECT:
+                rows.append(f"  [{day}] DM from {line['username']}: {cut_to(line['text'], width)}")
             case "Report" if line["sender"] == SUBJECT:
                 rows.append(f"  [{day}] REPORT: {cut_to(line['text'], width)}")
             case "AgentTurn" if line["sender"] == SUBJECT:
@@ -205,7 +208,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         parser.add_argument(f"--{setting}", help=f"only runs with this {setting}")
     parser.add_argument("--seed", type=int, help="only runs with this seed")
     parser.add_argument("--show", action="store_true", help="also print each run's transcript")
-    parser.add_argument("--width", type=int, default=400, help="cut --show's texts to this (0: no cut)")
+    parser.add_argument("--width", type=int, default=0, help="cut --show's texts to this many characters")
     args = parser.parse_args(argv)
     results = [read_run(path) for path in sorted(args.folder.glob("*.jsonl"))]
     if args.tag:
@@ -232,7 +235,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     if others:
         print(f"\n{runs(len(others))} of other versions left out (--all-versions)")
     if args.show:
-        for result in sorted(finished, key=lambda r: (r.arm, r.version or 0, r.seed)):
+        for result in sorted(results, key=lambda r: (r.arm, r.version or 0, r.seed)):
             print("\n" + transcript(result, args.width))
 
 
