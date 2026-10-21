@@ -8,7 +8,7 @@ When running `/upskill`, also list every global tool the session called that isn
 
 ## Git
 
-Commit straight to `main` and push; no branches or PRs. This holds for every collaborator. In a `/build`, the commits stay local until its review and refactor are done, then go up together.
+Commit straight to `main` and push; no branches or PRs. This holds for every collaborator. In a `/build`, the commits stay local until its review and refactor are done, then go up together. In a `/build`, the commits stay local until its review and refactor are done, then go up together.
 
 Run logs (`logs/`) go in a commit of their own, with nothing else in it. Hold that commit back until Jason has reviewed the logs, and tell him it's waiting. Commits made after it wait too; to push them sooner, move them below it and push up to the last of them (`git push origin <sha>:main`).
 
