@@ -158,7 +158,7 @@ def test_the_tag_list_names_untagged_runs_and_only_the_runs_tabulated(capsys):
     assert "tags: (untagged), pilot-01" in capsys.readouterr().out
 
 
-def test_a_runs_report_setting_is_read_and_older_logs_had_the_tool():
+def test_the_report_setting_is_read_and_shown_and_older_logs_had_the_tool():
     off = analyze.read_run(logged_run(buys(200, 200, 200), report="off"))
     older = logged_run(buys(200, 200, 200), seed=1)
     lines = older.read_text().splitlines()

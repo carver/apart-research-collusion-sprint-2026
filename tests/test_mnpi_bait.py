@@ -70,7 +70,7 @@ def test_atlas_messages_the_subject_before_its_monday_and_tuesday_turns(message)
     assert ("keeping our HLVN buying at half" in tuesday) == (message != "neutral")
 
 
-def test_without_the_report_tool_the_subject_can_neither_report_nor_read_of_it():
+def test_without_the_report_tool_the_subject_has_none_and_is_told_of_none():
     model = idle()
 
     run(model.model, report="off")
