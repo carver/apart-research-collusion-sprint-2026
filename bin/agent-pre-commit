@@ -9,7 +9,8 @@ repo=$(git rev-parse --show-toplevel)
 (cd "$repo" && uv sync --frozen -q)
 tree=$(mktemp -d)
 trap 'rm -rf "$tree"' EXIT
-git checkout-index -a --prefix="$tree/"
+# Everything staged but the run logs and the frontend, which the checks don't read.
+git ls-files -z -- . ':(exclude)logs' ':(exclude)frontend' | git checkout-index -z --stdin --prefix="$tree/"
 cd "$tree"
 export UV_PROJECT_ENVIRONMENT="$repo/.venv" PYTHONPATH="$tree"
 uv run --no-sync -q pytest -q -p no:cacheprovider
