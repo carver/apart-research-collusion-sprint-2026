@@ -38,6 +38,20 @@ class RunResult:
     tag: str | None = None  # the batch the run was tagged with, if any
     report: str = "on"  # whether the subject had the report tool (--report)
 
+    @property
+    def arm(self) -> tuple[str, str, str, str]:
+        """The settings that make the run's arm: model, memo, message and report."""
+        return (self.model, self.memo, self.message, self.report)
+
+
+ARM_COLUMNS = f"{'model':<34} {'memo':<14} {'message':<8} {'report':<6} {'version':<11}"
+
+
+def arm_columns(arm: tuple[str, str, str, str], version: int | None) -> str:
+    """An arm and version as the first columns of a row, under ARM_COLUMNS."""
+    model, memo, message, report = arm
+    return f"{model:<34} {memo:<14} {message:<8} {report:<6} {version_name(version):<11}"
+
 
 def runs(count: int) -> str:
     """``count`` runs, in words: "1 run", "3 runs"."""
@@ -97,21 +111,16 @@ def read_run(path: Path) -> RunResult:
 
 
 def describe(results: list[RunResult]) -> str:
-    """A table: per model, memo and message, the runs, mean shares bought each day, how many runs fell
-    in each cut, mean reports and direct messages, and mean cost a run. Runs in which a subject's turn
-    failed are left out and counted, since a missed day would read as a cut."""
-    arms: defaultdict[tuple[str, str, str, str, int], list[RunResult]] = defaultdict(list)
+    """A table: per arm (model, memo, message, report) and version, the runs, mean shares bought
+    each day, how many runs fell in each cut, mean reports and direct messages, and mean cost a run.
+    Runs in which a subject's turn failed are left out and counted, since a missed day would read as
+    a cut."""
+    arms: defaultdict[tuple[tuple[str, str, str, str], int], list[RunResult]] = defaultdict(list)
     for result in results:
         if not result.errors:
-            arms[(result.model, result.memo, result.message, result.report, result.version or 0)].append(
-                result
-            )
-    rows = [
-        f"{'model':<34} {'memo':<14} {'message':<8} {'report':<6} {'version':<11} {'runs':>4}  "
-        "bought a day, then cuts"
-    ]
-    for (model, memo, message, report, _), arm_runs in sorted(arms.items()):
-        version = version_name(arm_runs[0].version)
+            arms[(result.arm, result.version or 0)].append(result)
+    rows = [f"{ARM_COLUMNS} {'runs':>4}  bought a day, then cuts"]
+    for (arm, _), arm_runs in sorted(arms.items()):
         days = "  ".join(
             f"{name[:3]} {statistics.mean(run.bought[i] for run in arm_runs):.0f}"
             for i, name in enumerate(DAYS)
@@ -122,8 +131,8 @@ def describe(results: list[RunResult]) -> str:
         dms = statistics.mean(run.dms for run in arm_runs)
         costs = [run.cost for run in arm_runs if run.cost is not None]
         cost = f"${statistics.mean(costs):.4f} a run" if costs else "no cost"
-        arm = f"{model:<34} {memo:<14} {message:<8} {report:<6} {version:<11} {len(arm_runs):>4}"
-        rows.append(f"{arm}  {days}  {cuts}  reports {reports:.1f}  DMs {dms:.1f}  {cost}")
+        columns = f"{arm_columns(arm, arm_runs[0].version)} {len(arm_runs):>4}"
+        rows.append(f"{columns}  {days}  {cuts}  reports {reports:.1f}  DMs {dms:.1f}  {cost}")
     if failed := sum(bool(result.errors) for result in results):
         rows.append(f"\n{runs(failed)} with failed turns left out")
     return "\n".join(rows)
@@ -132,20 +141,14 @@ def describe(results: list[RunResult]) -> str:
 def describe_runs(results: list[RunResult]) -> str:
     """One row per run: its arm, version and seed, the shares bought each day, its cut, reports, direct
     messages, failed turns and cost."""
-    rows = [
-        f"{'model':<34} {'memo':<14} {'message':<8} {'report':<6} {'version':<11}  seed  bought  "
-        "cut, reports, DMs, failed turns, cost"
-    ]
-    for run in sorted(results, key=lambda r: (r.model, r.memo, r.message, r.report, r.version or 0, r.seed)):
+    rows = [f"{ARM_COLUMNS}  seed  bought  cut, reports, DMs, failed turns, cost"]
+    for run in sorted(results, key=lambda r: (r.arm, r.version or 0, r.seed)):
         bought = "/".join(str(shares) for shares in run.bought)
         cost = f"${run.cost:.4f}" if run.cost is not None else "no cost"
-        arm = (
-            f"{run.model:<34} {run.memo:<14} {run.message:<8} {run.report:<6} {version_name(run.version):<11}"
-        )
         outcome = (
             f"{cut(run.bought)}, reports {run.reports}, DMs {run.dms}, failed turns {run.errors}, {cost}"
         )
-        rows.append(f"{arm}  seed {run.seed}  {bought}  {outcome}")
+        rows.append(f"{arm_columns(run.arm, run.version)}  seed {run.seed}  {bought}  {outcome}")
     return "\n".join(rows)
 
 
