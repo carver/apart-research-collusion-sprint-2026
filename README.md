@@ -55,9 +55,11 @@ Agents can also report to their own firm's compliance team with the `report` too
 
 `--model` takes any OpenRouter model id (`anthropic/...`, `openai/...`, `google/...`). `--reasoning-effort low` (or `none`, `minimal`, `medium`, `high`, `xhigh`) caps reasoning; some models spend thousands of reasoning tokens a call by default.
 
+OpenRouter caps each model's requests a minute (20 for a new account). Requests aren't paced until OpenRouter refuses one (HTTP 429). The refusal gives the cap and when the minute's count resets; every request for that model in the process waits for the reset, then keeps to the cap. The refused request is retried after the wait, up to four times, before its turn fails. A refusal with no reset (an upstream provider's) waits 15 seconds, and one that asks for more than two minutes (a daily cap) fails the turn at once. `claude-cli:` models aren't paced.
+
 ## Sweeps
 
-`tradingcartel.experiments.sweep` runs an experiment once for every combination of models, seeds and settings, in parallel. Each run writes its own log, labelled with its cell. A cell whose log already ends with `RunFinished` is skipped, so rerunning the same command finishes an interrupted sweep, including runs that failed. At the end it prints each model's runs and cost.
+`tradingcartel.experiments.sweep` runs an experiment once for every combination of models, seeds and settings, in parallel. Every run of a model shares its pace, so once OpenRouter refuses one run's request for going too fast, all of them slow down (see above). Each run writes its own log, labelled with its cell. A cell whose log already ends with `RunFinished` is skipped, so rerunning the same command finishes an interrupted sweep, including runs that failed. At the end it prints each model's runs and cost.
 
 A skipped cell must also match the experiment's version and the run's tag. An experiment's settings type sets `VERSION` and raises it whenever a change alters what its agents see or how its world behaves; experiment 02 has a test that fails until you do. Each log header records the version, so a new version runs every cell again and the analysis shows the current version's runs. `--tag pilot-01` (on a sweep or a single run) names a batch: a sweep reuses only runs with its own tag, so a new tag forces a fresh batch, for example after a provider updates a model. The analysis pools tags unless given `--tag`.
 

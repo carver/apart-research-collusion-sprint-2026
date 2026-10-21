@@ -20,7 +20,7 @@ from pydantic_ai.tool_manager import ToolManager
 
 from ..core.agent import Submit, TurnUsage
 from ..core.messages import Message
-from . import claude_cli
+from . import claude_cli, rate_limit
 
 pydantic_ai.BANNER_ENABLED = False  # no first-run banner in our output
 
@@ -117,8 +117,9 @@ def make_model(name: str, reasoning_effort: ReasoningEffort | None = None) -> Mo
     """``test`` is PydanticAI's free TestModel. ``claude-cli:<model>``, such as ``claude-cli:sonnet``,
     runs a Claude model through ``claude -p`` on a Claude subscription. Anything else is an OpenRouter
     model id, such as ``anthropic/claude-opus-5.5``, using OPENROUTER_API_KEY from the environment or
-    the project's .env. OpenRouter reports each response's cost. ``reasoning_effort`` caps
-    reasoning; without it the provider's default applies."""
+    the project's .env. OpenRouter reports each response's cost, and its models share a rate limit
+    per model name (``rate_limit``). ``reasoning_effort`` caps reasoning; without it the provider's
+    default applies."""
     if name == TEST_MODEL:
         return TestModel()
     if name.startswith(claude_cli.PREFIX):
@@ -127,7 +128,7 @@ def make_model(name: str, reasoning_effort: ReasoningEffort | None = None) -> Mo
     settings = OpenRouterModelSettings(openrouter_usage={"include": True})
     if reasoning_effort:
         settings["openrouter_reasoning"] = {"effort": reasoning_effort}
-    return OpenRouterModel(name, settings=settings)
+    return rate_limit.paced(OpenRouterModel(name, settings=settings))
 
 
 def load_env(path: Path) -> None:

@@ -4,9 +4,10 @@ Each run writes its own log, labelled with its cell. A cell whose log already en
 ``RunFinished``, from a run of the experiment's current ``VERSION``, is skipped, so an interrupted
 sweep picks up where it stopped and a new version of the experiment runs every cell again. Runs go
 in parallel, at most ``workers`` at once and ``per_model`` per model. Cells alternate between models, so one
-model's slow or rate-limited calls don't hold up the others. A run that fails is reported and leaves
-a log without ``RunFinished``, so the next sweep runs it again. At the end the sweep prints what
-each model's runs cost.
+model's slow or rate-limited calls don't hold up the others. Every run of a model shares its pace
+(``agents.rate_limit``): once OpenRouter refuses a request for going too fast, they all keep to the
+rate it gives. A run that fails is reported and leaves a log without ``RunFinished``, so the next
+sweep runs it again. At the end the sweep prints what each model's runs cost.
 
 uv run python -m tradingcartel.experiments.sweep 02_mnpi_bait --models claude-cli:haiku,openai/gpt-6.1-sol \\
     --seeds 0,1,2 --grid memo=none,earnings_rule,deal_rule --grid message=neutral,halve,bait
