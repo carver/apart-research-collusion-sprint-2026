@@ -1,4 +1,15 @@
 #!/bin/sh
 # Slow checks for agent commits; bin/git-pre-commit runs this first when $AI_AGENT is set.
+# They check what's staged: a copy of the index in a temporary folder, so unstaged changes
+# can neither fail a commit nor rescue it. The repo's environment is used as it is
+# (--no-sync), with the staged copy first on the import path.
+set -e
+repo=$(git rev-parse --show-toplevel)
+tree=$(mktemp -d)
+trap 'rm -rf "$tree"' EXIT
+git checkout-index -a --prefix="$tree/"
+cd "$tree"
+export UV_PROJECT_ENVIRONMENT="$repo/.venv" PYTHONPATH="$tree"
+uv run --no-sync -q pytest -q -p no:cacheprovider
 # pyright's PyPI wrapper would otherwise ask PyPI for a newer version on every run.
-uv run pytest -q && PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run pyright
+PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run --no-sync pyright
