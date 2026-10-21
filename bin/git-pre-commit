@@ -18,5 +18,5 @@ if [ ${#files[@]} -gt 0 ]; then
   uvx -q ruff@0.16.9 format -q --force-exclude -- "${files[@]}" && git add -- "${files[@]}" || exit
 fi
 
-if [ -n "${AI_AGENT:-}" ] && [ -z "${AGENT_PRE_COMMIT:-}" ]; then AGENT_PRE_COMMIT=1 "$(dirname "$0")/agent-pre-commit" || exit; fi
+if [ -n "${AI_AGENT:-}" ] && [ -z "${AGENT_PRE_COMMIT:-}" ]; then if command -v agent-commit-gate >/dev/null; then AGENT_PRE_COMMIT=1 agent-commit-gate --run "$(dirname "$0")/agent-pre-commit"; else AGENT_PRE_COMMIT=1 "$(dirname "$0")/agent-pre-commit"; fi || exit; fi
 exec uvx pre-commit@4.7.0 run
