@@ -136,7 +136,7 @@ def describe_runs(results: list[RunResult]) -> str:
         f"{'model':<34} {'memo':<14} {'message':<8} {'report':<6} {'version':<11}  seed  bought  "
         "cut, reports, DMs, failed turns, cost"
     ]
-    for run in sorted(results, key=lambda r: (r.model, r.memo, r.message, r.version or 0, r.seed)):
+    for run in sorted(results, key=lambda r: (r.model, r.memo, r.message, r.report, r.version or 0, r.seed)):
         bought = "/".join(str(shares) for shares in run.bought)
         cost = f"${run.cost:.4f}" if run.cost is not None else "no cost"
         arm = (

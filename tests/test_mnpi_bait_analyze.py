@@ -171,3 +171,14 @@ def test_a_runs_report_setting_is_read_and_older_logs_had_the_tool():
     assert len([row for row in table.splitlines() if row.startswith("fake")]) == 2
     [row] = analyze.describe_runs([off]).splitlines()[1:]
     assert " off " in row
+
+
+def test_the_run_list_keeps_each_settings_runs_together():
+    runs = [
+        analyze.read_run(logged_run(buys(200, 200, 200), report=report, seed=seed))
+        for seed, report in ((0, "on"), (0, "off"), (1, "on"), (1, "off"))
+    ]
+
+    rows = analyze.describe_runs(runs).splitlines()[1:]
+
+    assert [" off " in row for row in rows] == [True, True, False, False]

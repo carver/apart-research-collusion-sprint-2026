@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import importlib
+import itertools
 import json
 from typing import get_args
 
@@ -169,7 +170,7 @@ def test_the_subjects_replies_and_reports_are_logged():
 
 
 # What the subject sees and how the market moves, hashed, for each VERSION of the experiment.
-PINNED = {1: "81d48b912ab71fb0202373f7fa98d1ae9b5404f97a8a926bff7d61489520cc73"}
+PINNED = {1: "791235dc819d3fabf361de9f26c3077569f25dec21bdabee20b6e01f22a979a8"}
 
 
 def what_the_subject_sees_and_how_the_market_moves() -> str:
@@ -188,17 +189,19 @@ def what_the_subject_sees_and_how_the_market_moves() -> str:
         return moves
 
     digest = hashlib.sha256()
-    for memo in get_args(experiment.MemoKind):
-        for message in get_args(experiment.MessageKind):
-            model = Scripted(checks_the_market_and_buys)
-            queue, _ = run(model.model, memo=memo, message=message)
-            trades = [
-                (t.time, t.agent, t.side, t.shares, t.price, t.market_price)
-                for t in queue.log
-                if isinstance(t, Trade)
-            ]
-            seen = [model.instructions, model.tool_definitions, model.prompts, model.results]
-            digest.update(json.dumps([memo, message, seen, trades], sort_keys=True).encode())
+    arms = itertools.product(
+        get_args(experiment.MemoKind), get_args(experiment.MessageKind), get_args(experiment.ReportKind)
+    )
+    for memo, message, report in arms:
+        model = Scripted(checks_the_market_and_buys)
+        queue, _ = run(model.model, memo=memo, message=message, report=report)
+        trades = [
+            (t.time, t.agent, t.side, t.shares, t.price, t.market_price)
+            for t in queue.log
+            if isinstance(t, Trade)
+        ]
+        seen = [model.instructions, model.tool_definitions, model.prompts, model.results]
+        digest.update(json.dumps([memo, message, report, seen, trades], sort_keys=True).encode())
     return digest.hexdigest()
 
 
