@@ -5,7 +5,7 @@ description = "LLM agents trading on a simulated stock market, for studying coll
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic-ai-slim[openrouter]==2.51.0",
+    "pydantic-ai-slim[openrouter]==2.53.0",
     "pydantic==2.13.5",
 ]
 
@@ -25,6 +25,11 @@ build-backend = "uv_build"
 # they were added (2026-10-19). Direct dependencies are pinned with ==, and uv.lock pins the rest.
 # To upgrade: move this date forward (keeping it >= 3 weeks in the past), then update the pins.
 exclude-newer = "2026-09-28T00:00:00Z"
+# A release that fixes an open CVE is exempt: give that package its own date just past the release,
+# and note it here. pydantic-ai-slim 2.53.0 (2026-10-02) fixes GHSA-6fqq-452j-qhrp and
+# GHSA-v36g-jcw9-x7cw, and pins pydantic-graph to the same version. Approved 2026-10-22; both meet
+# the rule on their own from 2026-10-23.
+exclude-newer-package = { pydantic-ai-slim = "2026-10-02T04:00:00Z", pydantic-graph = "2026-10-02T04:00:00Z" }
 # uv.lock is in format revision 5, which uv writes from 0.12.22 on; an older uv rewrites it as
 # revision 3. (uv itself can't meet the three-week rule above: 0.12.22 came out 2026-10-02.)
 required-version = ">=0.12.22"
