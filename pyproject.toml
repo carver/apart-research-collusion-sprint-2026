@@ -1,7 +1,7 @@
 [project]
-name = "tradingcartel"
+name = "zerocommcartel"
 version = "0.1.0"
-description = "LLM agents trading on a simulated stock market, for studying collusion. Every message goes through one event queue."
+description = "Collusion emerges through shared agent use, without communication"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -42,7 +42,7 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [tool.pyright]
-include = ["tradingcartel"]  # not tests/: they read subclass fields off plain Messages, fine at runtime
+include = ["zerocommcartel"]  # not tests/: they read subclass fields off plain Messages, fine at runtime
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 
