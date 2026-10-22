@@ -1,5 +1,5 @@
-# Lint, format check, tests and type check on every push to main and every pull request.
-# The tests use PydanticAI's TestModel, so they make no API calls and need no secrets.
+# Lock check, lint and format check on every push to main and every pull request. The repo
+# holds only shared tools for now; add back `uv run pytest` and `uv run pyright` with code.
 name: CI
 
 on:
@@ -16,7 +16,3 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check
       - run: uv run ruff format --check
-      - run: uv run pytest
-      - run: uv run pyright
-        env:
-          PYRIGHT_PYTHON_IGNORE_WARNINGS: "1"  # don't ask PyPI for a newer pyright on every run

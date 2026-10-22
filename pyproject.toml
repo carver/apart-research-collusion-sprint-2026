@@ -16,11 +16,10 @@ dev = [
     "ruff==0.16.9",
 ]
 
-[build-system]
-requires = ["uv_build==0.12.19"]
-build-backend = "uv_build"
-
 [tool.uv]
+# The repo is a shell around the team's shared tools (bin/, lib/), with no package to build yet.
+# When code returns, add a [build-system] and drop this line.
+package = false
 # Supply-chain policy: resolve only releases uploaded before this date, at least three weeks before
 # they were added (2026-10-19). Direct dependencies are pinned with ==, and uv.lock pins the rest.
 # To upgrade: move this date forward (keeping it >= 3 weeks in the past), then update the pins.
@@ -33,9 +32,6 @@ exclude-newer-package = { pydantic-ai-slim = "2026-10-02T04:00:00Z", pydantic-gr
 # uv.lock is in format revision 5, which uv writes from 0.12.22 on; an older uv rewrites it as
 # revision 3. (uv itself can't meet the three-week rule above: 0.12.22 came out 2026-10-02.)
 required-version = ">=0.12.22"
-
-[tool.uv.build-backend]
-module-root = ""  # the package lives in ./tradingcartel, no src/ folder
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,18 +1,11 @@
 #!/bin/sh
 # Slow checks for agent commits; bin/git-pre-commit runs this first when $AI_AGENT is set.
-# They check what's staged: a copy of the index in a temporary folder, so unstaged changes
-# can neither fail a commit nor rescue it. The repo's environment is synced first (creating
-# it in a fresh clone or worktree), then used as it is (--no-sync), with the staged copy
-# first on the import path.
+# The repo holds only shared tools for now (no package, no tests), so the check is that
+# uv.lock matches pyproject.toml and the environment syncs from it. When code and tests
+# return, add back pytest and pyright here and in .github/workflows/ci.yml, run on a copy
+# of what's staged (see this file's history).
 set -e
 repo=$(git rev-parse --show-toplevel)
-(cd "$repo" && uv sync --frozen -q)
-tree=$(mktemp -d)
-trap 'rm -rf "$tree"' EXIT
-# Everything staged but the run logs and the frontend, which the checks don't read.
-git ls-files -z -- . ':(exclude)logs' ':(exclude)frontend' | git checkout-index -z --stdin --prefix="$tree/"
-cd "$tree"
-export UV_PROJECT_ENVIRONMENT="$repo/.venv" PYTHONPATH="$tree"
-uv run --no-sync -q pytest -q -p no:cacheprovider
-# pyright's PyPI wrapper would otherwise ask PyPI for a newer version on every run.
-PYRIGHT_PYTHON_IGNORE_WARNINGS=1 uv run --no-sync pyright
+cd "$repo"
+uv lock --check -q
+uv sync --frozen -q
