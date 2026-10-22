@@ -4,6 +4,8 @@
 
 `.claude/skills/`, `bin/` and `lib/` hold copies of skills, tools and the modules the tools import, from Jason's personal toolbox (`llm-toolbox`), so collaborators without that toolbox can use them. Run a `bin/` tool by its path, e.g. `bin/session-digest`; `-h` gives its options. `bin/apply-edits` makes exact text replacements across files, all or nothing; `bin/bgrun` starts a background job and prints its own PID; `bin/safeps` lists processes by name or command line, and `bin/waitone` waits for one to exit, both skipping their caller; `bin/openrouter-credits` prints the OpenRouter account's credits, bought, used and left. `.claude/settings.json` runs `bin/edit-script-gate` before each Bash call: it refuses an inline Python script that `.replace()`s text in a file and writes it back, and points to `bin/apply-edits`.
 
+`/sprint-paper` (type it; it doesn't fire on its own) takes a sprint project from the rubric to a reviewed report through multi-agent workflows, with the rules that keep long runs from corrupting themselves.
+
 When Jason runs `/upskill`, also list every global tool the session called that isn't in `bin/` (anything from `llm-toolbox/bin` or another personal PATH entry). Pitch copying each into `bin/` from `/home/carver/code/claudedev/llm-toolbox/bin/`; a tool that imports beyond the standard library needs its dependencies added to `pyproject.toml` too.
 
 ## Git
