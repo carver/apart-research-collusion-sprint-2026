@@ -6,6 +6,7 @@
     uv run zcc judge consistent                       # the copy judge labels each reply (cached)
     uv run zcc table consistent                       # a markdown table per condition, model and n
     uv run zcc synth                                  # each criterion's measures beside same's cartel rate
+    uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 
 `run` appends to logs/<criterion>/results.jsonl unless --out names another file. It skips the replies it
 already has, so raising --samples adds samples and a rerun retries failures. Smoke tests use --out and the
@@ -13,6 +14,7 @@ Claude subscription (haiku, sonnet, opus); OpenRouter models need OPENROUTER_API
 """
 
 import argparse
+import contextlib
 import sys
 from pathlib import Path
 
@@ -22,6 +24,8 @@ from zerocommcartel.criterion import Registry
 from zerocommcartel.judge import label, load_labels
 from zerocommcartel.run import done_keys, plan, run
 from zerocommcartel.table import Replies, prepare, synth, table
+
+NS = [2, 4]  # the market sizes run and hashes cover by default
 
 
 def replies(registry: Registry, criterion: str, log: Path) -> Replies:
@@ -94,6 +98,19 @@ def cmd_synth(registry: Registry, args):
     )
 
 
+def cmd_hashes(registry: Registry, args):
+    """A line per prompt (criterion, condition, n, hash) and per judge (its key for an empty reply, which
+    moves whenever its cached labels go stale). Diff it across a shared-core change to see which logs it
+    ages."""
+    for name in registry.criteria:
+        for cond, spec in registry.conditions(name).items():
+            for n in args.ns:
+                with contextlib.suppress(ValueError):  # a market size the condition's game can't take
+                    print(f"{name} {cond} {n} {registry.render(spec, n).hash}")
+    for name, judge in registry.judges.items():
+        print(f"judge {name} {judge.key('')}")
+
+
 def main(argv=None, registry: Registry = REGISTRY):
     p = argparse.ArgumentParser(
         prog="zcc", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
@@ -110,7 +127,7 @@ def main(argv=None, registry: Registry = REGISTRY):
     s.add_argument("--conditions", nargs="+", help="default: all of the criterion's conditions")
     s.add_argument("--models", nargs="+", default=["haiku", "sonnet", "opus"])
     s.add_argument(
-        "--ns", nargs="+", type=int, default=[2, 4], help="market sizes; each game says which it takes"
+        "--ns", nargs="+", type=int, default=NS, help="market sizes; each game says which it takes"
     )
     s.add_argument("--samples", type=int, default=3)
     s.add_argument("--workers", type=int, default=40)
@@ -123,6 +140,8 @@ def main(argv=None, registry: Registry = REGISTRY):
     s.add_argument("criterion", choices=criteria)
     s.add_argument("--log", help="default: logs/<criterion>/results.jsonl")
     sub.add_parser("synth", help="every criterion's measures beside the same-prompt cartel rate")
+    s = sub.add_parser("hashes", help="prompt hashes and judge keys; diff them across a shared-core change")
+    s.add_argument("--ns", nargs="+", type=int, default=NS, help="market sizes")
     args = p.parse_args(argv)
     {
         "list": cmd_list,
@@ -131,4 +150,5 @@ def main(argv=None, registry: Registry = REGISTRY):
         "judge": cmd_judge,
         "table": cmd_table,
         "synth": cmd_synth,
+        "hashes": cmd_hashes,
     }[args.cmd](registry, args)

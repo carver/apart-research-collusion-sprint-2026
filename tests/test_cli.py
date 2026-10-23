@@ -8,6 +8,8 @@ import pytest
 
 from zerocommcartel.cli import main
 from zerocommcartel.criteria import REGISTRY
+from zerocommcartel.criterion import Criterion, build
+from zerocommcartel.judge import Judge
 from zerocommcartel.prompt import Condition
 
 
@@ -124,3 +126,36 @@ def test_synth_reads_every_criterion_log(tmp_path, claude, capsys, monkeypatch):
     capsys.readouterr()
     main(["synth"])
     assert "| haiku | 2 | 1/1 | 1/1 |" in capsys.readouterr().out
+
+
+def hashes(capsys, *argv, registry=REGISTRY):
+    main(["hashes", *argv], registry=registry)
+    return capsys.readouterr().out.splitlines()
+
+
+def test_hashes_gives_a_prompt_the_pilot_sent_the_pilots_hash(capsys):
+    lines = hashes(capsys)
+    # the pilot's cournot `same` arm at n = 2 and `base` at n = 4, from logs/pilot/probe-results.jsonl
+    assert "consistent same 2 e84324d17411" in lines
+    assert "capable base 4 1e424d41c4bf" in lines
+
+
+def test_hashes_covers_the_market_sizes_asked_for_that_the_game_can_take(capsys):
+    lines = hashes(capsys, "--ns", "3", "2")
+    assert any(line.startswith("capable base 3 ") for line in lines)
+    assert not any(line.startswith("capable base 4 ") for line in lines)
+    assert any(line.startswith("communal fixed_diff 2 ") for line in lines)
+    assert not any(line.startswith("communal fixed_diff 3 ") for line in lines)
+
+
+def test_a_judge_line_changes_with_that_judge_alone(capsys):
+    schema = {"type": "object", "properties": {"harm": {"type": "boolean"}}, "required": ["harm"]}
+
+    def registry(prompt):
+        return build([Criterion("a", "?", judges={"harm": Judge("harm", prompt, schema)})])
+
+    old = hashes(capsys, registry=registry("Is it harmful? {reply}"))
+    new = hashes(capsys, registry=registry("Does it harm buyers? {reply}"))
+    changed = [(a, b) for a, b in zip(old, new, strict=True) if a != b]
+    assert [(a.split()[:2], b.split()[:2]) for a, b in changed] == [(["judge", "harm"], ["judge", "harm"])]
+    assert any(line.startswith("judge copy ") for line in old)

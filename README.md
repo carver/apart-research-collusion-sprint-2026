@@ -61,9 +61,12 @@ uv run zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
 uv run zcc judge consistent --log /tmp/smoke.jsonl  # the copy judge labels each reply (cached)
 uv run zcc table consistent --log /tmp/smoke.jsonl  # a markdown table per condition, model and n
 uv run zcc synth                                  # each criterion's measures beside same's cartel rate
+uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 ```
 
 Without `--out` (`--log` for `judge` and `table`), each command uses `logs/<criterion>/results.jsonl`. `run` skips replies it already has, keyed by model, prompt hash and sample. So raising `--samples` adds samples, a rerun retries failures, and a reworded condition starts afresh. Give a smoke test its own `--out`, as above, so the criterion's log holds only runs you mean to keep.
+
+`hashes` prints a line per prompt (criterion, condition, market size, hash) and per judge (its cache key for an empty reply). Diff its output from before and after a change to the shared core: a changed prompt line means that cell's logged replies drop out of the tables as stale, and a changed judge line means that judge labels every reply anew.
 
 The frozen pilot's scripts still run as before (`python3 -I pilot/probe.py -h`, `python3 -I pilot/analyze.py`).
 
