@@ -12,6 +12,8 @@ The pilot changes one sentence of the firm's prompt at a time. One of them is "E
 
 `pilot/` and `logs/pilot/` were written and collected on 2026-10-20 and 21, before the sprint. They are prior work, and the report says so. On 2026-10-23, the sprint's first day, three commits fixed bugs in the pilot's runner (#37: edbce1d, 44eefa7, 71d8b22). Then the pilot was frozen at the tag `pilot-frozen`: `bin/pilot-lock`, run by the pre-commit hook, refuses any commit that changes `pilot/`, `logs/pilot/` or `tests/test_pilot_*`, so `git diff pilot-frozen -- pilot` stays empty. New work goes in `zerocommcartel/`.
 
+Some pilot code was copied into `zerocommcartel/` at the start of the sprint, and those parts are preexisting too. Commit 22a78a8 copied the model callers, the answer pattern, the log readers, the copy-premise judge and its prompt, the mention patterns, two table helpers and the prompt sentences verbatim. `game.py` reproduces the pilot's market text and questions, and a test checks that the pilot's prompts come out byte for byte. Each module's docstring says which of its parts came from the pilot, and `git log` shows every change made to them since.
+
 The rest of the code here when the sprint started is preexisting too: the pilot's tests and the shared tools in `bin/`, `lib/` and `.claude/skills/`. `git log` dates every later change.
 
 What it found, Claude Haiku, Sonnet and Opus 5.5 pooled, two and four firms (cartel-share answers out of replies):
