@@ -15,6 +15,8 @@ trap 'rm -rf "$tree"' EXIT
 # Everything staged but the run logs, which the tests don't read.
 git ls-files -z -- . ':(exclude)logs' | git checkout-index -z --stdin --prefix="$tree/"
 cd "$tree"
+# The hook's git variables name the repo being committed; no test should reach it.
+unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_OBJECT_DIRECTORY GIT_PREFIX
 export UV_PROJECT_ENVIRONMENT="$repo/.venv" PYTHONPATH="$tree"
 uv run --no-sync -q pytest -q -p no:cacheprovider
 uv run --no-sync -q pyright
