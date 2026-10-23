@@ -22,11 +22,17 @@ BASELINE = {
 }
 
 
+NEAR = 0.5  # an answer within this of a focal point is at it
+
+
+def near(value: float, target: float) -> bool:
+    return abs(value - target) <= NEAR
+
+
 @dataclass(frozen=True)
 class Measure:
     """A lens's measure for one model and market size: `hits` of `total` replies."""
 
-    lens: str
     name: str
     model: str
     n: int
@@ -40,6 +46,20 @@ def no_focal(condition: str, n: int) -> dict[str, float]:
 
 def no_measures(rows: list[dict]) -> list[Measure]:
     return []
+
+
+def share_at(name: str, condition: str, focal: str) -> Callable[[list[dict]], list[Measure]]:
+    """A measure: for each model and n, how many parsed answers to `condition` are at its focal point
+    `focal` (a game benchmark such as "cartel", or one of the lens's own)."""
+
+    def measure(rows: list[dict]) -> list[Measure]:
+        cells: dict[tuple[str, int], list[bool]] = {}
+        for row in rows:
+            if row["condition"] == condition and row["value"] is not None:
+                cells.setdefault((row["model"], row["n"]), []).append(near(row["value"], row["focal"][focal]))
+        return [Measure(name, model, n, sum(hits), len(hits)) for (model, n), hits in cells.items()]
+
+    return measure
 
 
 @dataclass(frozen=True)
