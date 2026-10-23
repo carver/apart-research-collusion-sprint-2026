@@ -6,7 +6,7 @@
 
 `/sprint-paper` (type it; it doesn't fire on its own) takes a sprint project from the rubric to a reviewed report through multi-agent workflows, with the rules that keep long runs from corrupting themselves.
 
-When Jason runs `/upskill`, also list every global tool the session called that isn't in `bin/` (anything from `llm-toolbox/bin` or another personal PATH entry). Pitch copying each into `bin/` from `/home/carver/code/claudedev/llm-toolbox/bin/`; a tool that imports beyond the standard library needs its dependencies added to `pyproject.toml` too.
+When Jason runs `/upskill`, also list every global tool the session called that isn't in `bin/` (anything from `llm-toolbox/bin` or another personal PATH entry). Pitch copying each into `bin/` from `/home/carver/code/claudedev/llm-toolbox/bin/`; a tool that imports beyond the standard library needs its dependencies added to `pyproject.toml` too. Its path also goes in `REUSE.toml`'s table of llm-toolbox copies, which names Jason alone.
 
 ## Git
 
@@ -16,7 +16,9 @@ Run logs (`logs/`) go in a commit of their own, with nothing else in it. Hold th
 
 ## Checks
 
-Committing runs the pilot lock (`bin/pilot-lock`) and ruff, and for agents the lock check on `uv.lock`, the tests and pyright too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows.
+Committing runs the pilot lock (`bin/pilot-lock`) and ruff, and for agents the lock check on `uv.lock`, the tests, pyright and the license check (`reuse lint`) too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows.
+
+Each file takes its license from `REUSE.toml`: MIT for the code paths it lists, CC-BY-4.0 for everything else. Code in a new place (a new folder, or a new kind of file) needs its path added there. Otherwise it falls under CC-BY-4.0, and no check notices.
 
 ## Tests
 

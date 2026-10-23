@@ -5,7 +5,8 @@
 # The repo's environment is synced first (creating it in a fresh clone or worktree), then
 # used as it is (--no-sync). Pyright checks the zerocommcartel package; the pilot scripts
 # aren't type-checked. The environment is $UV_PROJECT_ENVIRONMENT when set, a relative path
-# counting from the repo as uv reads it, else .venv.
+# counting from the repo as uv reads it, else .venv. reuse lint checks that REUSE.toml parses and
+# that LICENSES/ holds exactly the licenses it names.
 set -e
 repo=$(git rev-parse --show-toplevel)
 cd "$repo"
@@ -21,5 +22,6 @@ cd "$tree"
 # The hook's git variables name the repo being committed; no test should reach it.
 unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_OBJECT_DIRECTORY GIT_PREFIX
 export UV_PROJECT_ENVIRONMENT="$venv" PYTHONPATH="$tree"
+uv run --no-sync -q reuse lint -q
 uv run --no-sync -q pytest -q -p no:cacheprovider
 uv run --no-sync -q pyright

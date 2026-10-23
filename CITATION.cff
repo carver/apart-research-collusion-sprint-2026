@@ -11,6 +11,7 @@ authors:
     given-names: Thomas
 repository-code: "https://github.com/carver/apart-research-collusion-sprint-2026"
 url: "https://github.com/carver/apart-research-collusion-sprint-2026"
+license: CC-BY-4.0
 keywords:
   - ai-collusion
   - algorithmic-collusion

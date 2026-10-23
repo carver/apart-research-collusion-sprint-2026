@@ -1,0 +1,42 @@
+version = 1
+SPDX-PackageName = "zerocommcartel"
+SPDX-PackageDownloadLocation = "https://github.com/carver/apart-research-collusion-sprint-2026"
+
+# Which license covers which path. The license texts are in LICENSES/. Everything is
+# CC-BY-4.0 unless a later table says otherwise, and for a file several tables match,
+# the last one wins. The README's License section says the same in prose.
+
+# Prose, notes, reports, data and run logs.
+[[annotations]]
+path = "**"
+precedence = "override"
+SPDX-FileCopyrightText = ["2026 Jason Carver", "2026 Thomas Redfern"]
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# Code, CI, hooks and config.
+[[annotations]]
+path = [
+  "zerocommcartel/**.py", "pilot/**.py", "tests/**.py", "bin/**", ".claude/skills/**.js",
+  ".claude/settings.json", ".github/**", ".gitignore", ".pre-commit-config.yaml",
+  ".python-version", "pyproject.toml", "uv.lock",
+]
+precedence = "override"
+SPDX-FileCopyrightText = ["2026 Jason Carver", "2026 Thomas Redfern"]
+SPDX-License-Identifier = "MIT"
+
+# Copies of tools from Jason's llm-toolbox (AGENTS.md, "Shared tooling").
+[[annotations]]
+path = [
+  "bin/apply-edits", "bin/bgrun", "bin/claude-fresh", "bin/edit-script-gate",
+  "bin/openrouter-credits", "bin/safeps", "bin/session-digest", "bin/waitone", "lib/**",
+]
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Jason Carver"
+SPDX-License-Identifier = "MIT"
+
+# The upskill skill, also from llm-toolbox. It is prose.
+[[annotations]]
+path = ".claude/skills/upskill/**"
+precedence = "override"
+SPDX-FileCopyrightText = "2026 Jason Carver"
+SPDX-License-Identifier = "CC-BY-4.0"

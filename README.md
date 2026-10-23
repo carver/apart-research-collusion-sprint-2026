@@ -99,3 +99,9 @@ Logs are committed to git in commits of their own (AGENTS.md says how).
 ## Dependencies
 
 Only package versions released at least three weeks ago are used. `[tool.uv] exclude-newer` in `pyproject.toml` enforces this for every package, including transitive ones. Direct dependencies are pinned with `==`, and `uv.lock` pins the rest. uv itself is the exception: `required-version` asks for 0.12.22 or newer (released 2026-10-02), because older uv rewrites `uv.lock` in an older format.
+
+## License
+
+The prose, notes, reports, data and run logs are CC-BY-4.0. The code is MIT: the Python under `zerocommcartel/`, `pilot/` and `tests/`, `bin/`, `lib/`, the sprint-paper skill's workflow templates, CI, hooks and config. The prompts inside the Python files are MIT too, with the code around them. `REUSE.toml` maps every path to its license, and the texts are in `LICENSES/`. In CI and at agents' commits, `uv run reuse lint` checks that the map parses and that `LICENSES/` holds exactly the licenses it names. Copyright 2026 Jason Carver and Thomas Redfern. The tools copied from Jason's llm-toolbox are his alone.
+
+`CITATION.cff` names CC-BY-4.0 alone, because Zenodo reads one license per record.

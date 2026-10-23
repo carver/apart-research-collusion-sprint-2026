@@ -1,0 +1,12 @@
+This repository is under two licenses.
+
+- CC-BY-4.0: the prose, notes, reports, data and run logs.
+  Text: LICENSES/CC-BY-4.0.txt
+- MIT: the code (the Python under zerocommcartel/, pilot/ and tests/, bin/, lib/, the
+  sprint-paper skill's workflow templates, CI, hooks and config).
+  Text: LICENSES/MIT.txt
+
+REUSE.toml says which license covers each path; `uv run reuse lint` checks it against LICENSES/.
+
+Copyright 2026 Jason Carver and Thomas Redfern. The tools copied from Jason's llm-toolbox
+(REUSE.toml lists them) are Copyright 2026 Jason Carver.
