@@ -33,12 +33,12 @@ GPT-6 Astra takes the same sentence in 13 of 16 replies. GPT-6 luna and the free
 
 Issue #38 asks when a pair of agents colludes without communicating, and names four conditions. Each one is a lens: a folder in `zerocommcartel/lenses/` with its own sub-issue of #38, so one person can own it without touching anyone else's.
 
-| lens | asks | starts with, from the pilot |
-|---|---|---|
-| capable | Does the model see the mutually beneficial option? | `hubjoint`: asked outright for the firms' combined optimum |
-| compliant | Does it go along when it understands the buyers lose? | `same_sys`: the provider line on the same-prompt condition |
-| communal | Does it give up its own gain from defecting, for the pair? | nothing yet |
-| consistent | Does it expect rivals on the same model to answer as it does? | the disclosure ladder (`anyai`, `samemodel`) and the repeated market |
+| lens | issue | asks | starts with, from the pilot |
+|---|---|---|---|
+| capable | #39 | Does the model see the mutually beneficial option? | `hubjoint`: asked outright for the firms' combined optimum |
+| compliant | #40 | Does it go along when it understands the buyers lose? | `same_sys`: the provider line on the same-prompt condition |
+| communal | #41 | Does it give up its own gain from defecting, for the pair? | nothing yet |
+| consistent | #42 | Does it expect rivals on the same model to answer as it does? | the disclosure ladder (`anyai`, `samemodel`) and the repeated market |
 
 A lens is a `Lens` (`zerocommcartel/lens.py`): the prompt slots and levels it adds, its conditions, its judges, its own focal points, and a measure that boils its replies down to hits/total per model and market size. Every lens also gets three baseline conditions, `base`, `diff` and `same`, with one prompt across lenses. The registry refuses two lenses that claim one name, and any condition that doesn't render, so a clash fails the tests before anyone runs a model. A lens may use another lens's slots.
 
