@@ -17,8 +17,8 @@ def prompt(name, n=2):
 
 
 TWO_FIRM_ARMS = [
-    "dial25", "dial50", "dial75", "fixed_diff", "fixed_samemodel", "fixed_same", "leave_diff",
-    "leave_samemodel", "leave_same", "check_same", "hint_same",
+    "dial25", "dial50", "dial75", "dial100", "fixed_diff", "fixed_samemodel", "fixed_same", "leave_diff",
+    "leave_samemodel", "leave_same", "check_same", "hint_same", "lockstep_same",
 ]  # fmt: skip
 
 
@@ -75,6 +75,13 @@ def test_the_copy_checking_rival_follows_the_same_model_sentence():
     ) in prompt("hint_same").user
 
 
+def test_the_lockstep_rival_makes_exactly_the_number_this_firm_gets():
+    assert (
+        "with this same prompt. Whatever you recommend to my firm, the other firm will produce exactly that "
+        "number; it can't deviate.\n\n"
+    ) in prompt("lockstep_same").user
+
+
 @pytest.mark.parametrize("n", [2, 4])
 def test_the_horizons_follow_the_diff_sentence(n):
     diff = "The other firms use their own analysts and different AI models."
@@ -88,9 +95,12 @@ def test_the_horizons_follow_the_diff_sentence(n):
     assert f"{diff} This market repeats every quarter" in prompt("repeat_diff", n).user
 
 
-@pytest.mark.parametrize("p, mirror, pair", [(25, 36, 25.714), (50, 33.333, 28), (75, 31.429, 29.231)])
+@pytest.mark.parametrize(
+    "p, mirror, pair", [(25, 36, 25.714), (50, 33.333, 28), (75, 31.429, 29.231), (100, 30, 30)]
+)
 def test_the_dial_focal_points_optimize_over_a_mirror_that_holds_with_chance_p(p, mirror, pair):
-    # mirror: q = 20(2+p)/(1+p), from #41, 40 when the rival never copies and 30 when it always does.
+    # With p as a fraction. mirror: q = 20(2+p)/(1+p), from #41, 40 when the rival never copies and 30 when
+    # it always does.
     # pair: the two firms' combined profit, q = (200p + 40)/(6p + 2); against a rival at 40 the pair wants 20
     assert REGISTRY.focal("communal", f"dial{p}", 2) == pytest.approx(
         {"nash": 40, "cartel": 30, "naive": 60, "mirror": mirror, "pair": pair}, abs=1e-3
