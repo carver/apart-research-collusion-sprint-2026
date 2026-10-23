@@ -131,7 +131,9 @@ def build(lenses: Sequence[Lens], core: Mapping[str, Slot] = CORE_SLOTS) -> Regi
                     raise RegistryError(f"lens {lens.name!r}: slot {name!r} already has level {level!r}")
                 slots[name].levels[level] = text
     registry, owner = Registry(slots, by_name, judges), dict.fromkeys(BASELINE, "the baseline")
+    baseline = {registry.render(condition, 2).hash: name for name, condition in BASELINE.items()}
     for lens in lenses:
+        seen = dict(baseline)  # a lens's log keys replies by prompt, so two names for one prompt would merge
         for name, condition in lens.conditions.items():
             if name in owner:
                 raise RegistryError(
@@ -139,7 +141,12 @@ def build(lenses: Sequence[Lens], core: Mapping[str, Slot] = CORE_SLOTS) -> Regi
                 )
             owner[name] = f"lens {lens.name!r}"
             try:
-                registry.render(condition, 2)
+                prompt = registry.render(condition, 2)
             except (ValueError, KeyError) as e:
                 raise RegistryError(f"lens {lens.name!r}: condition {name!r} doesn't render: {e}") from e
+            if prompt.hash in seen:
+                raise RegistryError(
+                    f"lens {lens.name!r}: condition {name!r} renders the prompt of {seen[prompt.hash]!r}"
+                )
+            seen[prompt.hash] = name
     return registry

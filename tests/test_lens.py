@@ -67,7 +67,7 @@ def test_focal_points_are_the_games_plus_the_lenses():
         [
             lens(
                 "communal",
-                conditions={"dial": Condition()},
+                conditions={"dial": Condition({"disclosure": "anyai"})},
                 focal=lambda name, n: {"edt": 33.3} if name == "dial" else {},
             )
         ]
@@ -105,6 +105,22 @@ def test_focal_points_follow_the_conditions_game():
         ([lens("a", judges={"copy": HARM})], "judge 'copy'"),
         ([lens("a", judges={"harm": HARM}), lens("b", judges={"harm": HARM})], "judge 'harm'"),
         ([lens("a", conditions={"same": Condition()})], "condition 'same'"),
+        (
+            [lens("a", conditions={"same2": Condition({"disclosure": "same"})})],
+            "'same2' renders the prompt of 'same'",
+        ),
+        (
+            [
+                lens(
+                    "a",
+                    conditions={
+                        "x": Condition({"disclosure": "anyai"}),
+                        "y": Condition({"disclosure": "anyai"}),
+                    },
+                )
+            ],
+            "'y' renders the prompt of 'x'",
+        ),
         (
             [lens("a", conditions={"x": Condition()}), lens("b", conditions={"x": Condition()})],
             "condition 'x'",
