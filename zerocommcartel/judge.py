@@ -1,5 +1,5 @@
-"""Judges: a Claude call that labels a reply with the fields of a JSON schema (yes/no, or one of a fixed set of
-strings), cached so each reply is judged once.
+"""Judges: a Claude call that labels a reply with the fields of a JSON schema (yes/no, or one of a fixed set
+of strings), cached so each reply is judged once.
 
 The copy-premise judge is the pilot's (pilot/analyze.py at 71d8b22; pilot/BRIEF-judge.md is its design): its
 prompt, schema and cache key are unchanged, so its labels match the pilot's. A criterion adds judges of its
@@ -34,7 +34,7 @@ acting on it.
 The reply:
 <reply>
 {reply}
-</reply>"""
+</reply>"""  # noqa: E501 (the pilot's prompt, kept byte for byte so its cache keys hold)
 
 
 JUDGE_SCHEMA = {
@@ -57,12 +57,13 @@ class Judge:
         return tuple(self.schema["required"])
 
     def key(self, reply: str) -> str:
-        """The cache key: a hash of the judge's model, its prompt and the reply, so changing either judges anew."""
+        """The cache key hashes the judge's model, prompt and reply, so changing any one judges anew."""
         return hashlib.sha256(f"{self.model}\n{self.prompt}\n{reply}".encode()).hexdigest()[:16]
 
     def labels(self, out: str) -> dict:
-        """The labels in the judge model's output; ValueError when it isn't an object with each required field
-        of its schema type (boolean when the schema doesn't say), and within the field's enum if it has one."""
+        """The labels in the judge model's output; ValueError when it isn't an object with each required
+        field of its schema type (boolean when the schema doesn't say), and within the field's enum if it
+        has one."""
         try:
             obj = json.loads(out)
         except json.JSONDecodeError as e:
@@ -86,7 +87,7 @@ CORE_JUDGES = {"copy": COPY}
 
 
 def claude_call(judge: Judge, prompt: str) -> str:
-    """One call to the judge's Claude model on the subscription, through claude-fresh; returns its JSON text."""
+    """One call to the judge's Claude model on the subscription (via claude-fresh); returns its JSON text."""
     r = subprocess.run(
         [
             str(CLAUDE_FRESH),

@@ -74,5 +74,3 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 "pilot/*" = ["E501"]
 "pilot/analyze.py" = ["E731", "B023"]
 "pilot/bench.py" = ["B023"]
-# The judge prompt and the regexes copied from the pilot run long, like the pilot's own.
-"zerocommcartel/{judge,mentions}.py" = ["E501"]
