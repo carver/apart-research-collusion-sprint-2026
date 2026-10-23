@@ -1,11 +1,14 @@
 """The communal lens (#41): its arms' prompts and focal points, its judge, its measures and its report. No
 test calls a model."""
 
+import json
+
 import pytest
 
-from zerocommcartel.judge import COPY
+from zerocommcartel.judge import COPY, load_labels
 from zerocommcartel.lens import Measure
 from zerocommcartel.lenses import REGISTRY
+from zerocommcartel.lenses.communal import report
 from zerocommcartel.table import prepare
 
 
@@ -199,6 +202,138 @@ def test_nash_counts_as_giving_up_only_when_the_reply_says_it_serves_the_pair():
 def test_the_last_round_cartel_is_the_share_at_the_cartel_point_with_no_future():
     rows = [row("last_diff", 15, n=4), row("last_diff", 24, n=4, sample=1), row("diff", 15, n=4)]
     assert measured(rows) == [Measure("last-round cartel", "haiku", 4, 1, 2)]
+
+
+def write(path, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps(r) + "\n" for r in rows))
+
+
+def pilot_row(arm, value, n=2, sample=0, model="luna", game="cournot", reply=None):
+    """A row of the pilot's log, logs/pilot/probe-results.jsonl."""
+    return {
+        "model": model,
+        "model_id": model,
+        "game": game,
+        "arm": arm,
+        "n": n,
+        "sample": sample,
+        "prompt_hash": prompt("same", n).hash if arm == "same" else "0123456789ab",
+        "t": 0,
+        "reply": reply if reply is not None else f"{arm} {sample}\nQUANTITY: {value}",
+        "value": value,
+        "error": None,
+        "seconds": 1,
+    }
+
+
+def rule(order, objective="own", follower=False, reaction=None):
+    """Rule labels; a reply that follows a reacting rival has seen the reaction, unless `reaction` says."""
+    seen = follower if reaction is None else reaction
+    return {"order": order, "objective": objective, "reaction": seen, "follower": follower}
+
+
+def test_the_pilots_same_replies_come_with_the_pilots_copy_labels_and_the_rule_labels_given(tmp_path):
+    pilot = tmp_path / "pilot" / "probe-results.jsonl"
+    rows = [pilot_row("same", 40), pilot_row("same", 30, sample=1), pilot_row("diff", 40)]
+    rows.append(pilot_row("same", 40, game="kyle", reply="kyle\nQUANTITY: 40"))
+    write(pilot, rows)
+    write(
+        tmp_path / "pilot" / "judge-copy.jsonl",
+        [{"key": COPY.key(rows[0]["reply"]), "premise": True, "acts": False}],
+    )
+    cache = tmp_path / "communal" / "judge-rule.jsonl"
+    write(cache, [{"key": RULE.key(rows[1]["reply"]), **rule("equal_first")}])
+    got = report.pilot_same(REGISTRY, pilot, cache)
+    assert [(r["condition"], r["value"], r["labels"]) for r in got.rows] == [
+        ("same", 40, {"copy": {"premise": True, "acts": False}}),
+        ("same", 30, {"rule": rule("equal_first")}),
+    ]
+
+
+def test_judging_the_pilot_labels_only_its_same_replies_into_the_cache_given(tmp_path):
+    pilot = tmp_path / "pilot" / "probe-results.jsonl"
+    rows = [pilot_row("same", 40), pilot_row("diff", 40), pilot_row("same", None, sample=1, reply="")]
+    write(pilot, rows)
+    cache = tmp_path / "communal" / "judge-rule.jsonl"
+    asked = []
+
+    def call(judge, text):
+        asked.append(text)
+        return json.dumps(rule("respond_first"))
+
+    assert report.judge_pilot(pilot, cache, call) == (1, [], 0)
+    assert len(asked) == 1 and rows[0]["reply"] in asked[0]
+    assert load_labels(RULE, cache) == {RULE.key(rows[0]["reply"]): rule("respond_first")}
+
+
+def labelled(rows, copy=(), rules=None):
+    """The lens's replies `rows`, with the copy premise on the replies in `copy` (and off on the rest) and
+    the rule labels {reply: labels}."""
+    labels = {
+        "copy": {COPY.key(r["reply"]): {"premise": r["reply"] in copy, "acts": False} for r in rows},
+        "rule": {RULE.key(reply): found for reply, found in (rules or {}).items()},
+    }
+    return prepare(REGISTRY, "communal", rows, labels)
+
+
+def test_the_mirror_table_splits_the_premise_replies_by_answer_and_rule():
+    rows = [row("same", v, sample=i) for i, v in enumerate([40, 40, 30, 30, 30, 45])]
+    replies = [r["reply"] for r in rows]
+    premise = {replies[i] for i in (0, 1, 2, 3, 5)}
+    rules = {
+        replies[0]: rule("respond_first"),
+        replies[2]: rule("equal_first", "joint"),
+        replies[3]: rule("equal_first", "own"),
+        replies[4]: rule("equal_first", "both"),
+    }
+    out = report.mirror_table({"lens": labelled(rows, premise, rules)})
+    assert "| lens | haiku | 2 | 5/6 | 2 | 1/1 | 2 | 2/2 | 1/2 | 1/2 | 0/2 |" in out
+
+
+def test_the_rule_table_counts_each_label_per_condition_in_the_lens_order():
+    rows = [row("check_same", 40), row("fixed_diff", 48), row("fixed_diff", 36, sample=1), row("same", 30)]
+    rows.append(row("check_same", 30, sample=1))
+    rules = {
+        rows[0]["reply"]: rule("neither", "own", True),
+        rows[1]["reply"]: rule("respond_first", "own"),
+        rows[2]["reply"]: rule("neither", "joint"),
+        rows[4]["reply"]: rule("equal_first", "both", reaction=True),
+    }
+    lines = [
+        line
+        for line in report.rule_table(REGISTRY, labelled(rows, rules=rules)).splitlines()
+        if "haiku" in line
+    ]
+    assert lines == [
+        "| fixed_diff | haiku | 2 | 2 | 0 | 1 | 1 | 1 | 1 | 0 | 0 | 0 | 0 |",
+        "| check_same | haiku | 2 | 2 | 1 | 0 | 1 | 1 | 0 | 1 | 0 | 2 | 1 |",
+    ]
+
+
+def test_the_report_shows_the_pilot_and_the_lens_log(tmp_path, capsys):
+    log = tmp_path / "communal" / "results.jsonl"
+    lens_rows = [row("same", 40, model="sonnet"), row("fixed_diff", 36)]
+    write(log, lens_rows)
+    write(
+        log.parent / "judge-copy.jsonl",
+        [{"key": COPY.key(lens_rows[0]["reply"]), "premise": True, "acts": False}],
+    )
+    write(
+        log.parent / "judge-rule.jsonl",
+        [{"key": RULE.key(lens_rows[1]["reply"]), **rule("neither", "joint")}],
+    )
+    pilot = tmp_path / "pilot" / "probe-results.jsonl"
+    write(pilot, [pilot_row("same", 40)])
+    write(
+        pilot.parent / "judge-copy.jsonl",
+        [{"key": COPY.key(pilot_row("same", 40)["reply"]), "premise": True, "acts": False}],
+    )
+    report.main(["--log", str(log), "--pilot-log", str(pilot)])
+    out = capsys.readouterr().out
+    assert "| pilot | luna | 2 | 1/1 | 1 | 0/0 |" in out
+    assert "| lens | sonnet | 2 | 1/1 | 1 | 0/0 |" in out
+    assert "| fixed_diff | haiku | 2 | 1 | 0 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 |" in out
 
 
 def test_the_rule_judge_sees_the_reply():
