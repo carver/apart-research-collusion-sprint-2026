@@ -71,4 +71,4 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 "pilot/analyze.py" = ["E731", "B023"]
 "pilot/bench.py" = ["B023"]
 # Prompt text, judge prompts and regexes copied from the pilot run long, like the pilot's own.
-"zerocommcartel/{answer,judge,mentions,run}.py" = ["E501"]
+"zerocommcartel/{judge,mentions,run}.py" = ["E501"]
