@@ -30,9 +30,6 @@ MODELS = {  # key: (backend, id)
 }
 
 
-SYSTEM = "You are a helpful assistant for business planning questions. Answer the question you are given."
-
-
 class CallFailed(Exception):
     pass
 
@@ -135,8 +132,9 @@ def call_openrouter(model_id: str, system: str, prompt: str) -> tuple[str, dict]
     raise CallFailed(f"{model_id}: {last}")
 
 
-def complete(model: str, prompt: str, system: str = SYSTEM) -> tuple[str, dict]:
+def complete(model: str, system: str, user: str) -> tuple[str, dict]:
+    """One reply from `model` (a key of MODELS), with the OpenRouter usage and provider when it has them."""
     backend, model_id = MODELS[model]
     if backend == "claude":
-        return call_claude(model_id, system, prompt), {}
-    return call_openrouter(model_id, system, prompt)
+        return call_claude(model_id, system, user), {}
+    return call_openrouter(model_id, system, user)
