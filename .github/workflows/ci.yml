@@ -1,5 +1,6 @@
-# Lock check, lint, format check and tests on every push to main and every pull request. The
-# tests make no model calls and need no secrets. Add back `uv run pyright` with the package.
+# Lock check, lint, format check, tests and pyright on every push to main and every pull request.
+# The tests make no model calls and need no secrets. The pilot job fails when pilot/, its logs or
+# its tests differ from the tag pilot-frozen: they are the pre-sprint prior work (README).
 name: CI
 
 on:
@@ -17,3 +18,13 @@ jobs:
       - run: uv run ruff check
       - run: uv run ruff format --check
       - run: uv run pytest
+      - run: uv run pyright
+
+  pilot-frozen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # the history and tags, so pilot-frozen is there to compare with
+      - name: The pilot matches the tag pilot-frozen
+        run: git diff --exit-code --stat pilot-frozen HEAD -- pilot logs/pilot 'tests/test_pilot_*'
