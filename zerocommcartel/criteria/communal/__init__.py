@@ -17,11 +17,14 @@ maximizes the firm's own profit, so the arms take the mirror away, or weaken it,
     hint_same         same, and the other firm checks its number against its best response (#30's hint)
     lockstep_same     same, and the other firm produces exactly the number my firm gets: a copy that can't
                       deviate
+    hub               the pilot's hub arm: you advise every firm, and each asks you separately
+    lockstep_hub      hub, and the other firm produces exactly the number my firm gets
     last_diff         diff in the market's last quarter: no mirror and no future, so 30 is pure sacrifice
     onemore_diff      diff with one more quarter to come, beside repeat_diff's open-ended market
 
 `horizon: last` is defined here for the consistent criterion (#42) to use too. The dial, fixed, leave, check,
-hint and lockstep arms speak of "the other firm", so they run at n = 2 only. #41's runs, ten replies a cell:
+hint and lockstep arms speak of "the other firm", so they run at n = 2 only, and hub runs beside them at
+n = 2. #41's runs, ten replies a cell:
 
     uv run zcc run communal --models haiku sonnet opus astra glm --samples 10 --ns 2
     uv run zcc run communal --models haiku sonnet opus astra glm --samples 10 --ns 4 \\
@@ -91,6 +94,8 @@ CONDITIONS = {
     "check_same": Condition({"disclosure": "same", "check": "explicit"}, game=DUOPOLY),
     "hint_same": Condition({"disclosure": "same", "check": "hint"}, game=DUOPOLY),
     "lockstep_same": Condition({"disclosure": "same", "check": "lockstep"}, game=DUOPOLY),
+    "hub": Condition({"disclosure": "hub"}),
+    "lockstep_hub": Condition({"disclosure": "hub", "check": "lockstep"}, game=DUOPOLY),
     "last_diff": Condition({"disclosure": "diff", "horizon": "last"}),
     "onemore_diff": Condition({"disclosure": "diff", "horizon": "onemore"}),
     "repeat_diff": Condition({"disclosure": "diff", "horizon": "repeat"}),

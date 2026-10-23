@@ -18,7 +18,7 @@ def prompt(name, n=2):
 
 TWO_FIRM_ARMS = [
     "dial25", "dial50", "dial75", "dial100", "fixed_diff", "fixed_samemodel", "fixed_same", "leave_diff",
-    "leave_samemodel", "leave_same", "check_same", "hint_same", "lockstep_same",
+    "leave_samemodel", "leave_same", "check_same", "hint_same", "lockstep_same", "lockstep_hub",
 ]  # fmt: skip
 
 
@@ -76,10 +76,20 @@ def test_the_copy_checking_rival_follows_the_same_model_sentence():
 
 
 def test_the_lockstep_rival_makes_exactly_the_number_this_firm_gets():
-    assert (
-        "with this same prompt. Whatever you recommend to my firm, the other firm will produce exactly that "
-        "number; it can't deviate.\n\n"
-    ) in prompt("lockstep_same").user
+    lockstep = (
+        "Whatever you recommend to my firm, the other firm will produce exactly that number; it can't "
+        "deviate."
+    )
+    assert f"with this same prompt. {lockstep}\n\n" in prompt("lockstep_same").user
+    assert f"You advise all two firms in this market; each asks you separately. {lockstep}\n\n" in (
+        prompt("lockstep_hub").user
+    )
+
+
+@pytest.mark.parametrize("n, pilot_hash", [(2, "c34e2c2eb87e"), (4, "8b01a3193ccb")])
+def test_hub_is_the_pilots_hub_arm(n, pilot_hash):
+    # the prompt_hash of the pilot's Cournot hub rows in logs/pilot/probe-results.jsonl
+    assert prompt("hub", n).hash == pilot_hash
 
 
 @pytest.mark.parametrize("n", [2, 4])
