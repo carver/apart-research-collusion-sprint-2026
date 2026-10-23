@@ -40,7 +40,7 @@ Issue #38 asks when a pair of agents colludes without communicating, and names f
 | communal | Does it give up its own gain from defecting, for the pair? | nothing yet |
 | consistent | Does it expect rivals on the same model to answer as it does? | the disclosure ladder (`anyai`, `samemodel`) and the repeated market |
 
-A lens is a `Lens` (`zerocommcartel/lens.py`): the prompt slots and levels it adds, its conditions, its judges, its own focal points, and a measure that boils its replies down to hits/total per model. Every lens also gets three baseline conditions, `base`, `diff` and `same`, with one prompt across lenses. The registry refuses two lenses that claim one name, and any condition that doesn't render, so a clash fails the tests before anyone runs a model. A lens may use another lens's slots.
+A lens is a `Lens` (`zerocommcartel/lens.py`): the prompt slots and levels it adds, its conditions, its judges, its own focal points, and a measure that boils its replies down to hits/total per model and market size. Every lens also gets three baseline conditions, `base`, `diff` and `same`, with one prompt across lenses. The registry refuses two lenses that claim one name, and any condition that doesn't render, so a clash fails the tests before anyone runs a model. A lens may use another lens's slots.
 
 `zcc synth` puts each lens's measure beside how often `same` lands on the cartel share. If the four lenses are what collusion needs, a model should collude only when all four measures are high.
 
@@ -56,12 +56,12 @@ From the repo root, after `uv sync`:
 uv run zcc list                                   # each lens and its conditions
 uv run zcc show consistent same 2                 # one condition's system prompt and prompt
 uv run zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
-uv run zcc judge consistent                       # the copy judge labels each reply (cached)
-uv run zcc table consistent                       # a markdown table per condition, model and n
+uv run zcc judge consistent --log /tmp/smoke.jsonl  # the copy judge labels each reply (cached)
+uv run zcc table consistent --log /tmp/smoke.jsonl  # a markdown table per condition, model and n
 uv run zcc synth                                  # each lens's measures beside same's cartel rate
 ```
 
-Without `--out`, `run` appends to `logs/<lens>/results.jsonl`. It skips replies it already has, keyed by model, prompt hash and sample. So raising `--samples` adds samples, a rerun retries failures, and a reworded condition starts afresh. Give a smoke test its own `--out`, as above, so the lens's log holds only runs you mean to keep.
+Without `--out` (`--log` for `judge` and `table`), each command uses `logs/<lens>/results.jsonl`. `run` skips replies it already has, keyed by model, prompt hash and sample. So raising `--samples` adds samples, a rerun retries failures, and a reworded condition starts afresh. Give a smoke test its own `--out`, as above, so the lens's log holds only runs you mean to keep.
 
 The frozen pilot's scripts still run as before (`python3 -I pilot/probe.py -h`, `python3 -I pilot/analyze.py`).
 

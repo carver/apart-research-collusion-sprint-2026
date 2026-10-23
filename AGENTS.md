@@ -16,7 +16,7 @@ Run logs (`logs/`) go in a commit of their own, with nothing else in it. Hold th
 
 ## Checks
 
-Committing runs ruff, and for agents the lock check and the tests too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows.
+Committing runs the pilot lock (`bin/pilot-lock`) and ruff, and for agents the lock check on `uv.lock`, the tests and pyright too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows.
 
 ## Tests
 
@@ -30,4 +30,4 @@ Smoke tests and pilots of an experiment run on the Claude subscription, never Op
 
 Jason and Thomas each own one of the four lenses at a time (README, "The four lenses"; the owner is on the lens's sub-issue of #38). Work on a lens stays inside `zerocommcartel/lenses/<lens>/`, its tests (`tests/test_lens_<lens>.py`) and `logs/<lens>/`. Anything else in `zerocommcartel/` is the shared core. Change it only when a lens can't do its job without the change, put the change in a commit of its own, and say so on #38 so the other owner pulls before building on it.
 
-`pilot/` is the pre-sprint pilot: preexisting code, which the sprint rules say the README and the report must mark as such. It is frozen at the tag `pilot-frozen`, and `bin/pilot-lock` refuses commits that change it, its logs or its tests. Don't unlock it (`PILOT_UNLOCK=1`) unless Jason or Thomas asks you to. Code written from Oct 23 on is sprint work, and it goes in `zerocommcartel/`.
+`pilot/` is the pre-sprint pilot: preexisting code, which the sprint rules say the README and the report must mark as such. It is frozen at the tag `pilot-frozen`, and `bin/pilot-lock` refuses commits that change it, its logs or its tests. Don't unlock it (`PILOT_UNLOCK=1`) unless Jason or Thomas asks you to. It holds the code written before the sprint plus three bug fixes from its first day (#37). New code goes in `zerocommcartel/`.
