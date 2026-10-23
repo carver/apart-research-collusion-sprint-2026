@@ -88,11 +88,12 @@ def test_the_horizons_follow_the_diff_sentence(n):
     assert f"{diff} This market repeats every quarter" in prompt("repeat_diff", n).user
 
 
-@pytest.mark.parametrize("p, mirror", [(25, 36), (50, 33.333), (75, 31.429)])
-def test_the_dial_focal_point_optimizes_over_a_mirror_that_holds_with_chance_p(p, mirror):
-    # q = 20(2+p)/(1+p), from #41: 40 when the rival never copies, 30 when it always does
+@pytest.mark.parametrize("p, mirror, pair", [(25, 36, 25.714), (50, 33.333, 28), (75, 31.429, 29.231)])
+def test_the_dial_focal_points_optimize_over_a_mirror_that_holds_with_chance_p(p, mirror, pair):
+    # mirror: q = 20(2+p)/(1+p), from #41, 40 when the rival never copies and 30 when it always does.
+    # pair: the two firms' combined profit, q = (200p + 40)/(6p + 2); against a rival at 40 the pair wants 20
     assert REGISTRY.focal("communal", f"dial{p}", 2) == pytest.approx(
-        {"nash": 40, "cartel": 30, "naive": 60, "mirror": mirror}, abs=1e-3
+        {"nash": 40, "cartel": 30, "naive": 60, "mirror": mirror, "pair": pair}, abs=1e-3
     )
 
 

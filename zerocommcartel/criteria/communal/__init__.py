@@ -5,7 +5,8 @@ maximizes the firm's own profit, so the arms take the mirror away, or weaken it,
 
     dial25/50/75      a p% chance the other firm is a copy; otherwise it makes the Nash output (40).
                       Optimizing over the mirror gives the focal point "mirror", 20(2+p)/(1+p); a rival's
-                      choice taken as fixed gives Nash, 40; the cartel share is 30
+                      choice taken as fixed gives Nash, 40; the pair's combined profit gives "pair",
+                      (200p + 40)/(6p + 2), below 30 for p < 1. So a 30 short of certainty is the copy rule
     fixed_<d>         the other firm has already set its output at 24, under disclosure d (diff, samemodel,
                       same). Own profit says 48 ("best"), the pair's profit 36 ("pair"), the copy rule 30
     leave_<d>         the same, and my firm leaves the market after this quarter (the Hugging Face sacrifice)
@@ -88,7 +89,7 @@ CONDITIONS = {
 
 
 FOCAL = {
-    **{f"dial{p}": {"mirror": DUOPOLY.mirror(p / 100)} for p in DIAL},
+    **{f"dial{p}": {"mirror": DUOPOLY.mirror(p / 100), "pair": DUOPOLY.pair(p / 100)} for p in DIAL},
     **{
         name: {"best": FIXED.best(), "pair": FIXED.pair()}
         for name, condition in CONDITIONS.items()

@@ -36,6 +36,13 @@ class Duopoly(Cournot):
         margin = self.a - self.c
         return (margin - (1 - p) * self.benchmarks(2)["nash"]) / (2 * (1 + p))
 
+    def pair(self, p: float) -> float:
+        """The output that maximizes the two firms' expected combined profit when the other firm, with chance
+        p, asks the same model and so makes whatever I make, and otherwise makes the Nash output. Against the
+        Nash output the pair wants me at margin/2 - Nash, so this falls below the cartel share for p < 1."""
+        margin, nash = self.a - self.c, self.benchmarks(2)["nash"]
+        return (2 * p * margin + (1 - p) * (margin - 2 * nash)) / (6 * p + 2)
+
     def one_step(self) -> float:
         """My best response to the other firm's best response to the cartel share (#30's "one step")."""
         return self.best_response(self.best_response(self.benchmarks(2)["cartel"]))
