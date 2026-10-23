@@ -20,6 +20,23 @@ def test_a_number_line(reply, value):
     assert parse(reply, "QUANTITY") == Answer("QUANTITY", value, None)
 
 
+@pytest.mark.parametrize(
+    "reply, value",
+    [
+        ("QUANTITY: 100/3", 100 / 3),
+        ("QUANTITY: **100 / 3** ≈ 33.3", 100 / 3),
+        ("QUANTITY: 45/0", 45.0),
+        ("QUANTITY: 100/1,000", 0.1),
+    ],
+)
+def test_a_fraction_is_its_quotient(reply, value):
+    assert parse(reply, "QUANTITY") == Answer("QUANTITY", pytest.approx(value), None)
+
+
+def test_a_fraction_stays_on_its_line():
+    assert parse("QUANTITY: 30\n/ 2 is what each firm would make", "QUANTITY").value == 30.0
+
+
 def test_no_answer_line():
     assert parse("I'd produce about 30 units.", "QUANTITY") == Answer(None, None, None)
 
