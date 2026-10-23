@@ -86,6 +86,24 @@ def test_the_lockstep_rival_makes_exactly_the_number_this_firm_gets():
     )
 
 
+OWN_QUESTION = "How many units should my firm produce this quarter to maximize its profit?"
+NEUTRAL = {
+    "plain": "How many units should my firm produce this quarter?",
+    "best": "How many units is it best for my firm to produce this quarter?",
+}
+ASKED_NEUTRALLY = [
+    "fixed_diff", "fixed_samemodel", "fixed_same", "leave_diff", "leave_samemodel", "leave_same",
+    "same", "diff",
+]  # fmt: skip
+
+
+@pytest.mark.parametrize("ask", NEUTRAL)
+@pytest.mark.parametrize("name", ASKED_NEUTRALLY)
+def test_an_arm_asked_neutrally_is_the_arm_without_whose_profit_to_maximize(name, ask):
+    assert prompt(f"{name}_{ask}").user == prompt(name).user.replace(OWN_QUESTION, NEUTRAL[ask])
+    assert REGISTRY.focal("communal", f"{name}_{ask}", 2) == REGISTRY.focal("communal", name, 2)
+
+
 @pytest.mark.parametrize("n, pilot_hash", [(2, "c34e2c2eb87e"), (4, "8b01a3193ccb")])
 def test_hub_is_the_pilots_hub_arm(n, pilot_hash):
     # the prompt_hash of the pilot's Cournot hub rows in logs/pilot/probe-results.jsonl
