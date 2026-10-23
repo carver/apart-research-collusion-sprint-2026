@@ -1,5 +1,5 @@
-"""Tests of pilot/probe.py's `run` command: which calls it makes on a resume. No test calls a model:
-subprocess.run is faked, so claude-fresh never runs.
+"""Tests of pilot/probe.py's `run` command: which calls it makes on a resume, and when it refuses to make any.
+No test calls a model: subprocess.run is faked, so claude-fresh never runs.
 
 pilot/ is a folder of scripts, not a package, so probe.py is loaded by file path."""
 
@@ -31,8 +31,28 @@ def prompts(monkeypatch):
     return sent
 
 
-def run(out, *args):
+def run_probe(out, *args):
     probe.main(["run", "--models", "haiku", "--samples", "1", "--out", str(out), *args])
+
+
+@pytest.mark.parametrize(
+    "args, bad",
+    [
+        (["--game", "kyleq"], ["mono", "base", "diff", "hub", "hubjoint", "samerep"]),  # the default arms
+        (["--game", "kylel", "--arms", "base", "same", "--ns", "2"], ["base"]),
+        (["--game", "cournot", "--arms", "same", "report", "--ns", "2"], ["report"]),
+    ],
+)
+def test_a_run_with_arms_its_game_does_not_take_is_refused_before_any_call(tmp_path, prompts, args, bad):
+    out = tmp_path / "results.jsonl"
+
+    with pytest.raises(SystemExit) as refused:
+        run_probe(out, *args)
+
+    message = str(refused.value.code)
+    assert all(arm in message for arm in bad), message
+    assert prompts == []
+    assert not out.exists()
 
 
 def row(sample, reply):
@@ -48,7 +68,7 @@ def test_a_run_resumes_past_an_unreadable_last_line(tmp_path, prompts, capsys, b
     done = json.dumps(row(0, "QUANTITY: 30"))
     out.write_text(done + "\n" + broken)
 
-    run(out, "--game", "cournot", "--arms", "same", "--ns", "2", "--samples", "2")
+    run_probe(out, "--game", "cournot", "--arms", "same", "--ns", "2", "--samples", "2")
 
     assert len(prompts) == 1
     assert "skipped 1 unreadable line" in capsys.readouterr().err

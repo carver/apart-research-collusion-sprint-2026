@@ -371,6 +371,23 @@ def end_last_line(path: Path):
             f.write("\n")
 
 
+def run_cells(arms: list[str], ns: list[int]) -> list[tuple[str, int]]:
+    """The (arm, n) cells a run asks: solo arms once, at n = 1; the others at every n in `ns` but 1."""
+    solo = [(arm, 1) for arm in arms if arm in SOLO_ARMS]
+    return solo + [(arm, n) for n in ns if n != 1 for arm in arms if arm not in SOLO_ARMS]
+
+
+def misfit_arms(game: str, cells: list[tuple[str, int]]) -> dict[str, str]:
+    """Each arm `game` can't take in one of `cells`, with build_prompt's reason."""
+    bad = {}
+    for arm, n in cells:
+        try:
+            build_prompt(game, arm, n)
+        except ValueError as e:
+            bad.setdefault(arm, str(e))
+    return bad
+
+
 def one(model: str, game: str, arm: str, n: int, sample: int, out: Path):
     prompt, system = build_prompt(game, arm, n), ARM_SYSTEM.get(arm, SYSTEM)
     row = {
@@ -396,25 +413,24 @@ def one(model: str, game: str, arm: str, n: int, sample: int, out: Path):
 
 
 def cmd_run(args):
+    cells = run_cells(args.arms, args.ns)
+    bad = misfit_arms(args.game, cells)
+    if bad:
+        sys.exit(
+            f"no calls made: --game {args.game} can't take arms {', '.join(bad)}\n"
+            + "\n".join(f"  {arm}: {why}" for arm, why in bad.items())
+        )
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     have = done_keys(out)
     end_last_line(out)
-    tasks = []
-    for sample in range(args.samples):
-        for model in args.models:
-            for n in args.ns:
-                for arm in args.arms:
-                    if (arm in SOLO_ARMS) != (n == 1):
-                        continue
-                    if (model, args.game, arm, n, sample) not in have:
-                        tasks.append((model, args.game, arm, n, sample))
-    if 1 not in args.ns:  # solo arms run once, at n = 1
-        for arm in SOLO_ARMS & set(args.arms):
-            for sample in range(args.samples):
-                for model in args.models:
-                    if (model, args.game, arm, 1, sample) not in have:
-                        tasks.append((model, args.game, arm, 1, sample))
+    tasks = [
+        (model, args.game, arm, n, sample)
+        for sample in range(args.samples)
+        for model in args.models
+        for arm, n in cells
+        if (model, args.game, arm, n, sample) not in have
+    ]
     print(f"{len(tasks)} calls to make", flush=True)
     ok = fail = 0
     with cf.ThreadPoolExecutor(max_workers=args.workers) as pool:
