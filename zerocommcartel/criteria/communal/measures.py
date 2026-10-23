@@ -7,6 +7,9 @@ gives up to a fixed rival  of the `fixed_diff` answers the rule judge has labell
                            serve the pair: own profit given up for the pair, with no mirror
 last-round cartel          `last_diff` answers at the cartel share: no mirror and no future, so the
                            cartel share is pure sacrifice
+mirror-stated equal-first  of the `same` replies that state the copy premise and that the rule judge has
+                           labelled, those that set the outputs equal before maximizing: the decision rule
+                           that turns a stated mirror into the cartel share, not the textbook Nash (#38)
 """
 
 from collections.abc import Callable
@@ -47,6 +50,12 @@ MEASURES = [
     ),
     share("gives up to a fixed rival", "fixed_diff", gives_up, lambda row: "rule" in row["labels"]),
     share_at("last-round cartel", "last_diff", "cartel"),
+    share(
+        "mirror-stated equal-first",
+        "same",
+        lambda row: row["labels"]["rule"]["order"] == "equal_first",
+        lambda row: states_the_mirror(row) and "rule" in row["labels"],
+    ),
 ]
 
 

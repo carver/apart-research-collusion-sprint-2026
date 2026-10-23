@@ -282,14 +282,21 @@ def row(condition, value, n=2, sample=0, model="haiku", reply=None):
     }
 
 
-def measured(rows, copy=None, serves=None):
+def measured(rows, copy=None, serves=None, orders=None):
     """The criterion's measures over `rows`, with copy-judge labels {reply: premise} and rule-judge labels
-    {reply: whose profit the number serves}."""
+    {reply: whose profit the number serves} and {reply: order}; a reply in only one of those gets "unclear"
+    or "neither" for the other."""
+    serves, orders = serves or {}, orders or {}
     labels = {
         "copy": {COPY.key(reply): {"premise": p, "acts": p} for reply, p in (copy or {}).items()},
         "rule": {
-            RULE.key(reply): {"order": "neither", "objective": o, "reaction": False, "follower": False}
-            for reply, o in (serves or {}).items()
+            RULE.key(reply): {
+                "order": orders.get(reply, "neither"),
+                "objective": serves.get(reply, "unclear"),
+                "reaction": False,
+                "follower": False,
+            }
+            for reply in serves.keys() | orders.keys()
         },
     }
     found = REGISTRY.criteria["communal"].measure(prepare(REGISTRY, "communal", rows, labels).rows)
@@ -346,6 +353,17 @@ def test_giving_up_counts_only_the_replies_the_rule_judge_has_labelled():
 def test_the_last_round_cartel_is_the_share_at_the_cartel_point_with_no_future():
     rows = [row("last_diff", 15, n=4), row("last_diff", 24, n=4, sample=1), row("diff", 15, n=4)]
     assert measured(rows) == [Measure("last-round cartel", "haiku", 4, 1, 2)]
+
+
+def test_mirror_stated_equal_first_is_the_decision_rule_of_the_replies_that_state_the_mirror():
+    rows = [row("same", v, sample=i) for i, v in enumerate([30, 40, 40, 30, 30])]
+    replies = [r["reply"] for r in rows]
+    premise = dict.fromkeys(replies, True) | {replies[2]: False}
+    # replies[3] states the mirror but the rule judge hasn't labelled it
+    orders = {replies[0]: "equal_first", replies[1]: "respond_first", replies[2]: "equal_first"}
+    orders |= {replies[4]: "neither"}
+    found = [m for m in measured(rows, premise, orders=orders) if m.name == "mirror-stated equal-first"]
+    assert found == [Measure("mirror-stated equal-first", "haiku", 2, 1, 3)]
 
 
 def write(path, rows):
