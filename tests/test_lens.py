@@ -4,11 +4,13 @@ same one, so each lens's owner can work in its own folder."""
 import pytest
 
 from zerocommcartel.game import Cournot
+from zerocommcartel.judge import Judge
 from zerocommcartel.lens import BASELINE, Lens, RegistryError, build
 from zerocommcartel.lenses import REGISTRY
 from zerocommcartel.prompt import CORE_SLOTS, Condition, Level, Slot, render
 
 BUYER = Slot("context", {"none": Level(), "hospital": Level("Our buyers are hospitals.")})
+HARM = Judge("harm", "Who loses?\n{reply}", {"type": "object", "required": ["harm"]})
 
 
 def lens(name, **kw):
@@ -76,6 +78,10 @@ def test_focal_points_are_the_games_plus_the_lenses():
     assert reg.focal("communal", "base", 2) == pytest.approx({"nash": 40, "cartel": 30, "naive": 60})
 
 
+def test_a_lens_judge_joins_the_core_judges():
+    assert set(build([lens("compliant", judges={"harm": HARM})]).judges) == {"copy", "harm"}
+
+
 def test_focal_points_follow_the_conditions_game():
     reg = build([lens("capable", conditions={"odd": Condition(game=Cournot(a=137, c=13))})])
     assert reg.focal("capable", "odd", 2)["cartel"] == pytest.approx(31)
@@ -96,6 +102,8 @@ def test_focal_points_follow_the_conditions_game():
             "level 'last'",
         ),
         ([lens("a", levels={"mood": {"happy": Level("x")}})], "slot 'mood'"),
+        ([lens("a", judges={"copy": HARM})], "judge 'copy'"),
+        ([lens("a", judges={"harm": HARM}), lens("b", judges={"harm": HARM})], "judge 'harm'"),
         ([lens("a", conditions={"same": Condition()})], "condition 'same'"),
         (
             [lens("a", conditions={"x": Condition()}), lens("b", conditions={"x": Condition()})],

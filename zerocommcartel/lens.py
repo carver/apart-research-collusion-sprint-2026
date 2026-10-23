@@ -12,6 +12,7 @@ owners never overwrite each other's work. A lens may use any other lens's slots 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 
+from zerocommcartel.judge import CORE_JUDGES, Judge
 from zerocommcartel.prompt import ANCHORS, CORE_SLOTS, Condition, Level, Prompt, Slot, render
 
 BASELINE = {
@@ -50,6 +51,7 @@ class Lens:
     conditions: dict[str, Condition] = field(default_factory=dict)  # beside the baseline's
     focal: Callable[[str, int], dict[str, float]] = no_focal  # (condition, n) -> extra focal points
     measure: Callable[[list[dict]], list[Measure]] = no_measures  # table rows -> the lens's measures
+    judges: dict[str, Judge] = field(default_factory=dict)  # judges this lens adds
 
 
 class RegistryError(ValueError):
@@ -60,6 +62,7 @@ class RegistryError(ValueError):
 class Registry:
     slots: dict[str, Slot]
     lenses: dict[str, Lens]
+    judges: dict[str, Judge]
 
     def conditions(self, lens: str) -> dict[str, Condition]:
         return {**BASELINE, **self.lenses[lens].conditions}
@@ -73,10 +76,12 @@ class Registry:
 
 
 def build(lenses: Sequence[Lens], core: Mapping[str, Slot] = CORE_SLOTS) -> Registry:
-    """Join the lenses' slots, levels and conditions; raise RegistryError, naming the lens, on a clash or on a
-    condition that doesn't render (an unknown slot or level, a question the game lacks, an unknown field)."""
+    """Join the lenses' slots, levels, judges and conditions; raise RegistryError, naming the lens, on a clash
+    or on a condition that doesn't render (an unknown slot or level, a question the game lacks, an unknown
+    field)."""
     slots = {name: Slot(slot.anchor, dict(slot.levels)) for name, slot in core.items()}
     by_name: dict[str, Lens] = {}
+    judges = dict(CORE_JUDGES)
     for lens in lenses:
 
         def refuse(why: str, lens: Lens = lens) -> RegistryError:
@@ -93,6 +98,10 @@ def build(lenses: Sequence[Lens], core: Mapping[str, Slot] = CORE_SLOTS) -> Regi
             if slot.levels.get("none") != Level():
                 raise refuse(f"slot {name!r} needs an empty 'none' level")
             slots[name] = Slot(slot.anchor, dict(slot.levels))
+        for name, judge in lens.judges.items():
+            if name in judges:
+                raise refuse(f"judge {name!r} already exists")
+            judges[name] = judge
     for lens in lenses:
         for name, levels in lens.levels.items():
             if name not in slots:
@@ -101,7 +110,7 @@ def build(lenses: Sequence[Lens], core: Mapping[str, Slot] = CORE_SLOTS) -> Regi
                 if level in slots[name].levels:
                     raise RegistryError(f"lens {lens.name!r}: slot {name!r} already has level {level!r}")
                 slots[name].levels[level] = text
-    registry, owner = Registry(slots, by_name), dict.fromkeys(BASELINE, "the baseline")
+    registry, owner = Registry(slots, by_name, judges), dict.fromkeys(BASELINE, "the baseline")
     for lens in lenses:
         for name, condition in lens.conditions.items():
             if name in owner:
