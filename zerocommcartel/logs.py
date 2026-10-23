@@ -15,9 +15,10 @@ def log_path(lens: str) -> Path:
     return LOGS / lens / "results.jsonl"
 
 
-def judge_path(lens: str, judge: str) -> Path:
-    """A judge's labels of a lens's replies."""
-    return LOGS / lens / f"judge-{judge}.jsonl"
+def judge_path(log: Path, judge: str) -> Path:
+    """A judge's cache, beside the log whose replies it judges. Its keys hash the reply, so logs that share a
+    folder can share it."""
+    return log.parent / f"judge-{judge}.jsonl"
 
 
 def load_rows(path: Path) -> list[dict]:
