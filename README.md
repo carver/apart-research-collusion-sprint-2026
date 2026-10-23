@@ -10,7 +10,9 @@ The pilot changes one sentence of the firm's prompt at a time. One of them is "E
 
 ## The pilot (pre-sprint, preexisting code)
 
-`pilot/` and `logs/pilot/` were written and collected on 2026-10-20 and 21, before the sprint. They are prior work. The report says so, and so does this README: **all code in this repo as of the sprint's start (2026-10-23) is preexisting**: `pilot/`, `tests/`, and the shared tools in `bin/`, `lib/` and `.claude/skills/`. `git log` dates every later change.
+`pilot/` and `logs/pilot/` were written and collected on 2026-10-20 and 21, before the sprint. They are prior work, and the report says so. On 2026-10-23, the sprint's first day, three commits fixed bugs in the pilot's runner (#37: edbce1d, 44eefa7, 71d8b22). Then the pilot was frozen at the tag `pilot-frozen`: `bin/pilot-lock`, run by the pre-commit hook, refuses any commit that changes `pilot/`, `logs/pilot/` or `tests/test_pilot_*`, so `git diff pilot-frozen -- pilot` stays empty. New work goes in `zerocommcartel/`.
+
+The rest of the code here when the sprint started is preexisting too: the pilot's tests and the shared tools in `bin/`, `lib/` and `.claude/skills/`. `git log` dates every later change.
 
 What it found, Claude Haiku, Sonnet and Opus 5.5 pooled, two and four firms (cartel-share answers out of replies):
 

@@ -26,4 +26,4 @@ Red/green: write the stubs first (the new names and empty methods), then a test 
 
 Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `python3 -I pilot/probe.py run --models haiku --out /tmp/smoke.jsonl`. Without `--out` the replies go into `logs/pilot/`, which should hold only runs you mean to keep. Commit a log you keep on its own (see Git).
 
-`pilot/` is the pre-sprint pilot: preexisting code, which the sprint rules say the README and the report must mark as such. Code written from Oct 23 on is sprint work.
+`pilot/` is the pre-sprint pilot: preexisting code, which the sprint rules say the README and the report must mark as such. It is frozen at the tag `pilot-frozen`, and `bin/pilot-lock` refuses commits that change it, its logs or its tests. Don't unlock it (`PILOT_UNLOCK=1`) unless Jason or Thomas asks you to. Code written from Oct 23 on is sprint work, and it goes in `zerocommcartel/`.

@@ -6,6 +6,9 @@
 # this checkout, and the .venv's interpreter only exists in the sandbox.
 # Agents' commits ($AI_AGENT set) also run the slower agent-pre-commit.
 
+# The frozen pre-sprint pilot first: a refused commit shouldn't wait on the rest.
+"$(git rev-parse --show-toplevel)/bin/pilot-lock" || exit
+
 # Format the staged Python files and stage the result first, so formatting alone never refuses
 # a commit. A file that also has unstaged changes is left alone, since staging it would take
 # those along; the ruff-format check below still flags it. Keep ruff's version in step with

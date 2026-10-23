@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Refuses a commit that stages any change to the pre-sprint pilot: pilot/, its logs and its tests.
+# They are frozen at the tag pilot-frozen, so the report can point at them as prior work.
+# bin/git-pre-commit runs this first. PILOT_UNLOCK=1 lets a deliberate change through.
+[ -n "${PILOT_UNLOCK:-}" ] && exit 0
+changed=$(git diff --cached --name-only -- pilot logs/pilot 'tests/test_pilot_*')
+[ -z "$changed" ] && exit 0
+{
+  echo "pilot-lock: these files are the frozen pre-sprint pilot (tag pilot-frozen):"
+  echo "$changed" | sed 's/^/  /'
+  echo "New work goes in zerocommcartel/. To change the pilot anyway: PILOT_UNLOCK=1 git commit ..."
+} >&2
+exit 1
