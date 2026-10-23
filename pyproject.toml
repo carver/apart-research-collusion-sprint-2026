@@ -9,6 +9,13 @@ dependencies = [
     "pydantic==2.13.5",
 ]
 
+[build-system]
+requires = ["uv_build>=0.12.22,<0.14"]  # uv's bundled backend, so no download
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
 [dependency-groups]
 dev = [
     "pyright[nodejs]==1.1.414",  # [nodejs]: Node comes locked from PyPI, not downloaded at run time
@@ -17,9 +24,6 @@ dev = [
 ]
 
 [tool.uv]
-# The repo is a shell around the team's shared tools (bin/, lib/), with no package to build yet.
-# When code returns, add a [build-system] and drop this line.
-package = false
 # Supply-chain policy: resolve only releases uploaded before this date, at least three weeks before
 # they were added (2026-10-19). Direct dependencies are pinned with ==, and uv.lock pins the rest.
 # To upgrade: move this date forward (keeping it >= 3 weeks in the past), then update the pins.
@@ -66,3 +70,5 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 "pilot/*" = ["E501"]
 "pilot/analyze.py" = ["E731", "B023"]
 "pilot/bench.py" = ["B023"]
+# Prompt text, judge prompts and regexes copied from the pilot run long, like the pilot's own.
+"zerocommcartel/{answer,judge,mentions,prompt,run}.py" = ["E501"]
