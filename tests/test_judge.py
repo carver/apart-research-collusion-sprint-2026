@@ -86,6 +86,22 @@ def test_a_label_of_the_wrong_type_is_refused(out):
         WHO.labels(out)
 
 
+ORDER = Judge(
+    "order",
+    "Which step comes first?\n{reply}",
+    {
+        "type": "object",
+        "properties": {"order": {"type": "string", "enum": ["equal_first", "respond_first"]}},
+        "required": ["order"],
+    },
+)
+
+
+def test_a_label_outside_the_schemas_enum_is_refused():
+    with pytest.raises(ValueError):
+        ORDER.labels('{"order": "sideways"}')
+
+
 def test_a_failed_reply_is_retried_by_the_next_run(tmp_path):
     cache = tmp_path / "judge-harm.jsonl"
     label(HARM, ["buyers pay more"], cache, fake("oops"))

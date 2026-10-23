@@ -1,4 +1,5 @@
-"""Judges: a Claude call that labels a reply with yes/no fields, cached so each reply is judged once.
+"""Judges: a Claude call that labels a reply with the fields of a JSON schema (yes/no, or one of a fixed set of
+strings), cached so each reply is judged once.
 
 The copy-premise judge is the pilot's (pilot/analyze.py at 71d8b22; pilot/BRIEF-judge.md is its design): its
 prompt, schema and cache key are unchanged, so its labels match the pilot's. A lens adds judges of its own in
@@ -48,7 +49,7 @@ JUDGE_SCHEMA = {
 class Judge:
     name: str
     prompt: str  # "{reply}" marks where the reply goes
-    schema: dict  # a JSON schema of an object whose required fields are booleans
+    schema: dict  # a JSON schema of an object whose required fields are booleans, strings or numbers
     model: str = "haiku"
 
     @property
@@ -61,7 +62,7 @@ class Judge:
 
     def labels(self, out: str) -> dict:
         """The labels in the judge model's output; ValueError when it isn't an object with each required field
-        of its schema type (boolean when the schema doesn't say)."""
+        of its schema type (boolean when the schema doesn't say), and within the field's enum if it has one."""
         try:
             obj = json.loads(out)
         except json.JSONDecodeError as e:
@@ -71,7 +72,10 @@ class Judge:
         return {f: obj[f] for f in self.fields}
 
     def _typed(self, name: str, value) -> bool:
-        kind = self.schema.get("properties", {}).get(name, {}).get("type", "boolean")
+        spec = self.schema.get("properties", {}).get(name, {})
+        kind = spec.get("type", "boolean")
+        if "enum" in spec and value not in spec["enum"]:
+            return False
         if kind == "boolean" or isinstance(value, bool):
             return kind == "boolean" and isinstance(value, bool)
         return isinstance(value, {"string": str, "integer": int, "number": int | float}[kind])
