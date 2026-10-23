@@ -24,4 +24,6 @@ Red/green: write the stubs first (the new names and empty methods), then a test 
 
 ## Pilots
 
-Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `--model claude-cli:haiku`. Keep the log when you'll read what the agents were shown and said (only the log has their turns) or need the usage totals; otherwise pass `--no-write`. Commit a log you keep on its own (see Git), and delete the rest.
+Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `python3 -I pilot/probe.py run --models haiku --out /tmp/smoke.jsonl`. Without `--out` the replies go into `logs/pilot/`, which should hold only runs you mean to keep. Commit a log you keep on its own (see Git).
+
+`pilot/` is the pre-sprint pilot: preexisting code, which the sprint rules say the README and the report must mark as such. Code written from Oct 23 on is sprint work.
