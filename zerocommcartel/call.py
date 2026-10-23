@@ -27,6 +27,7 @@ MODELS = {  # key: (backend, id)
     "laguna": ("openrouter", "poolside/laguna-s-2.1:free"),
     "luna": ("openrouter", "openai/gpt-6-luna"),
     "astra": ("openrouter", "openai/gpt-6-astra"),
+    "glm": ("openrouter", "z-ai/glm-5.3"),
 }
 
 
@@ -80,7 +81,11 @@ _or_lock = threading.Lock()
 RPM = 18
 
 
-PAID_OK = {"openai/gpt-6-luna", "openai/gpt-6-astra"}  # paid panels Jason approved, 2026-10-20
+PAID_OK = {
+    "openai/gpt-6-luna",  # paid panels Jason approved, 2026-10-20
+    "openai/gpt-6-astra",
+    "z-ai/glm-5.3",  # approved 2026-10-23, for the communal lens (#41)
+}
 
 
 def call_openrouter(model_id: str, system: str, prompt: str) -> tuple[str, dict]:
