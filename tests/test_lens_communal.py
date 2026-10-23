@@ -189,14 +189,29 @@ def test_giving_up_to_a_fixed_rival_is_an_answer_from_the_pairs_optimum_up_to_th
     values = [48, 47.6, 47.4, 42, 36, 35.5, 35.4, 30]
     rows = [row("fixed_diff", v, sample=i) for i, v in enumerate(values)]
     rows += [row("fixed_same", 36), row("leave_diff", 36)]
-    assert measured(rows) == [Measure("gives up to a fixed rival", "haiku", 2, 4, 8)]
+    serves = dict.fromkeys((r["reply"] for r in rows), "joint")
+    assert measured(rows, serves=serves) == [Measure("gives up to a fixed rival", "haiku", 2, 4, 8)]
 
 
-def test_nash_counts_as_giving_up_only_when_the_reply_says_it_serves_the_pair():
-    # 40 is also what a reply gives that ignores the rival's decided 24, so the reasons have to say
-    rows = [row("fixed_diff", 40, sample=i) for i in range(4)]
-    serves = {rows[0]["reply"]: "joint", rows[1]["reply"]: "own", rows[2]["reply"]: "both"}
-    assert measured(rows, serves=serves) == [Measure("gives up to a fixed rival", "haiku", 2, 2, 4)]
+def test_an_answer_counts_as_giving_up_only_when_the_reply_says_it_serves_the_pair():
+    # 40 is also what a reply gives that ignores the rival's decided 24, and 43 what a slip gives
+    rows = [row("fixed_diff", v, sample=i) for i, v in enumerate([42, 40, 43, 36, 40])]
+    replies = [r["reply"] for r in rows]
+    serves = {
+        replies[0]: "joint",
+        replies[1]: "own",
+        replies[2]: "own",
+        replies[3]: "both",
+        replies[4]: "own",
+    }
+    assert measured(rows, serves=serves) == [Measure("gives up to a fixed rival", "haiku", 2, 2, 5)]
+
+
+def test_giving_up_counts_only_the_replies_the_rule_judge_has_labelled():
+    rows = [row("fixed_diff", 42), row("fixed_diff", 42, sample=1)]
+    assert measured(rows, serves={rows[0]["reply"]: "joint"}) == [
+        Measure("gives up to a fixed rival", "haiku", 2, 1, 1)
+    ]
 
 
 def test_the_last_round_cartel_is_the_share_at_the_cartel_point_with_no_future():

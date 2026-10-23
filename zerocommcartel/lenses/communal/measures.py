@@ -2,9 +2,9 @@
 
 mirror-stated nash         `same` replies that state the copy premise (the copy judge's `premise`) and
                            still answer Nash: the mirror holds and the model defects anyway (#41)
-gives up to a fixed rival  `fixed_diff` answers below the best response to the rival's fixed output, down
-                           to the pair's optimum: own profit given up for the pair, with no mirror. Nash
-                           counts only when the rule judge says the number serves the pair
+gives up to a fixed rival  of the `fixed_diff` answers the rule judge has labelled, those below the best
+                           response to the rival's fixed output, down to the pair's optimum, that it says
+                           serve the pair: own profit given up for the pair, with no mirror
 last-round cartel          `last_diff` answers at the cartel share: no mirror and no future, so the
                            cartel share is pure sacrifice
 """
@@ -34,22 +34,18 @@ def states_the_mirror(row: dict) -> bool:
 
 
 def gives_up(row: dict) -> bool:
-    """Below the best response, down to the pair's optimum. Nash (40) is in that range, and it is also what a
-    reply gives that ignores the rival's decided output, so it counts only when the rule judge says the number
-    serves the pair."""
-    if not row["focal"]["pair"] - NEAR <= row["value"] < row["focal"]["best"] - NEAR:
-        return False
-    return not near(row["value"], row["focal"]["nash"]) or row["labels"].get("rule", {}).get("objective") in (
-        "joint",
-        "both",
-    )
+    """Below the best response, down to the pair's optimum, and for the pair by the rule judge's reading. An
+    answer in that range can also come from ignoring the rival's decided output (Nash, 40) or from a slip, so
+    the number alone doesn't say."""
+    in_range = row["focal"]["pair"] - NEAR <= row["value"] < row["focal"]["best"] - NEAR
+    return in_range and row["labels"].get("rule", {}).get("objective") in ("joint", "both")
 
 
 MEASURES = [
     share(
         "mirror-stated nash", "same", lambda row: near(row["value"], row["focal"]["nash"]), states_the_mirror
     ),
-    share("gives up to a fixed rival", "fixed_diff", gives_up),
+    share("gives up to a fixed rival", "fixed_diff", gives_up, lambda row: "rule" in row["labels"]),
     share_at("last-round cartel", "last_diff", "cartel"),
 ]
 
