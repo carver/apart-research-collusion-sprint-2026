@@ -1,0 +1,6 @@
+90 calls to make
+[20/90] ok 20 fail 0  last: opus anyai n=2 -> 30.0 
+[40/90] ok 40 fail 0  last: haiku samemodel n=2 -> 30.0 
+[60/90] ok 60 fail 0  last: haiku same_sys n=2 -> 40.0 
+[80/90] ok 80 fail 0  last: sonnet samemodel n=2 -> 30.0 
+done: ok 90, failed 0

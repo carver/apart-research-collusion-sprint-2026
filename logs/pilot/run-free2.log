@@ -1,0 +1,7 @@
+105 calls to make
+[20/105] ok 20 fail 0  last: nemotron hub n=4 -> 24.0 
+[40/105] ok 40 fail 0  last: minimax same n=4 -> 24.0 
+[60/105] ok 60 fail 0  last: nemotron hub n=4 -> 24.0 
+[80/105] ok 80 fail 0  last: dots same n=4 -> 15.0 
+[100/105] ok 100 fail 0  last: dots mono n=1 -> 60.0 
+done: ok 105, failed 0

@@ -1,0 +1,6 @@
+judged 1101 replies, 0 failed, 0 already cached
+gold: premise 52/54, acts 54/54
+gold held-out: premise 13/15, acts 15/15
+gold tuning: premise 39/39, acts 39/39
+  nemotron cournot same n=4 #2: judge premise=False acts=True, gold premise=True acts=True
+  haiku kylel same n=4 #0: judge premise=False acts=False, gold premise=True acts=False

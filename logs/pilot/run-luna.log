@@ -1,0 +1,9 @@
+152 calls to make
+[20/152] ok 20 fail 0  last: luna diff n=2 -> 40.0 
+[40/152] ok 40 fail 0  last: luna samemodel n=2 -> 40.0 
+[60/152] ok 60 fail 0  last: luna same_sys n=2 -> 40.0 
+[80/152] ok 80 fail 0  last: luna hub n=2 -> 40.0 
+[100/152] ok 100 fail 0  last: luna samerep n=2 -> 30.0 
+[120/152] ok 120 fail 0  last: luna anyai n=4 -> 24.0 
+[140/152] ok 140 fail 0  last: luna same n=4 -> 24.0 
+done: ok 152, failed 0

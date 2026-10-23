@@ -1,0 +1,8 @@
+133 calls to make
+[20/133] ok 20 fail 0  last: astra samerep n=4 -> 15.0 
+[40/133] ok 40 fail 0  last: astra samemodel n=2 -> 40.0 
+[60/133] ok 60 fail 0  last: astra same n=2 -> 30.0 
+[80/133] ok 80 fail 0  last: astra hubjoint n=2 -> 30.0 
+[100/133] ok 100 fail 0  last: astra base n=4 -> 24.0 
+[120/133] ok 120 fail 0  last: astra anyai n=4 -> 24.0 
+done: ok 133, failed 0

@@ -1,0 +1,18 @@
+1575002 exited after 0.0s  (not running)
+204 calls to make
+[20/204] ok 20 fail 0  last: sonnet hub n=4 -> 24.0 
+[40/204] ok 40 fail 0  last: haiku base n=4 -> 24.0 
+[60/204] ok 60 fail 0  last: opus same n=2 -> 30.0 
+[80/204] ok 80 fail 0  last: haiku hub n=4 -> 24.0 
+[100/204] ok 100 fail 0  last: opus base n=4 -> 24.0 
+[120/204] ok 120 fail 0  last: haiku samerep n=4 -> 15.0 
+[140/204] ok 140 fail 0  last: opus diff n=4 -> 24.0 
+[160/204] ok 160 fail 0  last: sonnet base n=2 -> 40.0 
+[180/204] ok 180 fail 0  last: haiku mono n=1 -> 60.0 
+[200/204] ok 200 fail 0  last: haiku mono n=1 -> 60.0 
+done: ok 204, failed 0
+64 calls to make
+[20/64] ok 20 fail 0  last: sonnet same n=2 -> 70.0 
+[40/64] ok 40 fail 0  last: opus same n=2 -> 70.0 
+[60/64] ok 60 fail 0  last: nemotron hubjoint n=2 -> 70.0 
+done: ok 64, failed 0

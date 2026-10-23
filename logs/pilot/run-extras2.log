@@ -1,0 +1,6 @@
+1581492 exited after 156.6s  bash -c waitone --pid 1575002 2>/dev/null; python3 -I -u R-sim/probe.py run --game cournot --samples 8 --models haiku sonnet opus --workers 12 && python3 -I -u R-sim/probe.py run --game bertrand --arm…[293 chars]
+60 calls to make
+[20/60] ok 20 fail 0  last: sonnet samemodel n=2 -> 30.0 
+[40/60] ok 40 fail 0  last: opus samemodel n=2 -> 30.0 
+[60/60] ok 60 fail 0  last: opus samemodel n=4 -> 15.0 
+done: ok 60, failed 0

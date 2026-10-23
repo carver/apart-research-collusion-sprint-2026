@@ -1,0 +1,6 @@
+30 calls to make
+[20/30] ok 20 fail 0  last: nemotron report n=4 -> 240.0 
+done: ok 30, failed 0
+30 calls to make
+[20/30] ok 20 fail 0  last: sonnet none n=1 -> 62.0 
+done: ok 30, failed 0

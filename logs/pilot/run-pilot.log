@@ -1,0 +1,10 @@
+273 calls to make
+[20/273] ok 20 fail 0  last: sonnet base n=4 -> 24.0 
+[40/273] ok 40 fail 0  last: opus samerep n=2 -> 40.0 
+[60/273] ok 60 fail 0  last: haiku same n=4 -> 24.0 
+[80/273] ok 80 fail 0  last: sonnet diff n=4 -> 24.0 
+[100/273] ok 100 fail 0  last: nemotron same n=2 -> 40.0 
+[120/273] ok 120 fail 0  last: dots hub n=2 -> 40.0 
+[140/273] ok 140 fail 0  last: haiku samerep n=2 -> 30.0 
+[160/273] ok 160 fail 0  last: sonnet samerep n=4 -> 15.0 
+[180/273] ok 180 fail 0  last: minimax hub n=4 -> 24.0 

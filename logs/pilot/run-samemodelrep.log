@@ -1,0 +1,5 @@
+64 calls to make
+[20/64] ok 20 fail 0  last: opus samemodelrep n=4 -> 24.0 
+[40/64] ok 40 fail 0  last: luna samemodelrep n=4 -> 24.0 
+[60/64] ok 60 fail 0  last: luna samemodelrep n=2 -> 40.0 
+done: ok 64, failed 0
