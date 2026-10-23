@@ -54,6 +54,38 @@ def test_judge_output_without_the_boolean_fields_fails_and_isnt_cached(tmp_path,
     assert load_labels(HARM, cache) == {}
 
 
+WHO = Judge(
+    "who",
+    "Who loses?\n{reply}",
+    {
+        "type": "object",
+        "properties": {"who": {"type": "string"}, "harm": {"type": "boolean"}, "share": {"type": "number"}},
+        "required": ["who", "harm", "share"],
+    },
+)
+
+
+def test_labels_take_the_types_the_schema_gives():
+    assert WHO.labels('{"who": "buyers", "harm": true, "share": 0.5}') == {
+        "who": "buyers",
+        "harm": True,
+        "share": 0.5,
+    }
+
+
+@pytest.mark.parametrize(
+    "out",
+    [
+        '{"who": 3, "harm": true, "share": 1}',
+        '{"who": "x", "harm": 1, "share": 1}',
+        '{"who": "x", "harm": true, "share": true}',
+    ],
+)
+def test_a_label_of_the_wrong_type_is_refused(out):
+    with pytest.raises(ValueError):
+        WHO.labels(out)
+
+
 def test_a_failed_reply_is_retried_by_the_next_run(tmp_path):
     cache = tmp_path / "judge-harm.jsonl"
     label(HARM, ["buyers pay more"], cache, fake("oops"))

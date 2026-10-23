@@ -113,7 +113,7 @@ def test_a_missing_log_has_no_rows(tmp_path):
     [
         (["telepathy"], ["haiku"], [2], "telepathy"),
         (["same"], ["gpt-9"], [2], "gpt-9"),
-        (["same"], ["haiku"], [9], "9"),
+        (["same"], ["haiku"], [11], "11"),
     ],
 )
 def test_an_unknown_condition_model_or_market_size_is_refused_before_any_call(conditions, models, ns, match):

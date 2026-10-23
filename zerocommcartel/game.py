@@ -7,7 +7,9 @@ tables use nothing else."""
 from dataclasses import dataclass
 from typing import Protocol
 
-NUM = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}
+NUM = dict(
+    enumerate(["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"], start=1)
+)
 PRODUCT = "a standard grade of industrial salt"
 ASKS = ("own", "joint", "forecast")
 

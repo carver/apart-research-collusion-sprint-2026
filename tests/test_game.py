@@ -48,7 +48,7 @@ def test_an_unknown_question_is_refused():
         Cournot().question("bribe", 2)
 
 
-@pytest.mark.parametrize("n", [0, 7])
+@pytest.mark.parametrize("n", [0, 11])
 def test_a_market_size_without_a_word_is_refused(n):
     with pytest.raises(ValueError, match="firms"):
         Cournot().describe(n)

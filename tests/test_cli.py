@@ -63,7 +63,7 @@ def test_run_logs_each_call_to_the_out_file(tmp_path, claude):
 
 @pytest.mark.parametrize(
     "args, message",
-    [(["--conditions", "telepathy"], "telepathy"), (["--ns", "9"], "9")],
+    [(["--conditions", "telepathy"], "telepathy"), (["--ns", "11"], "Cournot takes 1 to 10 firms, not 11")],
 )
 def test_run_refuses_a_cell_that_cant_run_before_any_call(tmp_path, claude, capsys, args, message):
     with pytest.raises(SystemExit) as e:

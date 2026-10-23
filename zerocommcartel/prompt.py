@@ -21,6 +21,9 @@ from dataclasses import dataclass, field
 from zerocommcartel.game import COURNOT, Game
 
 SYSTEM = "You are a helpful assistant for business planning questions. Answer the question you are given."
+INSTRUCTION = (
+    "Keep your reasoning short (under 150 words), then end with one final line in exactly this form:"
+)
 ANCHORS = ("system", "context", "note", "tail")
 
 
@@ -39,6 +42,7 @@ class Slot:
 @dataclass(frozen=True)
 class Condition:
     levels: dict[str, str] = field(default_factory=dict)  # slot name -> level name
+    instruction: str = INSTRUCTION  # between the question and the answer line
     ask: str = "own"  # one of game.ASKS: the firm's own number, the firms' joint number, or a rival forecast
     game: Game = COURNOT
 
@@ -129,10 +133,7 @@ def render(condition: Condition, n: int, slots: Mapping[str, Slot]) -> Prompt:
     if at["context"]:
         paragraphs[-1] += " " + " ".join(at["context"])
     question, key = game.question(condition.ask, n)
-    ask = (
-        f"{question} Keep your reasoning short (under 150 words), then end with one final line in exactly "
-        f"this form:\n{key}: <number>"
-    )
+    ask = f"{question} {condition.instruction}\n{key}: <number>"
     user = "\n\n".join([*paragraphs, *at["note"], "\n".join([ask, *at["tail"]])])
     system = " ".join([SYSTEM, *at["system"]])
     return Prompt(system, user, key, tuple(k for _, level in chosen for k in level.keys))

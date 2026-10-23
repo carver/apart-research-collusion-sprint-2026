@@ -97,6 +97,13 @@ def test_the_forecast_question_asks_for_a_rival_line():
     assert p.number_key == "RIVAL"
 
 
+def test_a_condition_can_change_the_answer_instruction():
+    p = render(Condition(instruction="Answer with the number only, in exactly this form:"), 2, CORE_SLOTS)
+    assert p.user.endswith(
+        "to maximize its profit? Answer with the number only, in exactly this form:\nQUANTITY: <number>"
+    )
+
+
 def test_the_game_sets_the_market():
     p = render(Condition(game=Cournot(a=137, c=13)), 2, CORE_SLOTS)
     assert "= 137 - (total" in p.user and "$13 per unit" in p.user

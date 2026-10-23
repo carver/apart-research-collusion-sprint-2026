@@ -2,6 +2,7 @@
 
 import pytest
 
+from zerocommcartel.game import Cournot
 from zerocommcartel.judge import COPY
 from zerocommcartel.lens import Lens, Measure, build, share_at
 from zerocommcartel.prompt import Condition
@@ -24,6 +25,11 @@ REG = build(
         ),
     ]
 )
+
+
+class JointOnly(Cournot):
+    def benchmarks(self, n):
+        return {"nash": (self.a - self.c) / (n + 1), "joint": (self.a - self.c) / (2 * n)}
 
 
 def row(
@@ -79,7 +85,27 @@ def test_a_cell_counts_its_answers_at_each_focal_point():
 
 def test_a_lens_focal_point_gets_counted_too():
     rows = [row("communal", "dial", v, sample=i) for i, v in enumerate([33.3, 33, 30])]
-    assert cell(show("communal", rows), condition="dial")["lens focal"] == "edt 2"
+    assert cell(show("communal", rows), condition="dial")["other focal"] == "edt 2"
+
+
+def test_a_game_without_the_core_benchmarks_still_tabulates():
+    reg = build([Lens("capable", "?", conditions={"odd": Condition(game=JointOnly(a=134))})])
+    rows = [
+        {
+            "model": "haiku",
+            "lens": "capable",
+            "condition": "odd",
+            "n": 2,
+            "sample": 0,
+            "answer": "QUANTITY",
+            "prompt_hash": reg.render(reg.conditions("capable")["odd"], 2).hash,
+            "reply": "QUANTITY: 31",
+            "value": 31.0,
+            "error": None,
+        }
+    ]
+    c = cell(table(reg, prepare(reg, "capable", rows, {})), condition="odd")
+    assert (c["nash"], c["cartel"], c["naive"], c["other focal"]) == ("0", "-", "-", "joint 1")
 
 
 def test_the_cells_follow_the_lens_order_of_conditions_then_n():

@@ -17,7 +17,6 @@ import sys
 from pathlib import Path
 
 from zerocommcartel import logs
-from zerocommcartel.game import NUM
 from zerocommcartel.judge import label, load_labels
 from zerocommcartel.lens import Registry
 from zerocommcartel.lenses import REGISTRY
@@ -103,7 +102,9 @@ def main(argv=None, registry: Registry = REGISTRY):
     s.add_argument("lens", choices=lenses)
     s.add_argument("--conditions", nargs="+", help="default: all of the lens's conditions")
     s.add_argument("--models", nargs="+", default=["haiku", "sonnet", "opus"])
-    s.add_argument("--ns", nargs="+", type=int, default=[2, 4], choices=list(NUM))
+    s.add_argument(
+        "--ns", nargs="+", type=int, default=[2, 4], help="market sizes; each game says which it takes"
+    )
     s.add_argument("--samples", type=int, default=3)
     s.add_argument("--workers", type=int, default=40)
     s.add_argument("--out", help="default: logs/<lens>/results.jsonl")

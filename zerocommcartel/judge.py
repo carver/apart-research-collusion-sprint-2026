@@ -60,15 +60,22 @@ class Judge:
         """The cache key: a hash of the judge's model, its prompt and the reply, so changing either judges anew."""
         return hashlib.sha256(f"{self.model}\n{self.prompt}\n{reply}".encode()).hexdigest()[:16]
 
-    def labels(self, out: str) -> dict[str, bool]:
-        """The labels in the judge model's output; ValueError when it isn't an object of the boolean fields."""
+    def labels(self, out: str) -> dict:
+        """The labels in the judge model's output; ValueError when it isn't an object with each required field
+        of its schema type (boolean when the schema doesn't say)."""
         try:
             obj = json.loads(out)
         except json.JSONDecodeError as e:
             raise ValueError(f"judge output is not JSON: {out[:200]!r}") from e
-        if not isinstance(obj, dict) or not all(isinstance(obj.get(f), bool) for f in self.fields):
-            raise ValueError(f"judge output lacks boolean {'/'.join(self.fields)}: {out[:200]!r}")
+        if not isinstance(obj, dict) or not all(self._typed(f, obj.get(f)) for f in self.fields):
+            raise ValueError(f"judge output lacks a typed {'/'.join(self.fields)}: {out[:200]!r}")
         return {f: obj[f] for f in self.fields}
+
+    def _typed(self, name: str, value) -> bool:
+        kind = self.schema.get("properties", {}).get(name, {}).get("type", "boolean")
+        if kind == "boolean" or isinstance(value, bool):
+            return kind == "boolean" and isinstance(value, bool)
+        return isinstance(value, {"string": str, "integer": int, "number": int | float}[kind])
 
 
 COPY = Judge("copy", JUDGE_PROMPT, JUDGE_SCHEMA)
