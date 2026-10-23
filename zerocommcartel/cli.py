@@ -9,8 +9,11 @@
     uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 
 `run` appends to logs/<criterion>/results.jsonl unless --out names another file. It skips the replies it
-already has, so raising --samples adds samples and a rerun retries failures. Smoke tests use --out and the
-Claude subscription (haiku, sonnet, opus); OpenRouter models need OPENROUTER_API_KEY.
+already has, so raising --samples adds samples and a rerun retries failures. The baseline (base, diff, same)
+is one prompt in every criterion, so without --out or --log a command also reads the other criteria's logs
+for their baseline replies: `run` skips those samples, `table` and `synth` count them, and `judge` labels
+the ones no other criterion's cache has. Smoke tests use --out, which stands alone, and the Claude
+subscription (haiku, sonnet, opus); OpenRouter models need OPENROUTER_API_KEY.
 """
 
 import argparse
@@ -21,8 +24,8 @@ from pathlib import Path
 from zerocommcartel import logs
 from zerocommcartel.call import MODELS, NAMES
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criterion import Registry
-from zerocommcartel.judge import label, load_labels
+from zerocommcartel.criterion import BASELINE, Registry
+from zerocommcartel.judge import Judge, label, load_labels
 from zerocommcartel.prompt import MODEL
 from zerocommcartel.run import done_keys, plan, run
 from zerocommcartel.table import Replies, prepare, synth, table
@@ -30,9 +33,38 @@ from zerocommcartel.table import Replies, prepare, synth, table
 NS = [2, 4]  # the market sizes run and hashes cover by default
 
 
-def replies(registry: Registry, criterion: str, log: Path) -> Replies:
-    labels = {name: load_labels(j, logs.judge_path(log, name)) for name, j in registry.judges.items()}
-    return prepare(registry, criterion, logs.load_rows(log), labels)
+def sources(registry: Registry, criterion: str, given: str | None) -> tuple[Path, list[Path]]:
+    """The log a command on `criterion` reads or appends to, and the logs whose baseline rows (base, diff,
+    same) it counts beside that log's own. A file named by --log or --out (a smoke test, say) stands alone.
+    Otherwise it's the criterion's own log, with every other criterion's beside it: the baseline renders one
+    prompt in every criterion, so each of its samples runs once and counts everywhere."""
+    if given:
+        return Path(given), []
+    return logs.log_path(criterion), [
+        logs.log_path(other) for other in registry.criteria if other != criterion
+    ]
+
+
+def counted_rows(log: Path, shared: list[Path]) -> list[dict]:
+    """The shared logs' baseline rows, then the log's own. Where two logs hold one (model, prompt hash,
+    sample), the last row wins, so the criterion's own reply does."""
+    borrowed = [row for path in shared for row in logs.load_rows(path) if row.get("condition") in BASELINE]
+    return borrowed + logs.load_rows(log)
+
+
+def labels_beside(judge: Judge, paths: list[Path]) -> dict[str, dict]:
+    """The judge's labels from the caches beside each of the logs."""
+    return {
+        key: found
+        for path in paths
+        for key, found in load_labels(judge, logs.judge_path(path, judge.name)).items()
+    }
+
+
+def replies(registry: Registry, criterion: str, given: str | None) -> Replies:
+    log, shared = sources(registry, criterion, given)
+    labels = {name: labels_beside(judge, [*shared, log]) for name, judge in registry.judges.items()}
+    return prepare(registry, criterion, counted_rows(log, shared), labels)
 
 
 def cmd_list(registry: Registry, args):
@@ -41,11 +73,6 @@ def cmd_list(registry: Registry, args):
         for cond, spec in registry.conditions(name).items():
             parts = [f"{slot}={level}" for slot, level in spec.levels.items()]
             print(f"  {cond:<14} {' '.join([*parts, f'ask={spec.ask}', f'game={spec.game.name}'])}")
-
-
-def chosen_log(criterion: str, given: str | None) -> Path:
-    """The log a command reads or appends to: the one given (--log, --out), else the criterion's own."""
-    return Path(given) if given else logs.log_path(criterion)
 
 
 def cmd_show(registry: Registry, args):
@@ -58,7 +85,7 @@ def cmd_show(registry: Registry, args):
 
 
 def cmd_run(registry: Registry, args):
-    out = chosen_log(args.criterion, args.out)
+    out, shared = sources(registry, args.criterion, args.out)
     conditions = args.conditions or list(registry.conditions(args.criterion))
     try:
         tasks = plan(
@@ -68,7 +95,7 @@ def cmd_run(registry: Registry, args):
             args.models,
             args.ns,
             args.samples,
-            done_keys(logs.load_rows(out)),
+            done_keys(counted_rows(out, shared)),
         )
     except ValueError as e:
         sys.exit(f"no calls made: {e}")
@@ -76,11 +103,14 @@ def cmd_run(registry: Registry, args):
 
 
 def cmd_judge(registry: Registry, args):
-    log = chosen_log(args.criterion, args.log)
-    rows = [r for r in logs.load_rows(log) if r.get("reply")]
+    """Label the replies the criterion's tables count, the shared baseline's among them, into the cache beside
+    its log; a reply already labelled beside another criterion's log is left as it is."""
+    log, shared = sources(registry, args.criterion, args.log)
+    texts = [row["reply"] for row in replies(registry, args.criterion, args.log).rows]
     for name in args.judges:
+        judge = registry.judges[name]
         judged, failed, cached = label(
-            registry.judges[name], [r["reply"] for r in rows], logs.judge_path(log, name)
+            judge, texts, logs.judge_path(log, name), known=labels_beside(judge, shared).keys()
         )
         print(f"{name}: judged {judged}, {len(failed)} failed, {cached} already cached")
         for line in failed:
@@ -88,17 +118,11 @@ def cmd_judge(registry: Registry, args):
 
 
 def cmd_table(registry: Registry, args):
-    print(table(registry, replies(registry, args.criterion, chosen_log(args.criterion, args.log))), end="")
+    print(table(registry, replies(registry, args.criterion, args.log)), end="")
 
 
 def cmd_synth(registry: Registry, args):
-    print(
-        synth(
-            registry,
-            [replies(registry, criterion, logs.log_path(criterion)) for criterion in registry.criteria],
-        ),
-        end="",
-    )
+    print(synth(registry, [replies(registry, criterion, None) for criterion in registry.criteria]), end="")
 
 
 def cmd_hashes(registry: Registry, args):

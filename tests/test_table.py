@@ -210,6 +210,12 @@ def test_synth_joins_each_criterion_measure_with_collusion_on_same_pooled_across
     }
 
 
+def test_synth_counts_once_a_same_reply_that_several_criteria_count():
+    shared = [row("capable", "same", 30)]
+    both = [prepare(REG, "capable", shared, {}), prepare(REG, "communal", shared, {})]
+    assert cell(synth(REG, both), model="haiku", n=2)["same at cartel"] == "1/1"
+
+
 COPIED = "They ask this same model, so they make what I make: max q(120 - 2q).\nQUANTITY: {}"
 
 

@@ -157,17 +157,18 @@ def synth(registry: Registry, replies: Sequence[Replies]) -> str:
     """Per model and n: answers to `same` at the cartel share, pooled across criteria, and how many of the
     judged ones are deliberate; then each criterion's measures, as hits/total."""
     columns: dict[tuple, dict[str, str]] = defaultdict(dict)
-    same: dict[tuple, list[dict]] = defaultdict(list)
+    same: dict[tuple, dict[tuple, dict]] = defaultdict(dict)  # by the log it's in: several criteria count it
     names: list[str] = []
     for r in replies:
         for row in r.rows:
             if row["condition"] == "same" and row["value"] is not None:
-                same[(row["model"], row["n"])].append(row)
+                same[(row["model"], row["n"])][(row["criterion"], row["prompt_hash"], row["sample"])] = row
         for m in registry.criteria[r.criterion].measure(r.rows):
             name = f"{r.criterion}: {m.name}"
             names += [name] if name not in names else []
             columns[(m.model, m.n)][name] = f"{m.hits}/{m.total}"
-    for cell, rows in same.items():
+    for cell, replies_once in same.items():
+        rows = list(replies_once.values())
         judged = [row for row in rows if "copy" in row["labels"]]
         columns[cell]["same at cartel"] = (
             f"{sum(near(r['value'], r['focal']['cartel']) for r in rows)}/{len(rows)}"

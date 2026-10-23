@@ -9,7 +9,7 @@ import concurrent.futures as cf
 import hashlib
 import json
 import subprocess
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Collection, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -119,12 +119,14 @@ def label(
     cache: Path,
     call: Callable[[Judge, str], str] = claude_call,
     workers: int = 12,
+    known: Collection[str] = frozenset(),
 ) -> tuple[int, list[str], int]:
-    """Judge each reply not yet in the cache, appending its labels there. Returns (judged, failures, cached):
-    a failure isn't cached, so the next run tries it again."""
+    """Judge each reply not yet in the cache, nor among the `known` keys (labelled in another cache),
+    appending its labels to the cache. Returns (judged, failures, cached): a failure isn't cached, so the next
+    run tries it again."""
     labels = load_labels(judge, cache)
     wanted = {judge.key(reply): reply for reply in replies}
-    pending = {key: reply for key, reply in wanted.items() if key not in labels}
+    pending = {key: reply for key, reply in wanted.items() if key not in labels and key not in known}
     cache.parent.mkdir(parents=True, exist_ok=True)
     end_last_line(cache)
     judged, failed = 0, []
