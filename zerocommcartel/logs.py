@@ -5,7 +5,7 @@ writes it):
 
     model, model_id       the MODELS key and the id it calls
     criterion, condition  the criterion and the condition's name
-    levels, ask           the condition's slot levels and question (own, joint or forecast)
+    levels, ask           the condition's slot levels and question (own, plain, best, joint or forecast)
     game, game_params     the game's name and parameters
     n, sample             the market size and the sample's number
     prompt_hash           the system and user prompt's hash; resume keys on (model, prompt_hash, sample)

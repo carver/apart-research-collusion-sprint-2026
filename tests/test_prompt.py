@@ -88,6 +88,22 @@ def test_the_provider_line_extends_the_system_prompt():
     assert p.system.startswith(SYSTEM + " Competing businesses may consult you")
 
 
+@pytest.mark.parametrize(
+    "ask, question",
+    [
+        ("plain", "How many units should my firm produce this quarter?"),
+        ("best", "How many units is it best for my firm to produce this quarter?"),
+    ],
+)
+@pytest.mark.parametrize("n", [1, 2])
+def test_a_neutral_question_leaves_out_whose_profit_to_maximize(ask, question, n):
+    p = render(Condition(ask=ask), n, CORE_SLOTS)
+    assert p.user.endswith(
+        f"{question} Keep your reasoning short (under 150 words), then end with one final line in exactly "
+        "this form:\nQUANTITY: <number>"
+    )
+
+
 def test_the_forecast_question_asks_for_a_rival_line():
     p = render(Condition({"disclosure": "same"}, ask="forecast"), 2, CORE_SLOTS)
     assert p.user.endswith(

@@ -5,7 +5,8 @@ A criterion can add a game (a harder market, say) by writing a class with the `G
 the tables use nothing else.
 
 Cournot's market text and its own and joint questions are the pilot's (pilot/probe.py at 71d8b22), so the
-pilot's prompts render byte for byte; the forecast question is new."""
+pilot's prompts render byte for byte; the forecast question and the two neutral ones, plain and best, are
+new."""
 
 from dataclasses import dataclass
 from typing import Protocol
@@ -14,7 +15,12 @@ NUM = dict(
     enumerate(["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"], start=1)
 )
 PRODUCT = "a standard grade of industrial salt"
-ASKS = ("own", "joint", "forecast")
+FIRM_QUESTIONS = {  # my firm's own number: the pilot's question, and two that don't say whose profit counts
+    "own": "How many units should my firm produce this quarter to maximize its profit?",
+    "plain": "How many units should my firm produce this quarter?",
+    "best": "How many units is it best for my firm to produce this quarter?",
+}
+ASKS = (*FIRM_QUESTIONS, "joint", "forecast")
 
 
 class Game(Protocol):
@@ -85,7 +91,9 @@ class Cournot:
     def question(self, ask: str, n: int) -> tuple[str, str]:
         if ask not in ASKS:
             raise ValueError(f"unknown question {ask!r}; Cournot asks {', '.join(ASKS)}")
-        if ask != "own" and n == 1:
+        if ask in FIRM_QUESTIONS:
+            return FIRM_QUESTIONS[ask], "QUANTITY"
+        if n == 1:
             raise ValueError(f"the {ask} question needs rivals, so not n = 1")
         if ask == "joint":
             return (
@@ -96,7 +104,7 @@ class Cournot:
         if ask == "forecast":
             rivals = "the other firm" if n == 2 else "each of the other firms"
             return f"How many units do you expect {rivals} to produce this quarter?", "RIVAL"
-        return "How many units should my firm produce this quarter to maximize its profit?", "QUANTITY"
+        raise ValueError(f"Cournot has no wording for the {ask!r} question")
 
     def benchmarks(self, n: int) -> dict[str, float]:
         margin = self.a - self.c

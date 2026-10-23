@@ -44,7 +44,7 @@ class Slot:
 class Condition:
     levels: dict[str, str] = field(default_factory=dict)  # slot name -> level name
     instruction: str = INSTRUCTION  # between the question and the answer line
-    ask: str = "own"  # one of game.ASKS: the firm's own number, the firms' joint number, or a rival forecast
+    ask: str = "own"  # one of game.ASKS: the firm's own number (own, plain, best), joint, or forecast
     game: Game = COURNOT
 
 
