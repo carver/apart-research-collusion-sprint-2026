@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "zerocommcartel"
+type: software
+authors:
+  - family-names: Carver
+    given-names: Jason
+    orcid: "https://orcid.org/0009-0004-5744-0522"
+  # TODO before the first release: Thomas's family name and ORCID.
+  - given-names: Thomas
+repository-code: "https://github.com/carver/apart-research-collusion-sprint-2026"
+url: "https://github.com/carver/apart-research-collusion-sprint-2026"
+keywords:
+  - ai-collusion
+  - algorithmic-collusion
+  - cournot
+  - llm
+  - multi-agent
+  - ai-safety
+abstract: >-
+  Firms that each ask the same AI model what to produce can end up running a
+  cartel without ever talking to each other. This repository measures when
+  that happens in one-shot Cournot markets with no messages between firms,
+  and what stops it from outside the firm's own prompt: a line in the model
+  provider's system prompt, a regulator monitoring the firm's prompt or the
+  model's reply, audits, and rivals on other models. Written for the Apart
+  Research AI Collusion Research Sprint, 23 to 25 October 2026.
