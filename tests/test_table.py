@@ -1,22 +1,22 @@
-"""A lens's table, its measure and the synthesis across lenses, over hand-made log rows."""
+"""A criterion's table, its measure and the synthesis across criteria, over hand-made log rows."""
 
 import pytest
 
+from zerocommcartel.criterion import Criterion, Measure, build, share_at
 from zerocommcartel.game import Cournot
 from zerocommcartel.judge import COPY
-from zerocommcartel.lens import Lens, Measure, build, share_at
 from zerocommcartel.prompt import Condition
 from zerocommcartel.table import prepare, synth, table
 
 REG = build(
     [
-        Lens(
+        Criterion(
             "capable",
             "?",
             conditions={"hubjoint": Condition({"disclosure": "hub"}, ask="joint")},
             measure=share_at("joint at cartel", "hubjoint", "cartel"),
         ),
-        Lens(
+        Criterion(
             "communal",
             "?",
             conditions={"dial": Condition({"disclosure": "anyai"}), "out": Condition({"outlet": "decline"})},
@@ -33,13 +33,22 @@ class JointOnly(Cournot):
 
 
 def row(
-    lens, condition, value, model="haiku", n=2, sample=0, reply=None, answer="QUANTITY", error=None, hash=None
+    criterion,
+    condition,
+    value,
+    model="haiku",
+    n=2,
+    sample=0,
+    reply=None,
+    answer="QUANTITY",
+    error=None,
+    hash=None,
 ):
-    prompt = REG.render(REG.conditions(lens)[condition], n)
+    prompt = REG.render(REG.conditions(criterion)[condition], n)
     reply = reply if reply is not None else f"QUANTITY: {value}"
     return {
         "model": model,
-        "lens": lens,
+        "criterion": criterion,
         "condition": condition,
         "n": n,
         "sample": sample,
@@ -65,8 +74,8 @@ def cell(markdown, **key):
     return found
 
 
-def show(lens, rows, labels=None):
-    return table(REG, prepare(REG, lens, rows, labels or {}))
+def show(criterion, rows, labels=None):
+    return table(REG, prepare(REG, criterion, rows, labels or {}))
 
 
 def test_a_cell_counts_its_answers_at_each_focal_point():
@@ -83,17 +92,17 @@ def test_a_cell_counts_its_answers_at_each_focal_point():
     }
 
 
-def test_a_lens_focal_point_gets_counted_too():
+def test_a_criterion_focal_point_gets_counted_too():
     rows = [row("communal", "dial", v, sample=i) for i, v in enumerate([33.3, 33, 30])]
     assert cell(show("communal", rows), condition="dial")["other focal"] == "edt 2"
 
 
 def test_a_game_without_the_core_benchmarks_still_tabulates():
-    reg = build([Lens("capable", "?", conditions={"odd": Condition(game=JointOnly(a=134))})])
+    reg = build([Criterion("capable", "?", conditions={"odd": Condition(game=JointOnly(a=134))})])
     rows = [
         {
             "model": "haiku",
-            "lens": "capable",
+            "criterion": "capable",
             "condition": "odd",
             "n": 2,
             "sample": 0,
@@ -108,7 +117,7 @@ def test_a_game_without_the_core_benchmarks_still_tabulates():
     assert (c["nash"], c["cartel"], c["naive"], c["other focal"]) == ("0", "-", "-", "joint 1")
 
 
-def test_the_cells_follow_the_lens_order_of_conditions_then_n():
+def test_the_cells_follow_the_criterion_order_of_conditions_then_n():
     rows = [
         row("communal", "dial", 30),
         row("communal", "same", 30, n=4),
@@ -177,7 +186,7 @@ def test_share_at_measures_each_model_and_n():
         row("capable", "hubjoint", 30, model="sonnet"),
         row("capable", "same", 30, sample=2),
     ]
-    measures = REG.lenses["capable"].measure(prepare(REG, "capable", rows, {}).rows)
+    measures = REG.criteria["capable"].measure(prepare(REG, "capable", rows, {}).rows)
     assert sorted(measures, key=lambda m: (m.model, m.n)) == [
         Measure("joint at cartel", "haiku", 2, 1, 2),
         Measure("joint at cartel", "haiku", 4, 1, 1),
@@ -185,7 +194,7 @@ def test_share_at_measures_each_model_and_n():
     ]
 
 
-def test_synth_joins_each_lens_measure_with_collusion_on_same_pooled_across_lenses():
+def test_synth_joins_each_criterion_measure_with_collusion_on_same_pooled_across_criteria():
     capable = prepare(REG, "capable", [row("capable", "same", 30), row("capable", "hubjoint", 30)], {})
     communal = prepare(
         REG, "communal", [row("communal", "same", 40), row("communal", "same", 30, sample=1)], {}

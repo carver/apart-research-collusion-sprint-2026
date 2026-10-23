@@ -1,11 +1,11 @@
-"""Tables of a lens's replies, and the synthesis across lenses.
+"""Tables of a criterion's replies, and the synthesis across criteria.
 
 `prepare` picks the rows a table counts: for each (model, prompt hash, sample), the last reply, and only when
 the hash is its condition's current prompt, so replies to an older wording stay out. Each row gets the focal
 points of its cell and the labels of every judge that has judged it.
 
-`synth` is the cross-lens view: per model and market size, how often the shared `same` condition (pooled over
-every lens's log) lands on the cartel share, beside each lens's measure.
+`synth` is the cross-criterion view: per model and market size, how often the shared `same` condition (pooled
+over every criterion's log) lands on the cartel share, beside each criterion's measure.
 
 `quartiles` and `fmt` began as copies of pilot/analyze.py's (71d8b22)."""
 
@@ -16,7 +16,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from zerocommcartel.call import MODELS
-from zerocommcartel.lens import Registry, near
+from zerocommcartel.criterion import Registry, near
 from zerocommcartel.mentions import MENTIONS
 
 CORE_FOCAL = ("nash", "cartel", "naive")
@@ -25,9 +25,9 @@ MENTIONED = ("antitrust", "collusion", "refusal")
 
 @dataclass(frozen=True)
 class Replies:
-    """A lens's replies, ready to count."""
+    """A criterion's replies, ready to count."""
 
-    lens: str
+    criterion: str
     rows: list[
         dict
     ]  # the current log rows (zerocommcartel.logs lists their fields), plus "focal" and "labels"
@@ -47,7 +47,7 @@ def fmt(x, d=1):
 
 
 def prepare(
-    registry: Registry, lens: str, rows: list[dict], labels: Mapping[str, Mapping[str, dict]]
+    registry: Registry, criterion: str, rows: list[dict], labels: Mapping[str, Mapping[str, dict]]
 ) -> Replies:
     """`labels` maps each judge's name to its cache ({key: labels})."""
     current: dict[tuple[str, int], str | None] = {}
@@ -56,7 +56,9 @@ def prepare(
         cell = (row["condition"], row["n"])
         if cell not in current:
             try:
-                current[cell] = registry.render(registry.condition(lens, row["condition"]), row["n"]).hash
+                current[cell] = registry.render(
+                    registry.condition(criterion, row["condition"]), row["n"]
+                ).hash
             except ValueError:  # a condition since removed, or a market size it can't take
                 current[cell] = None
         return row["prompt_hash"] == current[cell]
@@ -77,10 +79,10 @@ def prepare(
         else:
             failed.add(key)
     ready = [
-        row | {"focal": registry.focal(lens, row["condition"], row["n"]), "labels": judged(row["reply"])}
+        row | {"focal": registry.focal(criterion, row["condition"], row["n"]), "labels": judged(row["reply"])}
         for row in latest.values()
     ]
-    return Replies(lens, ready, stale, len(failed - latest.keys()))
+    return Replies(criterion, ready, stale, len(failed - latest.keys()))
 
 
 def model_rank(model: str) -> tuple[int, str]:
@@ -133,7 +135,7 @@ def cell_line(condition: str, model: str, n: int, rows: list[dict]) -> list[str]
 def table(registry: Registry, replies: Replies) -> str:
     """One line per condition, model and n: the answers at each focal point, the text answers, the copy
     judge's share, and mention rates. Notes after it count the replies left out and the calls still failed."""
-    order = list(registry.conditions(replies.lens))
+    order = list(registry.conditions(replies.criterion))
     cells: dict[tuple, list[dict]] = defaultdict(list)
     for row in replies.rows:
         cells[(row["condition"], row["model"], row["n"])].append(row)
@@ -150,7 +152,7 @@ def table(registry: Registry, replies: Replies) -> str:
 
 
 def synth(registry: Registry, replies: Sequence[Replies]) -> str:
-    """Per model and n: answers to `same` at the cartel share, pooled across lenses, then each lens's
+    """Per model and n: answers to `same` at the cartel share, pooled across criteria, then each criterion's
     measures, as hits/total."""
     columns: dict[tuple, dict[str, str]] = defaultdict(dict)
     same: dict[tuple, list[bool]] = defaultdict(list)
@@ -159,8 +161,8 @@ def synth(registry: Registry, replies: Sequence[Replies]) -> str:
         for row in r.rows:
             if row["condition"] == "same" and row["value"] is not None:
                 same[(row["model"], row["n"])].append(near(row["value"], row["focal"]["cartel"]))
-        for m in registry.lenses[r.lens].measure(r.rows):
-            name = f"{r.lens}: {m.name}"
+        for m in registry.criteria[r.criterion].measure(r.rows):
+            name = f"{r.criterion}: {m.name}"
             names += [name] if name not in names else []
             columns[(m.model, m.n)][name] = f"{m.hits}/{m.total}"
     for cell, hits in same.items():

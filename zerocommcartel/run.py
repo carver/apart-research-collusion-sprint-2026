@@ -1,7 +1,7 @@
-"""Running a lens's cells and logging each reply.
+"""Running a criterion's cells and logging each reply.
 
 A cell is a condition at one market size, asked of one model; each sample of it is one call and one log row.
-Each lens logs to its own file (zerocommcartel.logs.log_path).
+Each criterion logs to its own file (zerocommcartel.logs.log_path).
 
 A rerun skips the (model, prompt hash, sample) keys that already have a reply. So raising the sample count
 adds samples, a failed call is retried, and rewording a condition starts its cells afresh."""
@@ -15,7 +15,7 @@ from pathlib import Path
 
 from zerocommcartel.answer import parse
 from zerocommcartel.call import MODELS, complete
-from zerocommcartel.lens import Registry
+from zerocommcartel.criterion import Registry
 from zerocommcartel.logs import end_last_line
 from zerocommcartel.prompt import Condition, Prompt
 
@@ -27,7 +27,7 @@ def done_keys(rows: Iterable[dict]) -> set[tuple[str, str, int]]:
 
 @dataclass(frozen=True)
 class Task:
-    lens: str
+    criterion: str
     name: str  # the condition's name
     condition: Condition
     n: int
@@ -42,7 +42,7 @@ class Task:
 
 def plan(
     registry: Registry,
-    lens: str,
+    criterion: str,
     names: Sequence[str],
     models: Sequence[str],
     ns: Sequence[int],
@@ -51,13 +51,13 @@ def plan(
 ) -> list[Task]:
     """The calls a run makes for the conditions `names`, sample by sample, leaving out the `done` keys.
     Every prompt is rendered first, so a cell that can't run raises ValueError before any call."""
-    conditions = {name: registry.condition(lens, name) for name in names}
+    conditions = {name: registry.condition(criterion, name) for name in names}
     for model in models:
         if model not in MODELS:
             raise ValueError(f"unknown model {model!r}; models: {', '.join(MODELS)}")
     prompts = {(name, n): registry.render(conditions[name], n) for name in names for n in ns}
     tasks = [
-        Task(lens, name, conditions[name], n, model, sample, prompt)
+        Task(criterion, name, conditions[name], n, model, sample, prompt)
         for sample in range(samples)
         for model in models
         for (name, n), prompt in prompts.items()
@@ -72,7 +72,7 @@ def ask_once(task: Task, call: Callable) -> dict:
     row = {
         "model": task.model,
         "model_id": MODELS[task.model][1],
-        "lens": task.lens,
+        "criterion": task.criterion,
         "condition": task.name,
         "levels": condition.levels,
         "ask": condition.ask,

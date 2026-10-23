@@ -1,14 +1,14 @@
-"""The communal lens (#41): its arms' prompts and focal points, its judge, its measures and its report. No
-test calls a model."""
+"""The communal criterion (#41): its arms' prompts and focal points, its judge, its measures and its report.
+No test calls a model."""
 
 import json
 
 import pytest
 
+from zerocommcartel.criteria import REGISTRY
+from zerocommcartel.criteria.communal import report
+from zerocommcartel.criterion import Measure
 from zerocommcartel.judge import COPY, load_labels
-from zerocommcartel.lens import Measure
-from zerocommcartel.lenses import REGISTRY
-from zerocommcartel.lenses.communal import report
 from zerocommcartel.table import prepare
 
 
@@ -141,7 +141,7 @@ def test_the_rule_judge_refuses_a_label_it_doesnt_offer(out):
 def row(condition, value, n=2, sample=0, model="haiku", reply=None):
     return {
         "model": model,
-        "lens": "communal",
+        "criterion": "communal",
         "condition": condition,
         "n": n,
         "sample": sample,
@@ -154,7 +154,7 @@ def row(condition, value, n=2, sample=0, model="haiku", reply=None):
 
 
 def measured(rows, copy=None, serves=None):
-    """The lens's measures over `rows`, with copy-judge labels {reply: premise} and rule-judge labels
+    """The criterion's measures over `rows`, with copy-judge labels {reply: premise} and rule-judge labels
     {reply: whose profit the number serves}."""
     labels = {
         "copy": {COPY.key(reply): {"premise": p, "acts": p} for reply, p in (copy or {}).items()},
@@ -163,7 +163,7 @@ def measured(rows, copy=None, serves=None):
             for reply, o in (serves or {}).items()
         },
     }
-    found = REGISTRY.lenses["communal"].measure(prepare(REGISTRY, "communal", rows, labels).rows)
+    found = REGISTRY.criteria["communal"].measure(prepare(REGISTRY, "communal", rows, labels).rows)
     return sorted(found, key=lambda m: (m.name, m.model, m.n))
 
 
@@ -283,8 +283,8 @@ def test_judging_the_pilot_labels_only_its_same_replies_into_the_cache_given(tmp
 
 
 def labelled(rows, copy=(), rules=None):
-    """The lens's replies `rows`, with the copy premise on the replies in `copy` (and off on the rest) and
-    the rule labels {reply: labels}."""
+    """The criterion's replies `rows`, with the copy premise on the replies in `copy` (and off on the rest)
+    and the rule labels {reply: labels}."""
     labels = {
         "copy": {COPY.key(r["reply"]): {"premise": r["reply"] in copy, "acts": False} for r in rows},
         "rule": {RULE.key(reply): found for reply, found in (rules or {}).items()},
@@ -302,11 +302,11 @@ def test_the_mirror_table_splits_the_premise_replies_by_answer_and_rule():
         replies[3]: rule("equal_first", "own"),
         replies[4]: rule("equal_first", "both"),
     }
-    out = report.mirror_table({"lens": labelled(rows, premise, rules)})
-    assert "| lens | haiku | 2 | 5/6 | 2 | 1/1 | 2 | 2/2 | 1/2 | 1/2 | 0/2 |" in out
+    out = report.mirror_table({"criterion": labelled(rows, premise, rules)})
+    assert "| criterion | haiku | 2 | 5/6 | 2 | 1/1 | 2 | 2/2 | 1/2 | 1/2 | 0/2 |" in out
 
 
-def test_the_rule_table_counts_each_label_per_condition_in_the_lens_order():
+def test_the_rule_table_counts_each_label_per_condition_in_the_criterion_order():
     rows = [row("check_same", 40), row("fixed_diff", 48), row("fixed_diff", 36, sample=1), row("same", 30)]
     rows.append(row("check_same", 30, sample=1))
     rules = {
@@ -326,17 +326,17 @@ def test_the_rule_table_counts_each_label_per_condition_in_the_lens_order():
     ]
 
 
-def test_the_report_shows_the_pilot_and_the_lens_log(tmp_path, capsys):
+def test_the_report_shows_the_pilot_and_the_criterion_log(tmp_path, capsys):
     log = tmp_path / "communal" / "results.jsonl"
-    lens_rows = [row("same", 40, model="sonnet"), row("fixed_diff", 36)]
-    write(log, lens_rows)
+    criterion_rows = [row("same", 40, model="sonnet"), row("fixed_diff", 36)]
+    write(log, criterion_rows)
     write(
         log.parent / "judge-copy.jsonl",
-        [{"key": COPY.key(lens_rows[0]["reply"]), "premise": True, "acts": False}],
+        [{"key": COPY.key(criterion_rows[0]["reply"]), "premise": True, "acts": False}],
     )
     write(
         log.parent / "judge-rule.jsonl",
-        [{"key": RULE.key(lens_rows[1]["reply"]), **rule("neither", "joint")}],
+        [{"key": RULE.key(criterion_rows[1]["reply"]), **rule("neither", "joint")}],
     )
     pilot = tmp_path / "pilot" / "probe-results.jsonl"
     write(pilot, [pilot_row("same", 40)])
@@ -347,7 +347,7 @@ def test_the_report_shows_the_pilot_and_the_lens_log(tmp_path, capsys):
     report.main(["--log", str(log), "--pilot-log", str(pilot)])
     out = capsys.readouterr().out
     assert "| pilot | luna | 2 | 1/1 | 1 | 0/0 |" in out
-    assert "| lens | sonnet | 2 | 1/1 | 1 | 0/0 |" in out
+    assert "| criterion | sonnet | 2 | 1/1 | 1 | 0/0 |" in out
     assert "| fixed_diff | haiku | 2 | 1 | 0 | 0 | 1 | 0 | 1 | 0 | 0 | 0 | 0 |" in out
 
 

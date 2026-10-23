@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from zerocommcartel.cli import main
-from zerocommcartel.lenses import REGISTRY
+from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.prompt import Condition
 
 
@@ -31,10 +31,10 @@ def test_show_prints_the_system_prompt_and_the_prompt(capsys):
     assert capsys.readouterr().out == f"[system] {p.system}\n\n{p.user}\n"
 
 
-def test_list_names_each_lens_and_its_conditions(capsys):
+def test_list_names_each_criterion_and_its_conditions(capsys):
     main(["list"])
     out = capsys.readouterr().out
-    assert all(name in out for name in REGISTRY.lenses)
+    assert all(name in out for name in REGISTRY.criteria)
     assert "hubjoint" in out and "disclosure=hub" in out and "ask=joint" in out
 
 
@@ -72,7 +72,7 @@ def test_run_refuses_a_cell_that_cant_run_before_any_call(tmp_path, claude, caps
     assert claude == []
 
 
-def test_an_unknown_lens_is_refused(capsys):
+def test_an_unknown_criterion_is_refused(capsys):
     with pytest.raises(SystemExit):
         main(["show", "charisma", "same", "2"])
     assert "charisma" in capsys.readouterr().err
@@ -104,7 +104,7 @@ def test_judge_then_table(tmp_path, claude, capsys):
     assert "| same | haiku | 2 | 1 | 1 |" in table and "| 1 | 100 |" in table
 
 
-def test_synth_reads_every_lens_log(tmp_path, claude, capsys, monkeypatch):
+def test_synth_reads_every_criterion_log(tmp_path, claude, capsys, monkeypatch):
     monkeypatch.setattr("zerocommcartel.logs.LOGS", tmp_path)
     main(
         [

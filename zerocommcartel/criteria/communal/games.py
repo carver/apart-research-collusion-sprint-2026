@@ -1,4 +1,4 @@
-"""Two-firm markets for the communal lens's arms, whose sentences speak of "the other firm".
+"""Two-firm markets for the communal criterion's arms, whose sentences speak of "the other firm".
 
 `Duopoly` is the pilot's market, refusing any n but 2; at n = 2 it renders byte for byte as `Cournot`.
 `FixedRival` is the same market with the other firm's output already decided. Each also computes the focal

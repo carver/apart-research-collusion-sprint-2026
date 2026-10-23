@@ -5,8 +5,8 @@ import json
 
 import pytest
 
-from zerocommcartel.lens import Lens, build
-from zerocommcartel.lenses import REGISTRY
+from zerocommcartel.criteria import REGISTRY
+from zerocommcartel.criterion import Criterion, build
 from zerocommcartel.logs import load_rows
 from zerocommcartel.prompt import Condition
 from zerocommcartel.run import done_keys, plan, run
@@ -37,7 +37,7 @@ def test_a_row_per_call_with_its_cell_and_its_answer(tmp_path):
     assert row | {"t": 0, "seconds": 0} == row | {
         "model": "haiku",
         "model_id": "haiku",
-        "lens": "consistent",
+        "criterion": "consistent",
         "condition": "same",
         "levels": {"disclosure": "same"},
         "ask": "own",
@@ -85,8 +85,8 @@ def test_a_failed_call_is_logged_and_retried_by_the_next_run(tmp_path):
 
 def test_a_reworded_condition_is_a_new_cell(tmp_path):
     out = tmp_path / "r.jsonl"
-    old = build([Lens("consistent", "?", conditions={"x": Condition({"disclosure": "anyai"})})])
-    new = build([Lens("consistent", "?", conditions={"x": Condition({"disclosure": "samemodel"})})])
+    old = build([Criterion("consistent", "?", conditions={"x": Condition({"disclosure": "anyai"})})])
+    new = build([Criterion("consistent", "?", conditions={"x": Condition({"disclosure": "samemodel"})})])
     run(tasks(out, conditions=["x"], samples=1, registry=old), out, answer())
     assert tasks(out, conditions=["x"], samples=1, registry=old) == []
     assert len(tasks(out, conditions=["x"], samples=1, registry=new)) == 1
@@ -122,6 +122,6 @@ def test_an_unknown_condition_model_or_market_size_is_refused_before_any_call(co
 
 
 def test_a_question_the_market_size_cant_take_is_refused_before_any_call():
-    registry = build([Lens("consistent", "?", conditions={"fc": Condition(ask="forecast")})])
+    registry = build([Criterion("consistent", "?", conditions={"fc": Condition(ask="forecast")})])
     with pytest.raises(ValueError, match="n = 1"):
         plan(registry, "consistent", ["base", "fc"], ["haiku"], [2, 1], 1)

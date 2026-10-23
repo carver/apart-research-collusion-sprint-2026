@@ -1,8 +1,8 @@
 """Games: the market a firm's prompt describes, the questions it can ask, and the benchmarks that score the
 answers.
 
-A lens can add a game (a harder market, say) by writing a class with the `Game` methods; the prompt and the
-tables use nothing else.
+A criterion can add a game (a harder market, say) by writing a class with the `Game` methods; the prompt and
+the tables use nothing else.
 
 Cournot's market text and its own and joint questions are the pilot's (pilot/probe.py at 71d8b22), so the
 pilot's prompts render byte for byte; the forecast question is new."""

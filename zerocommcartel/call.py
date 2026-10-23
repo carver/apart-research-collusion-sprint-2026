@@ -84,7 +84,7 @@ RPM = 18
 PAID_OK = {
     "openai/gpt-6-luna",  # paid panels Jason approved, 2026-10-20
     "openai/gpt-6-astra",
-    "z-ai/glm-5.3",  # approved 2026-10-23, for the communal lens (#41)
+    "z-ai/glm-5.3",  # approved 2026-10-23, for the communal criterion (#41)
 }
 
 

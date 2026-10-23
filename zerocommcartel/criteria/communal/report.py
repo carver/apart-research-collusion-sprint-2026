@@ -1,14 +1,14 @@
-"""The communal lens's report: the mirror-stated defection over the pilot's `same` replies and the lens's own,
-and the rule judge's labels for each of the lens's conditions.
+"""The communal criterion's report: the mirror-stated defection over the pilot's `same` replies and the
+criterion's own, and the rule judge's labels for each of the criterion's conditions.
 
-    uv run python -m zerocommcartel.lenses.communal.report           # the lens's log, logs/communal/
-    uv run python -m zerocommcartel.lenses.communal.report --judge   # label the pilot's `same` replies first
-    uv run python -m zerocommcartel.lenses.communal.report --log /tmp/smoke.jsonl
+    uv run python -m zerocommcartel.criteria.communal.report          # the criterion's log, logs/communal/
+    uv run python -m zerocommcartel.criteria.communal.report --judge  # label the pilot's `same` replies first
+    uv run python -m zerocommcartel.criteria.communal.report --log /tmp/smoke.jsonl
 
-The lens's own replies get their labels from `zcc judge communal --judges copy rule`. The pilot's `same`
-replies (logs/pilot/, frozen) share the lens's `same` prompt and carry the pilot's copy labels. Their rule
-labels go in the rule judge's cache beside the lens's log, since the pilot's folder takes no new files; the
-judge's keys hash the reply alone, so one cache serves both."""
+The criterion's own replies get their labels from `zcc judge communal --judges copy rule`. The pilot's
+`same` replies (logs/pilot/, frozen) share the criterion's `same` prompt and carry the pilot's copy labels.
+Their rule labels go in the rule judge's cache beside the criterion's log, since the pilot's folder takes no
+new files; the judge's keys hash the reply alone, so one cache serves both."""
 
 import argparse
 from collections import defaultdict
@@ -16,26 +16,26 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 
 from zerocommcartel import logs
+from zerocommcartel.criteria import REGISTRY
+from zerocommcartel.criteria.communal.judge import OBJECTIVES, ORDERS, RULE
+from zerocommcartel.criteria.communal.measures import states_the_mirror
+from zerocommcartel.criterion import Registry, near
 from zerocommcartel.judge import COPY, Judge, claude_call, label, load_labels
-from zerocommcartel.lens import Registry, near
-from zerocommcartel.lenses import REGISTRY
-from zerocommcartel.lenses.communal.judge import OBJECTIVES, ORDERS, RULE
-from zerocommcartel.lenses.communal.measures import states_the_mirror
 from zerocommcartel.table import Replies, markdown, model_rank, prepare
 
 PILOT_LOG = logs.LOGS / "pilot" / "probe-results.jsonl"
 
 
-def lens_replies(registry: Registry, log: Path) -> Replies:
-    """The lens's replies in `log`, with the labels of every judge whose cache is beside it."""
+def criterion_replies(registry: Registry, log: Path) -> Replies:
+    """The criterion's replies in `log`, with the labels of every judge whose cache is beside it."""
     labels = {name: load_labels(judge, logs.judge_path(log, name)) for name, judge in registry.judges.items()}
     return prepare(registry, "communal", logs.load_rows(log), labels)
 
 
 def _pilot_same_rows(pilot_log: Path) -> list[dict]:
-    """The pilot's Cournot `same` rows, as rows of the lens's log."""
+    """The pilot's Cournot `same` rows, as rows of the criterion's log."""
     return [
-        {**row, "lens": "communal", "condition": "same"}
+        {**row, "criterion": "communal", "condition": "same"}
         for row in logs.load_rows(pilot_log)
         if row.get("game") == "cournot" and row.get("arm") == "same"
     ]
@@ -120,7 +120,7 @@ def _rule_cells(labels: list[dict]) -> list[str]:
 def rule_table(registry: Registry, found: Replies) -> str:
     """Per condition, model and n, of the replies the rule judge has labelled: how many take each order of
     operations, say they serve each objective, and treat a rival as reacting to their number."""
-    order = list(registry.conditions(found.lens))
+    order = list(registry.conditions(found.criterion))
     cells: dict[tuple[str, str, int], list[dict]] = defaultdict(list)
     for r in found.rows:
         if "rule" in r["labels"]:
@@ -131,11 +131,11 @@ def rule_table(registry: Registry, found: Replies) -> str:
 
 def main(argv=None):
     p = argparse.ArgumentParser(
-        prog="python -m zerocommcartel.lenses.communal.report",
+        prog="python -m zerocommcartel.criteria.communal.report",
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("--log", help="the lens's log; default logs/communal/results.jsonl")
+    p.add_argument("--log", help="the criterion's log; default logs/communal/results.jsonl")
     p.add_argument("--pilot-log", default=str(PILOT_LOG), help="default: logs/pilot/probe-results.jsonl")
     p.add_argument(
         "--judge",
@@ -150,11 +150,11 @@ def main(argv=None):
         print(f"rule, pilot's same replies: judged {judged}, {len(failed)} failed, {cached} already cached")
         for line in failed:
             print(f"  failed {line}")
-    lens = lens_replies(REGISTRY, log)
+    replies = criterion_replies(REGISTRY, log)
     print("## Mirror-stated defection on `same`\n")
-    print(mirror_table({"pilot": pilot_same(REGISTRY, pilot_log, cache), "lens": lens}))
+    print(mirror_table({"pilot": pilot_same(REGISTRY, pilot_log, cache), "criterion": replies}))
     print("## The rule judge's labels\n")
-    print(rule_table(REGISTRY, lens), end="")
+    print(rule_table(REGISTRY, replies), end="")
 
 
 if __name__ == "__main__":

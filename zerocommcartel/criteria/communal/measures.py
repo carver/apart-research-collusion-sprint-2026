@@ -1,4 +1,4 @@
-"""The communal lens's measures, each hits of total per model and market size (`zcc synth` shows them).
+"""The communal criterion's measures, each hits of total per model and market size (`zcc synth` shows them).
 
 mirror-stated nash         `same` replies that state the copy premise (the copy judge's `premise`) and
                            still answer Nash: the mirror holds and the model defects anyway (#41)
@@ -11,7 +11,7 @@ last-round cartel          `last_diff` answers at the cartel share: no mirror an
 
 from collections.abc import Callable
 
-from zerocommcartel.lens import NEAR, Measure, near, share_at
+from zerocommcartel.criterion import NEAR, Measure, near, share_at
 
 
 def share(

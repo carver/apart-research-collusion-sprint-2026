@@ -1,4 +1,4 @@
-"""The communal lens's judge: the decision rule behind a reply's number (#41).
+"""The communal criterion's judge: the decision rule behind a reply's number (#41).
 
 Under the mirror both 30 and 40 are self-consistent, and the order of operations picks between them: set the
 outputs equal and then maximize, 30; best-respond to a rival held fixed and then set them equal, 40. `order`

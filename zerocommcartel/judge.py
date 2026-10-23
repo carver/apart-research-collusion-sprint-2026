@@ -2,8 +2,8 @@
 strings), cached so each reply is judged once.
 
 The copy-premise judge is the pilot's (pilot/analyze.py at 71d8b22; pilot/BRIEF-judge.md is its design): its
-prompt, schema and cache key are unchanged, so its labels match the pilot's. A lens adds judges of its own in
-its `Lens.judges`."""
+prompt, schema and cache key are unchanged, so its labels match the pilot's. A criterion adds judges of its
+own in its `Criterion.judges`."""
 
 import concurrent.futures as cf
 import hashlib
