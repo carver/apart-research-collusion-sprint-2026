@@ -5,6 +5,7 @@ The plan, owner and status are in #41.
 
 from zerocommcartel.lens import Lens
 from zerocommcartel.lenses.communal.games import Duopoly, FixedRival
+from zerocommcartel.lenses.communal.judge import RULE
 from zerocommcartel.prompt import Condition, Level, Slot
 
 DUOPOLY = Duopoly()
@@ -87,4 +88,5 @@ LENS = Lens(
     levels=LEVELS,
     conditions=CONDITIONS,
     focal=focal,
+    judges={"rule": RULE},
 )

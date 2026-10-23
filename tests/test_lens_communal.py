@@ -104,3 +104,34 @@ def test_against_a_checking_rival_one_step_and_the_leader_are_focal(name):
     assert REGISTRY.focal("communal", name, 2) == pytest.approx(
         {"nash": 40, "cartel": 30, "naive": 60, "one step": 37.5, "leader": 60}
     )
+
+
+RULE = REGISTRY.judges["rule"]
+
+
+def test_the_rule_judge_labels_the_order_of_operations_whose_profit_and_a_reacting_rival():
+    out = '{"order": "respond_first", "objective": "own", "reaction": true, "follower": false, "extra": 1}'
+    assert RULE.labels(out) == {
+        "order": "respond_first",
+        "objective": "own",
+        "reaction": True,
+        "follower": False,
+    }
+
+
+@pytest.mark.parametrize(
+    "out",
+    [
+        '{"order": "sideways", "objective": "own", "follower": false}',
+        '{"order": "equal_first", "objective": "the pair", "follower": false}',
+        '{"order": "equal_first", "objective": "joint", "follower": false}',
+    ],
+)
+def test_the_rule_judge_refuses_a_label_it_doesnt_offer(out):
+    with pytest.raises(ValueError):
+        RULE.labels(out)
+
+
+def test_the_rule_judge_sees_the_reply():
+    asked = RULE.prompt.format(reply="Each firm makes q, so maximize q(120 - 2q).\nQUANTITY: 30")
+    assert "<reply>\nEach firm makes q, so maximize q(120 - 2q).\nQUANTITY: 30\n</reply>" in asked
