@@ -59,3 +59,10 @@ extend-exclude = [
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# The issue #26 pilot, copied as it was written before the sprint: long prompt strings, and lambdas that are
+# called in the same loop pass that makes them.
+"pilot/*" = ["E501"]
+"pilot/analyze.py" = ["E731", "B023"]
+"pilot/bench.py" = ["B023"]

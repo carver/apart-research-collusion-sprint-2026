@@ -1,5 +1,5 @@
-# Lock check, lint and format check on every push to main and every pull request. The repo
-# holds only shared tools for now; add back `uv run pytest` and `uv run pyright` with code.
+# Lock check, lint, format check and tests on every push to main and every pull request. The
+# tests make no model calls and need no secrets. Add back `uv run pyright` with the package.
 name: CI
 
 on:
@@ -16,3 +16,4 @@ jobs:
       - run: uv sync --locked
       - run: uv run ruff check
       - run: uv run ruff format --check
+      - run: uv run pytest

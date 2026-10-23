@@ -16,7 +16,7 @@ Run logs (`logs/`) go in a commit of their own, with nothing else in it. Hold th
 
 ## Checks
 
-Committing runs ruff, and for agents the tests and pyright too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows.
+Committing runs ruff, and for agents the lock check and the tests too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows.
 
 ## Tests
 
