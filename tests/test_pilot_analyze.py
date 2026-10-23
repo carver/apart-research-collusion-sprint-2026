@@ -404,6 +404,22 @@ def test_load_judgments_keeps_the_later_line_and_skips_an_unreadable_one(tmp_pat
     assert an.load_judgments(cache) == {k: {"premise": False, "acts": False}}
 
 
+def test_tables_still_print_when_the_results_end_in_a_line_cut_short(tmp_path, capsys):
+    results = write_jsonl(
+        tmp_path / "results.jsonl",
+        [row("haiku", "same", 2, 0, REGEX_HIT, 30.0), row("haiku", "base", 2, 0, NASH, 40.0)],
+    )
+    with results.open("a") as f:
+        f.write('{"model": "haiku", "game": "cournot", "arm": "same", "n": 2, "sam')
+
+    an.main(["--file", str(results), "--cache", str(tmp_path / "cache.jsonl")])
+
+    printed = capsys.readouterr()
+    assert "skipped 1 unreadable line" in printed.err
+    assert "2 keys, 0 without a reply" in printed.out
+    assert table_row(printed.out, "cournot", "| haiku | base | 2 |")["at Nash"] == "1"
+
+
 def test_the_kyle_table_takes_the_copy_premise_from_the_judge(tmp_path, capsys):
     reply = "Both funds follow one common recommendation, so we split the single-trader order. SHARES: 300"
     results = write_jsonl(

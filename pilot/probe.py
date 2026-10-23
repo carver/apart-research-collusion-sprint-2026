@@ -24,6 +24,7 @@ import os
 import random
 import re
 import subprocess
+import sys
 import threading
 import time
 import urllib.error
@@ -349,13 +350,25 @@ _write_lock = threading.Lock()
 
 
 def done_keys(path: Path) -> set:
-    keys = set()
-    if path.exists():
-        for line in path.read_text().splitlines():
+    """The keys that have a reply. An unreadable line (one cut short by a killed run, say) is skipped with a warning."""
+    keys, bad = set(), 0
+    for line in path.read_text().splitlines() if path.exists() else []:
+        try:
             r = json.loads(line)
             if r.get("reply"):
                 keys.add((r["model"], r["game"], r["arm"], r["n"], r["sample"]))
+        except (json.JSONDecodeError, KeyError, TypeError, AttributeError):
+            bad += 1
+    if bad:
+        print(f"warning: skipped {bad} unreadable line(s) in {path}", file=sys.stderr)
     return keys
+
+
+def end_last_line(path: Path):
+    """Ends a file whose last line was cut short (a run killed mid-write), so the next row starts a line of its own."""
+    if path.exists() and path.read_bytes()[-1:] not in (b"", b"\n"):
+        with path.open("a") as f:
+            f.write("\n")
 
 
 def one(model: str, game: str, arm: str, n: int, sample: int, out: Path):
@@ -386,6 +399,7 @@ def cmd_run(args):
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     have = done_keys(out)
+    end_last_line(out)
     tasks = []
     for sample in range(args.samples):
         for model in args.models:

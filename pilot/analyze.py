@@ -275,12 +275,20 @@ def delta(game, n, v):
 
 
 def load(path):
-    last = {}
+    """The last row per key, preferring one with a reply. An unreadable line (one cut short by a killed run, say) is
+    skipped with a warning, as in load_judgments."""
+    last, bad = {}, 0
     for line in Path(path).read_text().splitlines():
-        r = json.loads(line)
-        k = row_id(r)
+        try:
+            r = json.loads(line)
+            k = row_id(r)
+        except (json.JSONDecodeError, KeyError, TypeError):
+            bad += 1
+            continue
         if r.get("reply") or k not in last:
             last[k] = r
+    if bad:
+        print(f"warning: skipped {bad} unreadable line(s) in {path}", file=sys.stderr)
     return list(last.values())
 
 
