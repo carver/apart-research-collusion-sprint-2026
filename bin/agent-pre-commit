@@ -3,8 +3,8 @@
 # uv.lock must match pyproject.toml, and the tests must pass on what's staged: a copy of the
 # index in a temporary folder, so unstaged changes can neither fail a commit nor rescue it.
 # The repo's environment is synced first (creating it in a fresh clone or worktree), then
-# used as it is (--no-sync). Pyright comes back with the zerocommcartel package; the pilot
-# scripts aren't type-checked.
+# used as it is (--no-sync). Pyright checks the zerocommcartel package; the pilot scripts
+# aren't type-checked.
 set -e
 repo=$(git rev-parse --show-toplevel)
 cd "$repo"
@@ -17,3 +17,4 @@ git ls-files -z -- . ':(exclude)logs' | git checkout-index -z --stdin --prefix="
 cd "$tree"
 export UV_PROJECT_ENVIRONMENT="$repo/.venv" PYTHONPATH="$tree"
 uv run --no-sync -q pytest -q -p no:cacheprovider
+uv run --no-sync -q pyright
