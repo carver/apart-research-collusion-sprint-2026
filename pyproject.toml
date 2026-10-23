@@ -45,7 +45,7 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [tool.pyright]
-include = ["zerocommcartel"]  # not tests/: they read subclass fields off plain Messages, fine at runtime
+include = ["zerocommcartel"]  # not tests/ or pilot/: the tests poke at plain dicts and load pilot/ by path
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 

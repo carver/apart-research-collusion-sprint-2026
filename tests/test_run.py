@@ -68,7 +68,7 @@ def test_a_rerun_asks_only_for_what_is_missing(tmp_path):
     out = tmp_path / "r.jsonl"
     run(tasks(out, samples=2), out, answer())
     assert tasks(out, samples=2) == []
-    assert [(t.condition, t.sample) for t in tasks(out, samples=3)] == [("base", 2), ("same", 2)]
+    assert [(t.name, t.sample) for t in tasks(out, samples=3)] == [("base", 2), ("same", 2)]
 
 
 def test_a_failed_call_is_logged_and_retried_by_the_next_run(tmp_path):

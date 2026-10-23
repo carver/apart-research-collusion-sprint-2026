@@ -70,7 +70,7 @@ class Lens:
     levels: dict[str, dict[str, Level]] = field(default_factory=dict)  # new levels for slots added elsewhere
     conditions: dict[str, Condition] = field(default_factory=dict)  # beside the baseline's
     focal: Callable[[str, int], dict[str, float]] = no_focal  # (condition, n) -> extra focal points
-    measure: Callable[[list[dict]], list[Measure]] = no_measures  # table rows -> the lens's measures
+    measure: Callable[[list[dict]], list[Measure]] = no_measures  # table.Replies.rows -> the lens's measures
     judges: dict[str, Judge] = field(default_factory=dict)  # judges this lens adds
 
 
@@ -87,66 +87,90 @@ class Registry:
     def conditions(self, lens: str) -> dict[str, Condition]:
         return {**BASELINE, **self.lenses[lens].conditions}
 
+    def condition(self, lens: str, name: str) -> Condition:
+        """A lens's condition by name; ValueError naming the ones it has."""
+        conditions = self.conditions(lens)
+        if name not in conditions:
+            raise ValueError(f"lens {lens!r} has no condition {name!r}; it has {', '.join(conditions)}")
+        return conditions[name]
+
     def render(self, condition: Condition, n: int) -> Prompt:
         return render(condition, n, self.slots)
 
     def focal(self, lens: str, name: str, n: int) -> dict[str, float]:
         """The answers worth counting for a lens's condition: the game's benchmarks, then the lens's own."""
-        return {**self.conditions(lens)[name].game.benchmarks(n), **self.lenses[lens].focal(name, n)}
+        return {**self.condition(lens, name).game.benchmarks(n), **self.lenses[lens].focal(name, n)}
 
 
 def build(lenses: Sequence[Lens], core: Mapping[str, Slot] = CORE_SLOTS) -> Registry:
     """Join the lenses' slots, levels, judges and conditions; raise RegistryError, naming the lens, on a clash
     or on a condition that doesn't render (an unknown slot or level, a question the game lacks, an unknown
     field)."""
-    slots = {name: Slot(slot.anchor, dict(slot.levels)) for name, slot in core.items()}
-    by_name: dict[str, Lens] = {}
-    judges = dict(CORE_JUDGES)
+    names = [lens.name for lens in lenses]
     for lens in lenses:
+        if names.count(lens.name) > 1:
+            raise _refuse(lens, f"lens {lens.name!r} twice")
+    slots = _join_slots(lenses, core)
+    registry = Registry(slots, dict(zip(names, lenses, strict=True)), _join_judges(lenses))
+    _check_conditions(registry, lenses)
+    return registry
 
-        def refuse(why: str, lens: Lens = lens) -> RegistryError:
-            return RegistryError(f"lens {lens.name!r}: {why}")
 
-        if lens.name in by_name:
-            raise refuse(f"lens {lens.name!r} twice")
-        by_name[lens.name] = lens
+def _refuse(lens: Lens, why: str) -> RegistryError:
+    return RegistryError(f"lens {lens.name!r}: {why}")
+
+
+def _join_slots(lenses: Sequence[Lens], core: Mapping[str, Slot]) -> dict[str, Slot]:
+    """The core slots and every lens's, then every lens's new levels, so a lens can add levels to a slot
+    another lens owns."""
+    slots = {name: Slot(slot.anchor, dict(slot.levels)) for name, slot in core.items()}
+    for lens in lenses:
         for name, slot in lens.slots.items():
             if name in slots:
-                raise refuse(f"slot {name!r} already exists")
+                raise _refuse(lens, f"slot {name!r} already exists")
             if slot.anchor not in ANCHORS:
-                raise refuse(f"slot {name!r} has anchor {slot.anchor!r}, not one of {', '.join(ANCHORS)}")
+                raise _refuse(
+                    lens, f"slot {name!r} has anchor {slot.anchor!r}, not one of {', '.join(ANCHORS)}"
+                )
             if slot.levels.get("none") != Level():
-                raise refuse(f"slot {name!r} needs an empty 'none' level")
+                raise _refuse(lens, f"slot {name!r} needs an empty 'none' level")
             slots[name] = Slot(slot.anchor, dict(slot.levels))
-        for name, judge in lens.judges.items():
-            if name in judges:
-                raise refuse(f"judge {name!r} already exists")
-            judges[name] = judge
     for lens in lenses:
         for name, levels in lens.levels.items():
             if name not in slots:
-                raise RegistryError(f"lens {lens.name!r}: no slot {name!r} to add levels to")
+                raise _refuse(lens, f"no slot {name!r} to add levels to")
             for level, text in levels.items():
                 if level in slots[name].levels:
-                    raise RegistryError(f"lens {lens.name!r}: slot {name!r} already has level {level!r}")
+                    raise _refuse(lens, f"slot {name!r} already has level {level!r}")
                 slots[name].levels[level] = text
-    registry, owner = Registry(slots, by_name, judges), dict.fromkeys(BASELINE, "the baseline")
+    return slots
+
+
+def _join_judges(lenses: Sequence[Lens]) -> dict[str, Judge]:
+    judges = dict(CORE_JUDGES)
+    for lens in lenses:
+        for name, judge in lens.judges.items():
+            if name in judges:
+                raise _refuse(lens, f"judge {name!r} already exists")
+            judges[name] = judge
+    return judges
+
+
+def _check_conditions(registry: Registry, lenses: Sequence[Lens]):
+    """Each condition name belongs to one lens, renders, and has a prompt of its own within its lens: a lens's
+    log keys replies by prompt, so two names for one prompt would share their replies."""
+    owner = dict.fromkeys(BASELINE, "the baseline")
     baseline = {registry.render(condition, 2).hash: name for name, condition in BASELINE.items()}
     for lens in lenses:
-        seen = dict(baseline)  # a lens's log keys replies by prompt, so two names for one prompt would merge
+        seen = dict(baseline)
         for name, condition in lens.conditions.items():
             if name in owner:
-                raise RegistryError(
-                    f"lens {lens.name!r}: condition {name!r} already belongs to {owner[name]}"
-                )
+                raise _refuse(lens, f"condition {name!r} already belongs to {owner[name]}")
             owner[name] = f"lens {lens.name!r}"
             try:
                 prompt = registry.render(condition, 2)
             except (ValueError, KeyError) as e:
-                raise RegistryError(f"lens {lens.name!r}: condition {name!r} doesn't render: {e}") from e
+                raise _refuse(lens, f"condition {name!r} doesn't render: {e}") from e
             if prompt.hash in seen:
-                raise RegistryError(
-                    f"lens {lens.name!r}: condition {name!r} renders the prompt of {seen[prompt.hash]!r}"
-                )
+                raise _refuse(lens, f"condition {name!r} renders the prompt of {seen[prompt.hash]!r}")
             seen[prompt.hash] = name
-    return registry

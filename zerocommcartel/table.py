@@ -28,7 +28,9 @@ class Replies:
     """A lens's replies, ready to count."""
 
     lens: str
-    rows: list[dict]  # the current replies, each with "focal" and "labels" added
+    rows: list[
+        dict
+    ]  # the current log rows (zerocommcartel.logs lists their fields), plus "focal" and "labels"
     stale: int  # replies to an older wording of their condition
     failed: int  # calls that failed and haven't been retried with success yet
 
@@ -48,16 +50,20 @@ def prepare(
     registry: Registry, lens: str, rows: list[dict], labels: Mapping[str, Mapping[str, dict]]
 ) -> Replies:
     """`labels` maps each judge's name to its cache ({key: labels})."""
-    specs, current = registry.conditions(lens), {}
+    current: dict[tuple[str, int], str | None] = {}
 
     def is_current(row: dict) -> bool:
         cell = (row["condition"], row["n"])
         if cell not in current:
             try:
-                current[cell] = registry.render(specs[row["condition"]], row["n"]).hash
-            except (KeyError, ValueError):  # a condition since removed, or a market size it can't take
+                current[cell] = registry.render(registry.condition(lens, row["condition"]), row["n"]).hash
+            except ValueError:  # a condition since removed, or a market size it can't take
                 current[cell] = None
         return row["prompt_hash"] == current[cell]
+
+    def judged(reply: str) -> dict[str, dict]:
+        keys = {name: registry.judges[name].key(reply) for name in labels}
+        return {name: labels[name][key] for name, key in keys.items() if key in labels[name]}
 
     latest: dict[tuple, dict] = {}
     failed: set[tuple] = set()
@@ -71,15 +77,7 @@ def prepare(
         else:
             failed.add(key)
     ready = [
-        row
-        | {
-            "focal": registry.focal(lens, row["condition"], row["n"]),
-            "labels": {
-                name: cache[j.key(row["reply"])]
-                for name, cache in labels.items()
-                if (j := registry.judges[name]).key(row["reply"]) in cache
-            },
-        }
+        row | {"focal": registry.focal(lens, row["condition"], row["n"]), "labels": judged(row["reply"])}
         for row in latest.values()
     ]
     return Replies(lens, ready, stale, len(failed - latest.keys()))
@@ -94,61 +92,52 @@ def percent(hits: int, total: int) -> str:
     return "-" if not total else f"{100 * hits / total:.0f}"
 
 
+def markdown(header: list[str], lines: list[list[str]]) -> str:
+    return (
+        "\n".join("| " + " | ".join(cells) + " |" for cells in [header, ["---"] * len(header), *lines]) + "\n"
+    )
+
+
+TABLE_HEADER = [
+    "condition", "model", "n", "replies", "parsed", "median", "IQR", *CORE_FOCAL, "other focal", "other",
+    "text answer", "judged", "% copy", *(f"% {m}" for m in MENTIONED),
+]  # fmt: skip
+
+
+def cell_line(condition: str, model: str, n: int, rows: list[dict]) -> list[str]:
+    """One table line: a cell's replies, counted at each of its focal points."""
+    focal = rows[0]["focal"]
+    values = [r["value"] for r in rows if r["value"] is not None]
+    at = {name: sum(near(v, target) for v in values) for name, target in focal.items()}
+    lo, hi = quartiles(values)
+    copy = [r["labels"]["copy"]["premise"] for r in rows if "copy" in r["labels"]]
+    mentioned = [sum(bool(re.search(MENTIONS[m], r["reply"], re.I)) for r in rows) for m in MENTIONED]
+    return [
+        condition,
+        model,
+        str(n),
+        str(len(rows)),
+        str(len(values)),
+        fmt(statistics.median(values) if values else None),
+        f"{fmt(lo)}-{fmt(hi)}" if values else "-",
+        *(str(at.get(name, "-")) for name in CORE_FOCAL),
+        ", ".join(f"{name} {k}" for name, k in at.items() if name not in CORE_FOCAL) or "-",
+        str(sum(not any(near(v, t) for t in focal.values()) for v in values)),
+        str(sum(r["answer"] is not None and r["value"] is None for r in rows)),
+        str(len(copy)),
+        percent(sum(copy), len(copy)),
+        *(percent(k, len(rows)) for k in mentioned),
+    ]
+
+
 def table(registry: Registry, replies: Replies) -> str:
     """One line per condition, model and n: the answers at each focal point, the text answers, the copy
-    judge's share, and mention rates."""
+    judge's share, and mention rates. Notes after it count the replies left out and the calls still failed."""
     order = list(registry.conditions(replies.lens))
     cells: dict[tuple, list[dict]] = defaultdict(list)
     for row in replies.rows:
         cells[(row["condition"], row["model"], row["n"])].append(row)
-    header = [
-        "condition",
-        "model",
-        "n",
-        "replies",
-        "parsed",
-        "median",
-        "IQR",
-        *CORE_FOCAL,
-        "other focal",
-        "other",
-        "text answer",
-        "judged",
-        "% copy",
-    ] + [f"% {m}" for m in MENTIONED]
-    lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
-    for condition, model, n in sorted(cells, key=lambda c: (order.index(c[0]), model_rank(c[1]), c[2])):
-        rs = cells[(condition, model, n)]
-        focal = rs[0]["focal"]
-        values = [r["value"] for r in rs if r["value"] is not None]
-        at = {name: sum(near(v, target) for v in values) for name, target in focal.items()}
-        lo, hi = quartiles(values)
-        judged = [r["labels"]["copy"] for r in rs if "copy" in r["labels"]]
-        lines.append(
-            "| "
-            + " | ".join(
-                [
-                    condition,
-                    model,
-                    str(n),
-                    str(len(rs)),
-                    str(len(values)),
-                    fmt(statistics.median(values) if values else None),
-                    f"{fmt(lo)}-{fmt(hi)}" if values else "-",
-                    *(str(at.get(name, "-")) for name in CORE_FOCAL),
-                    ", ".join(f"{name} {k}" for name, k in at.items() if name not in CORE_FOCAL) or "-",
-                    str(sum(not any(near(v, t) for t in focal.values()) for v in values)),
-                    str(sum(r["answer"] is not None and r["value"] is None for r in rs)),
-                    str(len(judged)),
-                    percent(sum(j["premise"] for j in judged), len(judged)),
-                    *(
-                        percent(sum(bool(re.search(MENTIONS[m], r["reply"], re.I)) for r in rs), len(rs))
-                        for m in MENTIONED
-                    ),
-                ]
-            )
-            + " |"
-        )
+    keys = sorted(cells, key=lambda c: (order.index(c[0]), model_rank(c[1]), c[2]))
     notes = []
     if replies.stale:
         notes.append(
@@ -156,7 +145,8 @@ def table(registry: Registry, replies: Replies) -> str:
         )
     if replies.failed:
         notes.append(f"{replies.failed} call{'' if replies.failed == 1 else 's'} failed with no reply yet.")
-    return "\n".join(lines + ([""] + notes if notes else [])) + "\n"
+    out = markdown(TABLE_HEADER, [cell_line(c, m, n, cells[(c, m, n)]) for c, m, n in keys])
+    return out + "".join(f"\n{note}" for note in notes) + ("\n" if notes else "")
 
 
 def synth(registry: Registry, replies: Sequence[Replies]) -> str:
@@ -176,9 +166,7 @@ def synth(registry: Registry, replies: Sequence[Replies]) -> str:
     for cell, hits in same.items():
         columns[cell]["same at cartel"] = f"{sum(hits)}/{len(hits)}"
     header = ["model", "n", "same at cartel", *names]
-    lines = ["| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
-    for model, n in sorted(columns, key=lambda c: (model_rank(c[0]), c[1])):
-        lines.append(
-            "| " + " | ".join([model, str(n)] + [columns[(model, n)].get(h, "-") for h in header[2:]]) + " |"
-        )
-    return "\n".join(lines) + "\n"
+    keys = sorted(columns, key=lambda c: (model_rank(c[0]), c[1]))
+    return markdown(
+        header, [[model, str(n), *(columns[(model, n)].get(h, "-") for h in header[2:])] for model, n in keys]
+    )

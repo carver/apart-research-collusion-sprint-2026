@@ -37,19 +37,21 @@ def cmd_list(registry: Registry, args):
             print(f"  {cond:<14} {' '.join([*parts, f'ask={spec.ask}', f'game={spec.game.name}'])}")
 
 
+def chosen_log(lens: str, given: str | None) -> Path:
+    """The log a command reads or appends to: the one given (--log, --out), else the lens's own."""
+    return Path(given) if given else logs.log_path(lens)
+
+
 def cmd_show(registry: Registry, args):
-    specs = registry.conditions(args.lens)
-    if args.condition not in specs:
-        sys.exit(f"lens {args.lens!r} has no condition {args.condition!r}; it has {', '.join(specs)}")
     try:
-        p = registry.render(specs[args.condition], args.n)
+        p = registry.render(registry.condition(args.lens, args.condition), args.n)
     except ValueError as e:
         sys.exit(str(e))
     print(f"[system] {p.system}\n\n{p.user}")
 
 
 def cmd_run(registry: Registry, args):
-    out = Path(args.out) if args.out else logs.log_path(args.lens)
+    out = chosen_log(args.lens, args.out)
     conditions = args.conditions or list(registry.conditions(args.lens))
     try:
         tasks = plan(
@@ -67,7 +69,7 @@ def cmd_run(registry: Registry, args):
 
 
 def cmd_judge(registry: Registry, args):
-    log = Path(args.log) if args.log else logs.log_path(args.lens)
+    log = chosen_log(args.lens, args.log)
     rows = [r for r in logs.load_rows(log) if r.get("reply")]
     for name in args.judges:
         judged, failed, cached = label(
@@ -79,8 +81,7 @@ def cmd_judge(registry: Registry, args):
 
 
 def cmd_table(registry: Registry, args):
-    log = Path(args.log) if args.log else logs.log_path(args.lens)
-    print(table(registry, replies(registry, args.lens, log)), end="")
+    print(table(registry, replies(registry, args.lens, chosen_log(args.lens, args.log))), end="")
 
 
 def cmd_synth(registry: Registry, args):

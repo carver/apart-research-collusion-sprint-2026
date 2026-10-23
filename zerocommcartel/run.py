@@ -28,8 +28,8 @@ def done_keys(rows: Iterable[dict]) -> set[tuple[str, str, int]]:
 @dataclass(frozen=True)
 class Task:
     lens: str
-    condition: str
-    spec: Condition
+    name: str  # the condition's name
+    condition: Condition
     n: int
     model: str
     sample: int
@@ -43,24 +43,21 @@ class Task:
 def plan(
     registry: Registry,
     lens: str,
-    conditions: Sequence[str],
+    names: Sequence[str],
     models: Sequence[str],
     ns: Sequence[int],
     samples: int,
     done: set[tuple[str, str, int]] | frozenset = frozenset(),
 ) -> list[Task]:
-    """The calls a run makes, sample by sample, leaving out the `done` keys. Every prompt is rendered first,
-    so a cell that can't run raises ValueError before any call."""
-    specs = registry.conditions(lens)
-    for name in conditions:
-        if name not in specs:
-            raise ValueError(f"lens {lens!r} has no condition {name!r}; it has {', '.join(specs)}")
+    """The calls a run makes for the conditions `names`, sample by sample, leaving out the `done` keys.
+    Every prompt is rendered first, so a cell that can't run raises ValueError before any call."""
+    conditions = {name: registry.condition(lens, name) for name in names}
     for model in models:
         if model not in MODELS:
             raise ValueError(f"unknown model {model!r}; models: {', '.join(MODELS)}")
-    prompts = {(name, n): registry.render(specs[name], n) for name in conditions for n in ns}
+    prompts = {(name, n): registry.render(conditions[name], n) for name in names for n in ns}
     tasks = [
-        Task(lens, name, specs[name], n, model, sample, prompt)
+        Task(lens, name, conditions[name], n, model, sample, prompt)
         for sample in range(samples)
         for model in models
         for (name, n), prompt in prompts.items()
@@ -68,19 +65,19 @@ def plan(
     return [t for t in tasks if t.key not in done]
 
 
-def one(task: Task, call: Callable) -> dict:
-    """Ask the model once and return the log row. A failed call is a row with its error, which a rerun
-    retries."""
-    p, spec = task.prompt, task.spec
+def ask_once(task: Task, call: Callable) -> dict:
+    """Ask the model once and return the log row (zerocommcartel.logs lists its fields). A failed call is a
+    row with its error, which a rerun retries."""
+    p, condition = task.prompt, task.condition
     row = {
         "model": task.model,
         "model_id": MODELS[task.model][1],
         "lens": task.lens,
-        "condition": task.condition,
-        "levels": spec.levels,
-        "ask": spec.ask,
-        "game": spec.game.name,
-        "game_params": spec.game.params(),
+        "condition": task.name,
+        "levels": condition.levels,
+        "ask": condition.ask,
+        "game": condition.game.name,
+        "game_params": condition.game.params(),
         "n": task.n,
         "sample": task.sample,
         "prompt_hash": p.hash,
@@ -106,7 +103,7 @@ def run(
     ok = failed = 0
     say(f"{len(tasks)} calls to make")
     with cf.ThreadPoolExecutor(max_workers=workers) as pool:
-        for i, fut in enumerate(cf.as_completed([pool.submit(one, t, call) for t in tasks]), 1):
+        for i, fut in enumerate(cf.as_completed([pool.submit(ask_once, t, call) for t in tasks]), 1):
             row = fut.result()
             with out.open("a") as f:
                 f.write(json.dumps(row) + "\n")
