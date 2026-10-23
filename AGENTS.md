@@ -24,6 +24,10 @@ Red/green: write the stubs first (the new names and empty methods), then a test 
 
 ## Pilots
 
-Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `python3 -I pilot/probe.py run --models haiku --out /tmp/smoke.jsonl`. Without `--out` the replies go into `logs/pilot/`, which should hold only runs you mean to keep. Commit a log you keep on its own (see Git).
+Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `uv run zcc run <lens> --models haiku --out /tmp/smoke.jsonl`. Without `--out` the replies go into `logs/<lens>/`, which should hold only runs you mean to keep. Commit a log you keep on its own (see Git).
+
+## Lenses
+
+Jason and Thomas each own one of the four lenses at a time (README, "The four lenses"; the owner is on the lens's sub-issue of #38). Work on a lens stays inside `zerocommcartel/lenses/<lens>/`, its tests (`tests/test_lens_<lens>.py`) and `logs/<lens>/`. Anything else in `zerocommcartel/` is the shared core. Change it only when a lens can't do its job without the change, put the change in a commit of its own, and say so on #38 so the other owner pulls before building on it.
 
 `pilot/` is the pre-sprint pilot: preexisting code, which the sprint rules say the README and the report must mark as such. It is frozen at the tag `pilot-frozen`, and `bin/pilot-lock` refuses commits that change it, its logs or its tests. Don't unlock it (`PILOT_UNLOCK=1`) unless Jason or Thomas asks you to. Code written from Oct 23 on is sprint work, and it goes in `zerocommcartel/`.

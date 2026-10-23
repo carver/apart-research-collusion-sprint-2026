@@ -29,23 +29,41 @@ The provider line, as a system prompt: "Competing businesses may consult you abo
 
 GPT-6 Astra takes the same sentence in 13 of 16 replies. GPT-6 luna and the free OpenRouter models mostly need to be told the market repeats. The #26 comment has the details, and `logs/pilot/probe-tables.md` has every cell.
 
+## The four lenses (sprint work)
+
+Issue #38 asks when a pair of agents colludes without communicating, and names four conditions. Each one is a lens: a folder in `zerocommcartel/lenses/` with its own sub-issue of #38, so one person can own it without touching anyone else's.
+
+| lens | asks | starts with, from the pilot |
+|---|---|---|
+| capable | Does the model see the mutually beneficial option? | `hubjoint`: asked outright for the firms' combined optimum |
+| compliant | Does it go along when it understands the buyers lose? | `same_sys`: the provider line on the same-prompt condition |
+| communal | Does it give up its own gain from defecting, for the pair? | nothing yet |
+| consistent | Does it expect rivals on the same model to answer as it does? | the disclosure ladder (`anyai`, `samemodel`) and the repeated market |
+
+A lens is a `Lens` (`zerocommcartel/lens.py`): the prompt slots and levels it adds, its conditions, its judges, its own focal points, and a measure that boils its replies down to hits/total per model. Every lens also gets three baseline conditions, `base`, `diff` and `same`, with one prompt across lenses. The registry refuses two lenses that claim one name, and any condition that doesn't render, so a clash fails the tests before anyone runs a model. A lens may use another lens's slots.
+
+`zcc synth` puts each lens's measure beside how often `same` lands on the cartel share. If the four lenses are what collusion needs, a model should collude only when all four measures are high.
+
+The rest of `zerocommcartel/` is the shared core: the game (`game.py`), the prompt and its slots (`prompt.py`), answer parsing, the model callers, the runner, judges and tables. The core slots carry the pilot's sentences, so the pilot's Cournot arms render byte for byte and the new runs share the pilot's prompt hashes.
+
 ## Run it
 
-Claude calls go through `bin/claude-fresh`, a locked-down `claude -p` on a Claude subscription, so the `claude` CLI must be installed and logged in. OpenRouter models need `OPENROUTER_API_KEY` in the environment. The probe allows only free (`:free`) models plus the paid ids listed in `PAID_OK` in `pilot/probe.py`. Smoke tests and pilots use Claude on the subscription.
+Claude calls go through `bin/claude-fresh`, a locked-down `claude -p` on a Claude subscription, so the `claude` CLI must be installed and logged in. OpenRouter models need `OPENROUTER_API_KEY` in the environment. Only free (`:free`) models run, plus the paid ids listed in `PAID_OK` in `zerocommcartel/call.py`. Smoke tests and pilots use Claude on the subscription.
 
-From the repo root:
+From the repo root, after `uv sync`:
 
 ```bash
-python3 -I pilot/probe.py show cournot same 2       # print one prompt and its system prompt
-python3 -I pilot/probe.py run --models haiku --arms base same --ns 2 --samples 2 --out /tmp/smoke.jsonl
-python3 -I pilot/analyze.py                         # markdown tables of every cell
-python3 -I pilot/analyze.py --quotes cournot same 2 # the replies of one cell
-python3 -I pilot/analyze.py judge                   # Haiku labels the copy premise (cached)
-python3 -I pilot/bench.py                           # Nash, cartel and naive benchmarks
-uv run --with scipy python -I pilot/power.py        # samples per cell for a given shift
+uv run zcc list                                   # each lens and its conditions
+uv run zcc show consistent same 2                 # one condition's system prompt and prompt
+uv run zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
+uv run zcc judge consistent                       # the copy judge labels each reply (cached)
+uv run zcc table consistent                       # a markdown table per condition, model and n
+uv run zcc synth                                  # each lens's measures beside same's cartel rate
 ```
 
-Without `--out`, `run` appends to `logs/pilot/probe-results.jsonl`. It skips cells that already have a reply, so raising `--samples` adds samples and a rerun retries failures. Give a smoke test its own `--out`, as above, so the log holds only runs you mean to keep. Each script's `-h` and docstring list the games (Cournot, Bertrand, and two Kyle trader variants) and arms.
+Without `--out`, `run` appends to `logs/<lens>/results.jsonl`. It skips replies it already has, keyed by model, prompt hash and sample. So raising `--samples` adds samples, a rerun retries failures, and a reworded condition starts afresh. Give a smoke test its own `--out`, as above, so the lens's log holds only runs you mean to keep.
+
+The frozen pilot's scripts still run as before (`python3 -I pilot/probe.py -h`, `python3 -I pilot/analyze.py`).
 
 Tests make no model calls:
 
@@ -57,15 +75,20 @@ uv run pytest
 ## Layout
 
 ```
-pilot/         the probe, the analysis and copy-premise judge, benchmarks, power analysis
-               (BRIEF-judge.md is the judge's design; judge-gold.jsonl its hand-labelled gold set)
-logs/pilot/    the pilot's data: probe-results.jsonl, judge-copy.jsonl, probe-tables.md, run-*.log
-tests/         tests of pilot/, which they load by file path
-bin/, lib/     shared tools (see AGENTS.md)
-.claude/skills sprint-paper (a stage-by-stage workflow from rubric to report) and upskill
+zerocommcartel/          the sprint's code: the shared core and the zcc command line
+zerocommcartel/lenses/   one folder per lens (capable, compliant, communal, consistent)
+logs/<lens>/             a lens's replies (results.jsonl) and its judges' labels (judge-<name>.jsonl)
+pilot/                   frozen: the probe, the analysis and copy-premise judge, benchmarks, power analysis
+                         (BRIEF-judge.md is the judge's design; judge-gold.jsonl its hand-labelled gold set)
+logs/pilot/              frozen: the pilot's data (probe-results.jsonl, judge-copy.jsonl, probe-tables.md, run-*.log)
+tests/                   tests of zerocommcartel/, and of pilot/ (test_pilot_*, frozen), which they load by path
+bin/, lib/               shared tools (see AGENTS.md); bin/pilot-lock keeps the pilot frozen
+.claude/skills           sprint-paper (a stage-by-stage workflow from rubric to report) and upskill
 ```
 
 ## Logs
+
+`logs/<lens>/results.jsonl` has one line per call: `model`, `model_id`, `lens`, `condition`, `levels` (its slot levels), `ask` (own, joint or forecast), `game` and `game_params`, `n` (firms), `sample`, `prompt_hash`, `t` (Unix time), `reply`, `answer` (the key of the reply's last answer line, such as QUANTITY or DECLINE), `value` (its number), `text` (the rest of a text line), `error`, `seconds`, and for OpenRouter models the tokens, cost, serving provider and `served_model`. `judge-<name>.jsonl` beside it holds that judge's labels, keyed by a hash of the judge model, its prompt and the reply. The copy judge's keys are the pilot's.
 
 `logs/pilot/probe-results.jsonl` has one line per call: `model`, `model_id`, `game`, `arm`, `n` (firms), `sample`, `prompt_hash`, `t` (Unix time), `reply`, `value` (the parsed number), `error`, `seconds`, and for OpenRouter models the tokens, cost, serving provider and `served_model`. `judge-copy.jsonl` holds the judge's labels, keyed by a hash of the judge model, the judge prompt and the reply: `premise` (the reply argues rivals will match it) and `acts` (its number follows from that). `run-*.log` is each batch's console output, and `probe-tables.md` is `analyze.py`'s output.
 
