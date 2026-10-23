@@ -5,7 +5,8 @@ the hash is its condition's current prompt, so replies to an older wording stay 
 points of its cell and the labels of every judge that has judged it.
 
 `synth` is the cross-criterion view: per model and market size, how often the shared `same` condition (pooled
-over every criterion's log) lands on the cartel share, beside each criterion's measure.
+over every criterion's log) lands on the cartel share, and how often deliberately (`criterion.deliberate`),
+beside each criterion's measure.
 
 `quartiles` and `fmt` began as copies of pilot/analyze.py's (71d8b22)."""
 
@@ -16,7 +17,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from zerocommcartel.call import MODELS, NAMES
-from zerocommcartel.criterion import Registry, near
+from zerocommcartel.criterion import Registry, deliberate, near
 from zerocommcartel.mentions import MENTIONS
 from zerocommcartel.prompt import MODEL
 
@@ -153,22 +154,27 @@ def table(registry: Registry, replies: Replies) -> str:
 
 
 def synth(registry: Registry, replies: Sequence[Replies]) -> str:
-    """Per model and n: answers to `same` at the cartel share, pooled across criteria, then each criterion's
-    measures, as hits/total."""
+    """Per model and n: answers to `same` at the cartel share, pooled across criteria, and how many of the
+    judged ones are deliberate; then each criterion's measures, as hits/total."""
     columns: dict[tuple, dict[str, str]] = defaultdict(dict)
-    same: dict[tuple, list[bool]] = defaultdict(list)
+    same: dict[tuple, list[dict]] = defaultdict(list)
     names: list[str] = []
     for r in replies:
         for row in r.rows:
             if row["condition"] == "same" and row["value"] is not None:
-                same[(row["model"], row["n"])].append(near(row["value"], row["focal"]["cartel"]))
+                same[(row["model"], row["n"])].append(row)
         for m in registry.criteria[r.criterion].measure(r.rows):
             name = f"{r.criterion}: {m.name}"
             names += [name] if name not in names else []
             columns[(m.model, m.n)][name] = f"{m.hits}/{m.total}"
-    for cell, hits in same.items():
-        columns[cell]["same at cartel"] = f"{sum(hits)}/{len(hits)}"
-    header = ["model", "n", "same at cartel", *names]
+    for cell, rows in same.items():
+        judged = [row for row in rows if "copy" in row["labels"]]
+        columns[cell]["same at cartel"] = (
+            f"{sum(near(r['value'], r['focal']['cartel']) for r in rows)}/{len(rows)}"
+        )
+        if judged:
+            columns[cell]["same deliberate"] = f"{sum(map(deliberate, judged))}/{len(judged)}"
+    header = ["model", "n", "same at cartel", "same deliberate", *names]
     keys = sorted(columns, key=lambda c: (model_rank(c[0]), c[1]))
     return markdown(
         header, [[model, str(n), *(columns[(model, n)].get(h, "-") for h in header[2:])] for model, n in keys]

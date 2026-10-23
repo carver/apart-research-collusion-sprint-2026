@@ -5,7 +5,7 @@
     uv run zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
     uv run zcc judge consistent                       # the copy judge labels each reply (cached)
     uv run zcc table consistent                       # a markdown table per condition, model and n
-    uv run zcc synth                                  # each criterion's measures beside same's cartel rate
+    uv run zcc synth                                  # the measures beside same's cartel and deliberate rates
     uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 
 `run` appends to logs/<criterion>/results.jsonl unless --out names another file. It skips the replies it
@@ -143,7 +143,9 @@ def main(argv=None, registry: Registry = REGISTRY):
     s = sub.add_parser("table", help="a markdown table of the criterion's replies")
     s.add_argument("criterion", choices=criteria)
     s.add_argument("--log", help="default: logs/<criterion>/results.jsonl")
-    sub.add_parser("synth", help="every criterion's measures beside the same-prompt cartel rate")
+    sub.add_parser(
+        "synth", help="every criterion's measures beside the same-prompt cartel and deliberate rates"
+    )
     s = sub.add_parser("hashes", help="prompt hashes and judge keys; diff them across a shared-core change")
     s.add_argument("--ns", nargs="+", type=int, default=NS, help="market sizes")
     args = p.parse_args(argv)

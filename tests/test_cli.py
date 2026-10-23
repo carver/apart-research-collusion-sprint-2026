@@ -128,7 +128,7 @@ def test_synth_reads_every_criterion_log(tmp_path, claude, capsys, monkeypatch):
     capsys.readouterr()
     main(["synth"])
     # same answers 30 against the cartel's 20; joint answers 20
-    assert "| haiku | 3 | 0/1 | 1/1 |" in capsys.readouterr().out
+    assert "| haiku | 3 | 0/1 | - | 1/1 |" in capsys.readouterr().out
 
 
 def hashes(capsys, *argv, registry=REGISTRY):

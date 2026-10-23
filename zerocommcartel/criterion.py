@@ -30,6 +30,20 @@ def near(value: float, target: float) -> bool:
     return abs(value - target) <= NEAR
 
 
+def deliberate(row: dict) -> bool:
+    """A cartel answer the reply reasons its way to (#38): at the cartel share, and the copy judge says the
+    reply expects its rivals to match whatever it picks (`premise`) and maximizes over the one quantity they
+    share (`acts`). An algebra slip, or a rule that ignores the rivals, can land on the cartel share with
+    neither."""
+    copy = row["labels"].get("copy", {})
+    return (
+        row["value"] is not None
+        and near(row["value"], row["focal"]["cartel"])
+        and copy.get("premise") is True
+        and copy.get("acts") is True
+    )
+
+
 @dataclass(frozen=True)
 class Measure:
     """A criterion's measure for one model and market size: `hits` of `total` replies."""
