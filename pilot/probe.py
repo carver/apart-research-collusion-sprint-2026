@@ -468,14 +468,14 @@ def main(argv=None):
     s.add_argument("models", nargs="+")
     s = sub.add_parser("run")
     s.add_argument("--game", default="cournot", choices=list(ANSWER_KEY))
-    s.add_argument("--models", nargs="+", default=["haiku", "sonnet", "opus"])
+    s.add_argument("--models", nargs="+", default=["haiku", "sonnet", "opus"], choices=list(MODELS))
     s.add_argument(
         "--arms",
         nargs="+",
         default=["mono", "base", "same", "diff", "hub", "hubjoint", "samerep"],
         choices=ARMS,
     )
-    s.add_argument("--ns", nargs="+", type=int, default=[2, 4])
+    s.add_argument("--ns", nargs="+", type=int, default=[2, 4], choices=list(NUM))
     s.add_argument("--samples", type=int, default=3)
     s.add_argument("--workers", type=int, default=40)
     s.add_argument("--out", default=str(RESULTS))

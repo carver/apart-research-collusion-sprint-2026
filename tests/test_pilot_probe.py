@@ -5,6 +5,7 @@ pilot/ is a folder of scripts, not a package, so probe.py is loaded by file path
 
 import importlib.util
 import json
+import re
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
@@ -51,6 +52,25 @@ def test_a_run_with_arms_its_game_does_not_take_is_refused_before_any_call(tmp_p
 
     message = str(refused.value.code)
     assert all(arm in message for arm in bad), message
+    assert prompts == []
+    assert not out.exists()
+
+
+@pytest.mark.parametrize(
+    "args, bad",
+    [
+        (["--models", "haiku", "gpt-9", "--arms", "same", "--ns", "2"], "gpt-9"),
+        (["--arms", "same", "--ns", "2", "7"], "7"),
+    ],
+)
+def test_a_run_with_an_unknown_model_or_n_is_refused_before_any_call(tmp_path, prompts, capsys, args, bad):
+    out = tmp_path / "results.jsonl"
+
+    with pytest.raises(SystemExit) as refused:
+        run_probe(out, *args)
+
+    assert refused.value.code == 2  # argparse's usage error
+    assert re.search(rf"invalid choice: '?{re.escape(bad)}'?", capsys.readouterr().err)
     assert prompts == []
     assert not out.exists()
 
