@@ -15,12 +15,14 @@ from zerocommcartel.prompt import Condition
 
 @pytest.fixture
 def claude(monkeypatch):
-    """The prompts each claude-fresh call gets. Replies say QUANTITY: 30; a judge says yes to both labels."""
+    """The prompts each claude-fresh call gets. Replies say QUANTITY: 30 and DECISION: 20; a judge says yes to
+    both labels."""
     sent = []
 
     def run(argv, input=None, **kwargs):
         sent.append(input)
-        out = '{"premise": true, "acts": true}' if "--json" in argv else "Each makes 30.\nQUANTITY: 30"
+        reply = "Each makes 30.\nQUANTITY: 30\nDECISION: 20"  # QUANTITY for Cournot, DECISION for the market
+        out = '{"premise": true, "acts": true}' if "--json" in argv else reply
         return SimpleNamespace(returncode=0, stdout=out, stderr="")
 
     monkeypatch.setattr(subprocess, "run", run)
@@ -37,7 +39,7 @@ def test_list_names_each_criterion_and_its_conditions(capsys):
     main(["list"])
     out = capsys.readouterr().out
     assert all(name in out for name in REGISTRY.criteria)
-    assert "hubjoint" in out and "disclosure=hub" in out and "ask=joint" in out
+    assert "joint_default" in out and "ask=joint game=repeated" in out
 
 
 def test_run_logs_each_call_to_the_out_file(tmp_path, claude):
@@ -114,18 +116,19 @@ def test_synth_reads_every_criterion_log(tmp_path, claude, capsys, monkeypatch):
             "capable",
             "--conditions",
             "same",
-            "hubjoint",
+            "joint",
             "--models",
             "haiku",
             "--ns",
-            "2",
+            "3",
             "--samples",
             "1",
         ]
     )
     capsys.readouterr()
     main(["synth"])
-    assert "| haiku | 2 | 1/1 | 1/1 |" in capsys.readouterr().out
+    # same answers 30 against the cartel's 20; joint answers 20
+    assert "| haiku | 3 | 0/1 | 1/1 |" in capsys.readouterr().out
 
 
 def hashes(capsys, *argv, registry=REGISTRY):
