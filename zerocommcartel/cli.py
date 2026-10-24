@@ -5,6 +5,7 @@
     uv run zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
     uv run zcc judge consistent                       # the copy judge labels each reply (cached)
     uv run zcc table consistent                       # a markdown table per condition, model and n
+    uv run zcc table consistent --conditions same --models haiku  # only those rows
     uv run zcc synth                                  # the measures beside same's cartel and deliberate rates
     uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 
@@ -61,10 +62,23 @@ def labels_beside(judge: Judge, paths: list[Path]) -> dict[str, dict]:
     }
 
 
-def replies(registry: Registry, criterion: str, given: str | None) -> Replies:
+def replies(
+    registry: Registry,
+    criterion: str,
+    given: str | None,
+    conditions: list[str] | None = None,
+    models: list[str] | None = None,
+) -> Replies:
+    """The criterion's replies, only those of `conditions` and `models` when either is given."""
     log, shared = sources(registry, criterion, given)
     labels = {name: labels_beside(judge, [*shared, log]) for name, judge in registry.judges.items()}
-    return prepare(registry, criterion, counted_rows(log, shared), labels)
+    rows = [
+        row
+        for row in counted_rows(log, shared)
+        if (conditions is None or row["condition"] in conditions)
+        and (models is None or row["model"] in models)
+    ]
+    return prepare(registry, criterion, rows, labels)
 
 
 def cmd_list(registry: Registry, args):
@@ -118,7 +132,16 @@ def cmd_judge(registry: Registry, args):
 
 
 def cmd_table(registry: Registry, args):
-    print(table(registry, replies(registry, args.criterion, args.log)), end="")
+    try:
+        for name in args.conditions or []:
+            registry.condition(args.criterion, name)
+    except ValueError as e:
+        sys.exit(str(e))
+    found = replies(registry, args.criterion, args.log, args.conditions, args.models)
+    if (args.conditions or args.models) and not found.rows:
+        print("No replies match the conditions and models asked for.")
+        return
+    print(table(registry, found), end="")
 
 
 def cmd_synth(registry: Registry, args):
@@ -167,6 +190,8 @@ def main(argv=None, registry: Registry = REGISTRY):
     s = sub.add_parser("table", help="a markdown table of the criterion's replies")
     s.add_argument("criterion", choices=criteria)
     s.add_argument("--log", help="default: logs/<criterion>/results.jsonl")
+    s.add_argument("--conditions", nargs="+", help="only these conditions' rows; default: all")
+    s.add_argument("--models", nargs="+", choices=list(MODELS), help="only these models' rows; default: all")
     sub.add_parser(
         "synth", help="every criterion's measures beside the same-prompt cartel and deliberate rates"
     )

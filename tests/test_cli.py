@@ -108,6 +108,40 @@ def test_judge_then_table(tmp_path, claude, capsys):
     assert "| same | haiku | 2 | 1 | 1 |" in table and "| 1 | 100 |" in table
 
 
+def test_table_shows_only_the_conditions_and_models_asked_for(tmp_path, claude, capsys):
+    out = tmp_path / "smoke.jsonl"
+    run_haiku("consistent", "same", "base", out=out)
+    run_haiku("consistent", "same", out=out, model="sonnet")
+    (base,) = [row for row in map(json.loads, out.read_text().splitlines()) if row["condition"] == "base"]
+    with out.open("a") as f:  # a failed call in a cell the table leaves out
+        f.write(json.dumps({**base, "reply": None, "sample": 5, "error": "rate limited"}) + "\n")
+    table = table_of(capsys, "consistent", "--log", out, "--conditions", "same", "--models", "haiku")
+    assert "| same | haiku | 2 |" in table
+    assert "| base |" not in table and "| sonnet |" not in table
+    assert "failed" not in table
+
+
+def test_the_filter_reaches_the_baseline_rows_borrowed_from_another_criterion(logs_dir, claude, capsys):
+    run_haiku("capable", "same")
+    assert "| same | haiku | 2 |" in table_of(capsys, "consistent", "--conditions", "same")
+    assert "| same |" not in table_of(capsys, "consistent", "--conditions", "same", "--models", "sonnet")
+
+
+def test_a_filter_that_matches_nothing_says_so(tmp_path, claude, capsys):
+    out = tmp_path / "smoke.jsonl"
+    run_haiku("consistent", "same", out=out)
+    assert "No replies match" in table_of(capsys, "consistent", "--log", out, "--models", "sonnet")
+
+
+@pytest.mark.parametrize(
+    "argv, name", [(["--conditions", "telepathy"], "telepathy"), (["--models", "gpt-9"], "gpt-9")]
+)
+def test_table_refuses_a_condition_or_model_it_doesnt_know(tmp_path, capsys, argv, name):
+    with pytest.raises(SystemExit) as e:
+        zcc("table", "consistent", "--log", tmp_path / "none.jsonl", *argv)
+    assert name in str(e.value.code) + capsys.readouterr().err
+
+
 def test_synth_reads_every_criterion_log_and_counts_a_baseline_reply_once(logs_dir, claude, capsys):
     run_haiku("capable", "same", "joint", n=3)
     capsys.readouterr()
@@ -127,9 +161,9 @@ def zcc(*argv):
     main([str(a) for a in argv])
 
 
-def run_haiku(criterion, *conditions, n=2, samples=1, out=None):
+def run_haiku(criterion, *conditions, n=2, samples=1, out=None, model="haiku"):
     zcc(
-        "run", criterion, "--conditions", *conditions, "--models", "haiku", "--ns", n, "--samples", samples,
+        "run", criterion, "--conditions", *conditions, "--models", model, "--ns", n, "--samples", samples,
         *(["--out", out] if out else []),
     )  # fmt: skip
 
