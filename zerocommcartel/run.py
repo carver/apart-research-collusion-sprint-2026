@@ -8,7 +8,9 @@ A rerun skips the (model, prompt hash, sample) keys that already have a reply. S
 adds samples, a failed call is retried, and rewording a condition starts its cells afresh."""
 
 import concurrent.futures as cf
+import fcntl
 import json
+import os
 import time
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
@@ -17,7 +19,6 @@ from pathlib import Path
 from zerocommcartel.answer import parse
 from zerocommcartel.call import MODELS, NAMES, complete, route
 from zerocommcartel.criterion import Registry
-from zerocommcartel.logs import end_last_line
 from zerocommcartel.prompt import Condition, Prompt
 
 
@@ -99,12 +100,26 @@ def ask_once(task: Task, call: Callable) -> dict:
     return row
 
 
+def append_row(out: Path, row: dict):
+    """Append the row as a line of JSON, holding an exclusive lock on the file, so runs in other processes
+    can share it. A last line another run left cut short (killed mid-write) gets its newline first, so this
+    row starts a line of its own."""
+    with out.open("ab+") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)  # closing f unlocks it
+        end = f.seek(0, os.SEEK_END)
+        if end:
+            f.seek(end - 1)
+            if f.read(1) != b"\n":
+                f.write(b"\n")  # "ab+" writes at the end wherever the read left off
+        f.write((json.dumps(row) + "\n").encode())
+
+
 def run(
     tasks: Sequence[Task], out: Path, call: Callable = complete, workers: int = 40, say: Callable = print
 ) -> tuple[int, int]:
-    """Make the calls in parallel, appending each row to `out` as it comes back. Returns (ok, failed)."""
+    """Make the calls in parallel, appending each row to `out` as it comes back, under an exclusive lock on
+    the file, so runs in other processes can append to the same log. Returns (ok, failed)."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    end_last_line(out)
     ok = failed = 0
     say(f"{len(tasks)} calls to make")
     for model in {t.model for t in tasks}:  # route once here, so the workers don't all check Codex at once
@@ -112,8 +127,7 @@ def run(
     with cf.ThreadPoolExecutor(max_workers=workers) as pool:
         for i, fut in enumerate(cf.as_completed([pool.submit(ask_once, t, call) for t in tasks]), 1):
             row = fut.result()
-            with out.open("a") as f:
-                f.write(json.dumps(row) + "\n")
+            append_row(out, row)
             ok, failed = ok + (row["error"] is None), failed + (row["error"] is not None)
             if i % 20 == 0 or row["error"]:
                 error = f" ERR {row['error'][:120]}" if row["error"] else ""

@@ -1,7 +1,9 @@
 """The runner, with a fake model: what it logs, what a rerun skips and retries, and a log cut short by a
 killed run. No test calls a model."""
 
+import fcntl
 import json
+import threading
 import time
 
 import pytest
@@ -160,3 +162,31 @@ def test_a_run_checks_codex_once_however_many_threads_start_at_once(tmp_path, mo
     run(astra, tmp_path / "out.jsonl", answer(), workers=8)
     call.codex_ready.cache_clear()
     assert looked == ["codex"] and capsys.readouterr().err.count("Codex isn't installed") == 1
+
+
+def test_a_run_waits_for_another_process_that_holds_the_log(tmp_path):
+    out = tmp_path / "out.jsonl"
+    out.touch()
+    with out.open("a") as held:
+        fcntl.flock(held, fcntl.LOCK_EX)
+        worker = threading.Thread(
+            target=run, args=(tasks(out, samples=1, conditions=("base",)), out, answer())
+        )
+        worker.start()
+        time.sleep(0.5)
+        written_while_held = out.read_text()
+        fcntl.flock(held, fcntl.LOCK_UN)
+    worker.join(timeout=10)
+    assert written_while_held == "" and len(load_rows(out)) == 1
+
+
+def test_a_row_starts_its_own_line_after_another_run_left_one_cut_short(tmp_path):
+    out = tmp_path / "out.jsonl"
+
+    def killed_elsewhere(model, system, user):
+        with out.open("a") as f:
+            f.write('{"model": "haiku", "cut short')  # another run, killed mid-row
+        return "QUANTITY: 30", {}
+
+    run(tasks(out, samples=1, conditions=("base",)), out, killed_elsewhere)
+    assert [r["value"] for r in load_rows(out)] == [30.0]

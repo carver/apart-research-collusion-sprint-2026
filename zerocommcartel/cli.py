@@ -143,6 +143,8 @@ def cmd_run(registry: Registry, args):
     replies (base, diff, same render one prompt in every criterion). So raising --samples adds samples, a
     rerun retries the calls that failed, and a reworded condition starts afresh.
 
+    Two runs may append to one log at once: each row goes in under a lock on the file.
+
     A file named with --out stands alone: run appends to it and skips only the replies it holds. Give a
     smoke test its own --out, so the criterion's log holds only runs you mean to keep. Claude and Codex models
     run on their subscriptions; OpenRouter models need OPENROUTER_API_KEY."""
