@@ -3,7 +3,7 @@
 # uv.lock must match pyproject.toml, and the tests must pass on what's staged: a copy of the
 # index in a temporary folder, so unstaged changes can neither fail a commit nor rescue it.
 # The repo's environment is synced first (creating it in a fresh clone or worktree), then
-# used as it is (--no-sync). Pyright checks the zerocommcartel package; the pilot scripts
+# used as it is (--no-sync). Pyright checks the zerocommcartel and paper packages; the pilot scripts
 # aren't type-checked. The environment is $UV_PROJECT_ENVIRONMENT when set, a relative path
 # counting from the repo as uv reads it, else .venv. reuse lint checks that REUSE.toml parses and
 # that LICENSES/ holds exactly the licenses it names.

@@ -26,8 +26,14 @@ dev = [
     "reuse==6.2.0",
     "ruff==0.16.9",
 ]
+# bin/build-paper: the Typst compiler and the figures' plotting
+paper = [
+    "matplotlib==3.11.2",
+    "typst==0.15.0",
+]
 
 [tool.uv]
+default-groups = ["dev", "paper"]
 # Supply-chain policy: resolve only releases uploaded before this date, at least three weeks before
 # they were added (2026-10-19). Direct dependencies are pinned with ==, and uv.lock pins the rest.
 # To upgrade: move this date forward (keeping it >= 3 weeks in the past), then update the pins.
@@ -43,10 +49,11 @@ required-version = ">=0.12.22"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]  # the paper/ package, which isn't installed
 addopts = "-q"
 
 [tool.pyright]
-include = ["zerocommcartel"]  # not tests/ or pilot/: the tests poke at plain dicts and load pilot/ by path
+include = ["zerocommcartel", "paper"]  # not tests/ or pilot/: tests poke at plain dicts, load pilot/ by path
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 
