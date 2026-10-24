@@ -27,7 +27,9 @@ class DuplicateKey(ValueError):
 
 
 @dataclass(frozen=True)
-class Source:
+class Provenance:
+    """Where an entry came from: the data source's module and function, and the logs it read."""
+
     module: str
     function: str
     logs: tuple[str, ...] = ()
@@ -108,7 +110,7 @@ class Ledger:
     def text(self, key: str, text: str, how: str) -> None:
         self._add(key, "text", how, text=text)
 
-    def merge(self, other: "Ledger", source: Source) -> None:
+    def merge(self, other: "Ledger", source: Provenance) -> None:
         """Takes in another ledger's entries (one data source's), each stamped with `source`; none of them
         when one of their keys is taken."""
         stamp = asdict(source) | {"logs": list(source.logs)}

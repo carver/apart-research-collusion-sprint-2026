@@ -3,7 +3,7 @@ only one cell's rate carries a Wilson interval, and a figure is drawn to an SVG 
 
 import pytest
 
-from paper.ledger import DuplicateKey, Ledger, Source, wilson
+from paper.ledger import DuplicateKey, Ledger, Provenance, wilson
 
 
 @pytest.mark.parametrize(
@@ -31,7 +31,7 @@ def test_a_rate_keeps_its_counts_interval_and_source(tmp_path):
     part = Ledger(tmp_path)
     part.rate("pilot.same.cartel", replies("opus", 5, 10), cartel, how="cartel-share answers / replies")
     ledger = Ledger(tmp_path)
-    ledger.merge(part, Source("paper.data.pilot", "pilot", ("logs/pilot/probe-results.jsonl",)))
+    ledger.merge(part, Provenance("paper.data.pilot", "pilot", ("logs/pilot/probe-results.jsonl",)))
     entry = ledger.entries["pilot.same.cartel"]
     assert entry["kind"] == "rate"
     assert (entry["k"], entry["n"], entry["rate"]) == (5, 10, 0.5)
@@ -78,9 +78,9 @@ def test_two_sources_cant_claim_one_key(tmp_path):
     ledger, first, second = Ledger(tmp_path), Ledger(tmp_path), Ledger(tmp_path)
     first.value("pilot.calls", 1188, how="calls")
     second.value("pilot.calls", 1190, how="calls")
-    ledger.merge(first, Source("paper.data.pilot", "pilot"))
+    ledger.merge(first, Provenance("paper.data.pilot", "pilot"))
     with pytest.raises(DuplicateKey, match="paper.data.pilot"):
-        ledger.merge(second, Source("paper.data.other", "other"))
+        ledger.merge(second, Provenance("paper.data.other", "other"))
 
 
 def test_a_table_row_of_the_wrong_width_is_refused(tmp_path):
