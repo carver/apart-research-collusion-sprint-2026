@@ -17,7 +17,8 @@ writes it):
     prompt_tokens, completion_tokens, reasoning_tokens, tool_calls, reasoning_effort    Codex models only
 
 An experiment's script (zerocommcartel/experiment.py) writes the same rows to a folder of its own instead,
-logs/<criterion>/<id>/results.jsonl (logs/capable/cap2/).
+logs/<criterion>/<id>/results.jsonl (logs/capable/cap2/). zcc counts them as the criterion's
+(`experiment_logs`).
 
 The readers began as copies of pilot/probe.py's (71d8b22)."""
 
@@ -29,9 +30,20 @@ LOGS = Path(__file__).resolve().parent.parent / "logs"
 
 
 def log_path(criterion: str) -> Path:
-    """A criterion's replies. Each criterion has its own folder, so two people running different criteria
-    never write one file."""
+    """A criterion's own log, which `zcc run` appends to. Each criterion has its own folder, so two people
+    running different criteria never write one file."""
     return LOGS / criterion / "results.jsonl"
+
+
+def experiment_logs(criterion: str) -> list[Path]:
+    """The logs of a criterion's experiments, one in each folder inside its own, by folder name. A folder that
+    holds only judges' caches (an experiment that labels another's replies, such as CPL-1) still gets its
+    path, so the caches beside it are read. A --fresh run's dated log is left out: it asks the same samples
+    again under the same keys, and a table counts one reply per key."""
+    folder = LOGS / criterion
+    if not folder.is_dir():
+        return []
+    return sorted(path / "results.jsonl" for path in folder.iterdir() if path.is_dir())
 
 
 def judge_path(log: Path, judge: str) -> Path:

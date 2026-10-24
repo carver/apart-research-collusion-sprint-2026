@@ -1,7 +1,8 @@
 """Running a criterion's cells and logging each reply.
 
 A cell is a condition at one market size, asked of one model; each sample of it is one call and one log row.
-Each criterion logs to its own file (zerocommcartel.logs.log_path).
+zcc logs each criterion to its own file (zerocommcartel.logs.log_path), and an experiment's script logs each
+experiment to a folder of its own (zerocommcartel.experiment).
 
 A rerun skips the (model, prompt hash, sample) keys that already have a reply. So raising the sample count
 adds samples, a failed call is retried, and rewording a condition starts its cells afresh."""

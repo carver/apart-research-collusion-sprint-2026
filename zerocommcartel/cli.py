@@ -9,17 +9,20 @@
     uv run zcc synth                                  # the measures beside same's cartel and deliberate rates
     uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 
-`run` appends to logs/<criterion>/results.jsonl unless --out names another file. It skips the replies it
-already has, so raising --samples adds samples and a rerun retries failures. The baseline (base, diff, same)
-is one prompt in every criterion, so without --out or --log a command also reads the other criteria's logs
-for their baseline replies: `run` skips those samples, `table` and `synth` count them, and `judge` labels
-the ones no other criterion's cache has. Smoke tests use --out, which stands alone, and the Claude
-subscription (haiku, sonnet, opus); OpenRouter models need OPENROUTER_API_KEY.
+`run` appends to logs/<criterion>/results.jsonl unless --out names another file. A criterion's replies are
+that log's and its experiments' (logs/<criterion>/<id>/results.jsonl, from the scripts in experiments/). `run`
+skips the replies they already have, so raising --samples adds samples and a rerun retries failures. The
+baseline (base, diff, same) is one prompt in every criterion, so without --out or --log a command also reads
+the other criteria's logs for their baseline replies: `run` skips those samples, and `table` and `synth`
+count them. `judge` labels the replies that no cache beside another log, an experiment's or another
+criterion's, has labelled. Smoke tests use --out, which stands alone, and the Claude subscription (haiku,
+sonnet, opus); OpenRouter models need OPENROUTER_API_KEY.
 """
 
 import argparse
 import contextlib
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 from zerocommcartel import logs
@@ -32,25 +35,52 @@ from zerocommcartel.run import done_keys, plan, run
 from zerocommcartel.table import Replies, prepare, synth, table
 
 NS = [2, 4]  # the market sizes run and hashes cover by default
+LOG_HELP = (
+    "default: logs/<criterion>/results.jsonl, with the logs of the criterion's experiments, "
+    "logs/<criterion>/<id>/results.jsonl"
+)
 
 
-def sources(registry: Registry, criterion: str, given: str | None) -> tuple[Path, list[Path]]:
-    """The log a command on `criterion` reads or appends to, and the logs whose baseline rows (base, diff,
-    same) it counts beside that log's own. A file named by --log or --out (a smoke test, say) stands alone.
-    Otherwise it's the criterion's own log, with every other criterion's beside it: the baseline renders one
-    prompt in every criterion, so each of its samples runs once and counts everywhere."""
+@dataclass(frozen=True)
+class Sources:
+    """The logs a command on a criterion reads."""
+
+    log: Path  # the one it appends to and judges into: the criterion's own, or the file --log or --out names
+    experiments: list[Path]  # the criterion's experiments' logs, whose rows count as its own
+    shared: list[Path]  # every other criterion's logs, whose baseline rows (base, diff, same) it borrows
+
+    @property
+    def own(self) -> list[Path]:
+        """The logs whose rows are the criterion's, its own log last."""
+        return [*self.experiments, self.log]
+
+
+def sources(registry: Registry, criterion: str, given: str | None) -> Sources:
+    """A file named by --log or --out (a smoke test, say) stands alone. Otherwise it's the criterion's own log
+    and its experiments', with every other criterion's logs beside them: the baseline renders one prompt in
+    every criterion, so each of its samples runs once and counts everywhere."""
     if given:
-        return Path(given), []
-    return logs.log_path(criterion), [
-        logs.log_path(other) for other in registry.criteria if other != criterion
+        return Sources(Path(given), [], [])
+    return Sources(
+        logs.log_path(criterion),
+        logs.experiment_logs(criterion),
+        [
+            path
+            for other in registry.criteria
+            if other != criterion
+            for path in [*logs.experiment_logs(other), logs.log_path(other)]
+        ],
+    )
+
+
+def counted_rows(src: Sources) -> list[dict]:
+    """The shared logs' baseline rows, then the criterion's own rows. Where two logs hold one (model, prompt
+    hash, sample), the last row wins, so the criterion's own reply does, and its own log's over its
+    experiments'."""
+    borrowed = [
+        row for path in src.shared for row in logs.load_rows(path) if row.get("condition") in BASELINE
     ]
-
-
-def counted_rows(log: Path, shared: list[Path]) -> list[dict]:
-    """The shared logs' baseline rows, then the log's own. Where two logs hold one (model, prompt hash,
-    sample), the last row wins, so the criterion's own reply does."""
-    borrowed = [row for path in shared for row in logs.load_rows(path) if row.get("condition") in BASELINE]
-    return borrowed + logs.load_rows(log)
+    return borrowed + [row for path in src.own for row in logs.load_rows(path)]
 
 
 def labels_beside(judge: Judge, paths: list[Path]) -> dict[str, dict]:
@@ -70,11 +100,11 @@ def replies(
     models: list[str] | None = None,
 ) -> Replies:
     """The criterion's replies, only those of `conditions` and `models` when either is given."""
-    log, shared = sources(registry, criterion, given)
-    labels = {name: labels_beside(judge, [*shared, log]) for name, judge in registry.judges.items()}
+    src = sources(registry, criterion, given)
+    labels = {name: labels_beside(judge, [*src.shared, *src.own]) for name, judge in registry.judges.items()}
     rows = [
         row
-        for row in counted_rows(log, shared)
+        for row in counted_rows(src)
         if (conditions is None or row["condition"] in conditions)
         and (models is None or row["model"] in models)
     ]
@@ -99,7 +129,7 @@ def cmd_show(registry: Registry, args):
 
 
 def cmd_run(registry: Registry, args):
-    out, shared = sources(registry, args.criterion, args.out)
+    src = sources(registry, args.criterion, args.out)
     conditions = args.conditions or list(registry.conditions(args.criterion))
     try:
         tasks = plan(
@@ -109,22 +139,26 @@ def cmd_run(registry: Registry, args):
             args.models,
             args.ns,
             args.samples,
-            done_keys(counted_rows(out, shared)),
+            done_keys(counted_rows(src)),
         )
     except ValueError as e:
         sys.exit(f"no calls made: {e}")
-    run(tasks, out, workers=args.workers)
+    run(tasks, src.log, workers=args.workers)
 
 
 def cmd_judge(registry: Registry, args):
     """Label the replies the criterion's tables count, the shared baseline's among them, into the cache beside
-    its log; a reply already labelled beside another criterion's log is left as it is."""
-    log, shared = sources(registry, args.criterion, args.log)
+    its own log; a reply already labelled beside another log (an experiment's, or another criterion's) is left
+    as it is."""
+    src = sources(registry, args.criterion, args.log)
     texts = [row["reply"] for row in replies(registry, args.criterion, args.log).rows]
     for name in args.judges:
         judge = registry.judges[name]
         judged, failed, cached = label(
-            judge, texts, logs.judge_path(log, name), known=labels_beside(judge, shared).keys()
+            judge,
+            texts,
+            logs.judge_path(src.log, name),
+            known=labels_beside(judge, [*src.shared, *src.experiments]).keys(),
         )
         print(f"{name}: judged {judged}, {len(failed)} failed, {cached} already cached")
         for line in failed:
@@ -186,10 +220,10 @@ def main(argv=None, registry: Registry = REGISTRY):
     s = sub.add_parser("judge", help="label the criterion's replies with judges (cached beside the log)")
     s.add_argument("criterion", choices=criteria)
     s.add_argument("--judges", nargs="+", default=["copy"], choices=list(registry.judges))
-    s.add_argument("--log", help="default: logs/<criterion>/results.jsonl")
+    s.add_argument("--log", help=LOG_HELP)
     s = sub.add_parser("table", help="a markdown table of the criterion's replies")
     s.add_argument("criterion", choices=criteria)
-    s.add_argument("--log", help="default: logs/<criterion>/results.jsonl")
+    s.add_argument("--log", help=LOG_HELP)
     s.add_argument("--conditions", nargs="+", help="only these conditions' rows; default: all")
     s.add_argument("--models", nargs="+", choices=list(MODELS), help="only these models' rows; default: all")
     sub.add_parser(

@@ -9,7 +9,7 @@ import pytest
 from zerocommcartel.cli import main
 from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.criterion import Criterion, build
-from zerocommcartel.judge import Judge
+from zerocommcartel.judge import COPY, Judge
 from zerocommcartel.prompt import Condition
 
 
@@ -231,6 +231,78 @@ def test_judging_labels_only_the_replies_the_tables_count(logs_dir, claude, caps
     zcc("judge", "consistent")
     assert len(claude) == 2  # the reply, and one judge call for it
     assert "older wording" not in claude[-1]
+
+
+def experiment_log(logs_dir, criterion, folder, name="results.jsonl"):
+    """A log in one of the criterion's experiments' folders, as zerocommcartel.experiment writes it."""
+    return logs_dir / criterion / folder / name
+
+
+def test_a_criterions_table_counts_the_replies_its_experiments_logged(logs_dir, claude, capsys):
+    run_haiku("capable", "joint", n=3, out=experiment_log(logs_dir, "capable", "cap1"))
+    run_haiku("capable", "symmetry", n=3, out=experiment_log(logs_dir, "capable", "cap2"))
+    table = table_of(capsys, "capable")
+    assert "| joint | haiku | 3 | 1 | 1 |" in table and "| symmetry | haiku | 3 | 1 | 1 |" in table
+
+
+def test_a_dated_rerun_beside_an_experiments_log_is_left_out(logs_dir, claude, capsys):
+    run_haiku("capable", "joint", n=3, out=experiment_log(logs_dir, "capable", "cap1"))
+    rerun = experiment_log(logs_dir, "capable", "cap1", "results-2026-10-23-2116.jsonl")
+    run_haiku("capable", "joint", n=3, samples=2, out=rerun)
+    assert "| joint | haiku | 3 | 1 | 1 |" in table_of(capsys, "capable")
+
+
+def test_where_an_experiment_and_the_criterions_own_log_hold_one_sample_its_own_counts(
+    logs_dir, claude, capsys
+):
+    run_haiku("capable", "joint", n=3, samples=2, out=experiment_log(logs_dir, "capable", "cap1"))
+    theirs = json.loads(experiment_log(logs_dir, "capable", "cap1").read_text().splitlines()[0])
+    mine = theirs | {"reply": "DECISION: 40", "value": 40.0}
+    (logs_dir / "capable" / "results.jsonl").write_text(json.dumps(mine) + "\n")
+    # 40 and the experiment's other sample's 20, not its 20 twice
+    assert "| joint | haiku | 3 | 2 | 2 | 30 |" in table_of(capsys, "capable")
+
+
+def test_run_skips_a_sample_one_of_the_criterions_experiments_logged(logs_dir, claude):
+    run_haiku("capable", "joint", n=3, out=experiment_log(logs_dir, "capable", "cap1"))
+    run_haiku("capable", "joint", n=3, samples=2)
+    assert len(claude) == 2
+    rows = [json.loads(line) for line in (logs_dir / "capable" / "results.jsonl").read_text().splitlines()]
+    assert [r["sample"] for r in rows] == [1]
+
+
+@pytest.mark.parametrize(
+    "criterion, folder",
+    [("capable", "baselines"), ("compliant", "cpl1")],  # beside the experiment's log; a folder with none
+)
+def test_judging_leaves_out_the_replies_an_experiments_cache_labels(
+    logs_dir, claude, capsys, criterion, folder
+):
+    run_haiku("capable", "same_prompt", n=3, out=experiment_log(logs_dir, "capable", "baselines"))
+    (row,) = map(json.loads, experiment_log(logs_dir, "capable", "baselines").read_text().splitlines())
+    cache = experiment_log(logs_dir, criterion, folder, "judge-copy.jsonl")
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text(json.dumps({"key": COPY.key(row["reply"]), "premise": True, "acts": False}) + "\n")
+    zcc("judge", "capable")
+    assert len(claude) == 1  # the reply; no judge call
+    assert not (logs_dir / "capable" / "judge-copy.jsonl").exists()
+    table = table_of(capsys, "capable")
+    assert "| same_prompt | haiku | 3 | 1 | 1 |" in table and "| 1 | 100 |" in table
+
+
+def test_a_criterions_table_counts_the_baseline_replies_another_criterions_experiment_logged(
+    logs_dir, claude, capsys
+):
+    run_haiku("capable", "same", "no_info", out=experiment_log(logs_dir, "capable", "cap9"))
+    table = table_of(capsys, "consistent")
+    assert "| same | haiku | 2 | 1 | 1 |" in table and "no_info" not in table
+
+
+def test_synth_counts_a_measure_from_the_criterions_experiments(logs_dir, claude, capsys):
+    run_haiku("capable", "joint", n=3, out=experiment_log(logs_dir, "capable", "cap1"))
+    capsys.readouterr()
+    main(["synth"])
+    assert "| haiku | 3 | - | - | 1/1 |" in capsys.readouterr().out
 
 
 def hashes(capsys, *argv, registry=REGISTRY):
