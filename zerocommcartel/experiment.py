@@ -122,5 +122,14 @@ def main(
         for r in logs.load_rows(logs.LOGS / folder / "results.jsonl")
         if r["model"] in e.models and r["n"] in e.ns
     ]
-    labels = {name: load_labels(registry.judges[name], logs.judge_path(log, name)) for name in e.judges}
+    # a judge's labels for the compared rows sit beside their own log, written by their own script
+    logged = [log, *(logs.LOGS / folder / "results.jsonl" for folder in e.compare)]
+    labels = {
+        name: {
+            key: found
+            for path in logged
+            for key, found in load_labels(registry.judges[name], logs.judge_path(path, name)).items()
+        }
+        for name in e.judges
+    }
     print(e.report(prepare(registry, e.criterion, rows + beside, labels)))

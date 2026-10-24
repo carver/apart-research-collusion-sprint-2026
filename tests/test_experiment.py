@@ -118,3 +118,23 @@ def test_the_openrouter_key_comes_from_dotenv_only_when_it_isnt_set(tmp_path):
     load_env(tmp_path / "missing.env", nothing)
     assert unset == {"OPENROUTER_API_KEY": "sk-from-file"}
     assert (already, nothing) == ({"OPENROUTER_API_KEY": "sk-set"}, {})
+
+
+def test_rows_read_from_another_experiment_bring_their_judges_labels(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr("zerocommcartel.logs.LOGS", tmp_path)
+
+    def by_round(model, system, user):
+        return f"{'After a round.' if 'round 2' in user else 'First round.'}\nDECISION: 20", {}
+
+    base = Experiment(**{**EXP.__dict__, "id": "BASELINES", "conditions": ("joint_default",)})
+    main(base, [], call=by_round, judge_call=judge)
+
+    def labelled(replies):
+        return f"{sum('working' in r['labels'] for r in replies.rows)} labelled"
+
+    beside = Experiment(
+        **{**EXP.__dict__, "conditions": ("joint",), "compare": ("capable/baselines",), "report": labelled}
+    )
+    capsys.readouterr()
+    main(beside, [], call=by_round, judge_call=judge)
+    assert capsys.readouterr().out.rstrip().endswith("8 labelled")
