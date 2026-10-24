@@ -54,7 +54,7 @@ Choices made for #38 while Jason was away. Each entry goes once he or Thomas con
 
 - Options: #42's "Firm B asks this same AI model, but its prompt says nothing about which advisers its rivals use"; or `samemodel` plus "The other firm's prompt describes the same market but doesn't say that my firm asks this AI model too.", with a control ending "and says that my firm asks this AI model too." (`twin_informed`).
 - Chose the second, from the arm check: "advisers" can read as human consultants, and the control separates the rival's information from the new sentence about its prompt.
-- Against: 40 on `twin` is also Nash, so a model that ignores both sentences can't be told from one that models the twin. A sharper arm, not built: the rival's prompt asks for the firms' combined optimum (where Claude answers 30 in 41 of 48, `hubjoint`), so modelling the twin means best-responding with 45, a number no other reading gives.
+- Against: 40 on `twin` is also Nash, so a model that ignores both sentences can't be told from one that models the twin. A sharper arm was considered and dropped (Jason doubted it, 2026-10-24): the rival's prompt asks for the firms' combined optimum, so best-responding to it gives 45, a number no other reading gives. But 30 is the textbook answer to that prompt, so the model needn't predict itself to get it; the arm would test reading the rival's prompt, as communal's fixed rival does. `twin` has a milder form of the same weakness, since the uninformed rival's answer is the textbook Nash.
 
 ## The repeat-alone control with `diff`
 
