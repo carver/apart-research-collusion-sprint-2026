@@ -44,6 +44,10 @@ Built before the arm-check skill existed; its flaws surfaced in the write-ups an
 - **The lockstep sentence hands the model the math:** it turns the question into a one-variable maximization, so 30 is the textbook answer to the problem as stated. Found by the write-up. Accepted. Read the arms as the contrast with `same` and `hub`, not as evidence that a model colludes when told it can.
 - **Under lockstep, whose profit a reply cites can't tell the readings apart.** With the copy locked, the firm's profit is half the pair's, so the rise in replies citing the pair's profit (13 of 20 Haiku and Sonnet replies, against 3 of 20 on `same`) fits either reading. Found by the write-up. Accepted. Touches any claim about lockstep and concern for the pair.
 
+### The checking rival (`check_same`, `hint_same`)
+
+- **Leading the rival and ignoring it both give 60.** With equal costs and linear demand, the Stackelberg leader's output, (a − c)/2, is also the monopoly output of a firm that ignores its rival, so the `leader` focal point is the core's `naive`. Found in a side thread; checked 2026-10-24 ([#42](https://github.com/carver/apart-research-collusion-sprint-2026/issues/42#issuecomment-6387983692)). Accepted: all 53 replies at 60 at two firms in the logs name the rival's reaction or the follower, and a follow-up call asking each of Claude's 30 `check_same` 60s what it expected the other firm to produce and the price to be got 30 units and $40, the leader's numbers, every time (a firm ignoring its rival expects $70). Astra's and GLM's 60s had the keyword check only. Touches "answers lead it at 60" on `check_same`.
+
 ### The goodwill record (`goodwill_<h>_diff`, `onesided_<h>_diff`)
 
 - **The record states 30,** so part of the 30s could be anchoring on the number. Found by the write-up. Accepted. The last-quarter zero argues against anchoring alone.
