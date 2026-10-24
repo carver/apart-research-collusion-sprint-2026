@@ -119,8 +119,12 @@ def lines(table, model="haiku"):
 
 def test_the_agreement_table_counts_the_mirror_believed_beside_the_mirror_true():
     rows = [row("same", v, sample=i) for i, v in enumerate([30, 30.4, 30, 40, 45, None])]
-    premise = {rows[0]["reply"]: True, rows[1]["reply"]: True, rows[3]["reply"]: False}
-    premise |= {rows[4]["reply"]: False}
+    premise = {
+        rows[0]["reply"]: True,
+        rows[1]["reply"]: True,
+        rows[3]["reply"]: False,
+        rows[4]["reply"]: False,
+    }
     # 5 parsed, 3 at the cartel share; 3 of the 10 pairs agree; a cartel reply's rival is at 30 in 2 of 4
     assert lines(report.agreement_table({"criterion": judged(rows, premise)})) == [
         "| criterion | same | haiku | 2 | 5 | 3 | 2/4 | 30 | 50 |"
@@ -206,3 +210,9 @@ def test_the_report_shows_the_pilot_and_the_criterion_log(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "| pilot | same | luna | 2 | 2 | 1 | 0/0 | 0 | 0 |" in out
     assert "| criterion | samemodel | opus | 2 | 2 | 2 | 1/1 | 100 | 100 |" in out
+
+
+def test_the_agreement_table_says_how_many_replies_to_an_older_wording_it_left_out():
+    rows = [row("same", 30), {**row("same", 30, sample=1), "prompt_hash": "0123456789ab"}]
+    table = report.agreement_table({"pilot": judged(rows)})
+    assert table.endswith("\npilot: 1 reply from an older wording left out.\n")

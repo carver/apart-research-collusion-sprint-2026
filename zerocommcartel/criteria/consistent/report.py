@@ -67,16 +67,19 @@ def agreement_table(sources: Mapping[str, Replies]) -> str:
     """Per source, condition (`same`, `samemodel`), model and n, over the parsed replies: how many are at the
     cartel share, how many of the judged ones state the copy premise (the mirror believed), the share of
     pairs of replies that agree (the mirror true), and, given one reply at the cartel share, the chance
-    another is too."""
-    lines = []
+    another is too. A note after it counts each source's replies to an older wording, left out."""
+    lines, notes = [], []
     for source, found in sources.items():
+        if found.stale:
+            replies = "reply" if found.stale == 1 else "replies"
+            notes.append(f"{source}: {found.stale} {replies} from an older wording left out.")
         cells: dict[tuple[str, str, int], list[dict]] = defaultdict(list)
         for r in found.rows:
             if r["condition"] in MIRRORED and r["value"] is not None:
                 cells[(r["condition"], r["model"], r["n"])].append(r)
         keys = sorted(cells, key=lambda c: (MIRRORED.index(c[0]), model_rank(c[1]), c[2]))
         lines += [[source, c, m, str(n), *_agreement_cells(cells[(c, m, n)])] for c, m, n in keys]
-    return markdown(AGREEMENT_HEADER, lines)
+    return markdown(AGREEMENT_HEADER, lines) + "".join(f"\n{note}\n" for note in notes)
 
 
 def main(argv=None):
@@ -85,7 +88,11 @@ def main(argv=None):
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("--log", help="the criterion's log, alone; default logs/consistent/results.jsonl")
+    p.add_argument(
+        "--log",
+        help="the criterion's log, alone; default logs/consistent/results.jsonl, with the baseline rows of "
+        "the other criteria's logs",
+    )
     p.add_argument("--pilot-log", default=str(PILOT_LOG), help="default: logs/pilot/probe-results.jsonl")
     args = p.parse_args(argv)
     sources = {
