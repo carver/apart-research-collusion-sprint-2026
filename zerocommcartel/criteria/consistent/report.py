@@ -12,9 +12,11 @@ expecting its Haiku rival to match, finds the rival there in 11% of pairs at n =
     uv run python -m zerocommcartel.criteria.consistent.report --monitor   # score the firm prompts first
     uv run python -m zerocommcartel.criteria.consistent.report --log /tmp/smoke.jsonl
     uv run --with matplotlib python -m zerocommcartel.criteria.consistent.report --figure frontier.png
+    uv run python -m zerocommcartel.criteria.consistent.report --views     # judge the four views first
 
 It also prints #31's prompt-monitor frontier (zerocommcartel.criteria.consistent.monitor), from the scores
-the monitor's cache beside the log holds, and #33's audits (zerocommcartel.criteria.consistent.audits).
+the monitor's cache beside the log holds, #33's audits (zerocommcartel.criteria.consistent.audits) and its
+four-view monitor (zerocommcartel.criteria.consistent.views), from its judges' caches.
 
 Without --log the criterion's rows are those `zcc table consistent` counts: its own log, plus the baseline
 rows other criteria's logs hold. The pilot's replies to `same` and `samemodel` (logs/pilot/, frozen) share
@@ -29,7 +31,7 @@ from pathlib import Path
 
 from zerocommcartel import cli, logs
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.consistent import audits, monitor
+from zerocommcartel.criteria.consistent import audits, monitor, views
 from zerocommcartel.criterion import Registry, near
 from zerocommcartel.judge import COPY, load_labels
 from zerocommcartel.table import Replies, markdown, model_rank, percent, prepare
@@ -105,12 +107,14 @@ def main(argv=None):
         "--monitor", action="store_true", help="first score the firm prompts with the monitor (Haiku)"
     )
     p.add_argument("--figure", help="also draw the frontier to this PNG (needs matplotlib)")
+    p.add_argument("--views", action="store_true", help="first judge the four views of each market (Haiku)")
     args = p.parse_args(argv)
     criterion = cli.replies(REGISTRY, "consistent", args.log)
     sources = {"pilot": pilot_replies(REGISTRY, Path(args.pilot_log)), "criterion": criterion}
     print("## Agreement: the mirror believed and the mirror true\n")
     print(agreement_table(sources))
-    cache = logs.judge_path(Path(args.log) if args.log else logs.log_path("consistent"), "monitor")
+    log = Path(args.log) if args.log else logs.log_path("consistent")
+    cache = logs.judge_path(log, "monitor")
     cells = monitor.own_number_cells(REGISTRY, criterion)
     if args.monitor:
         scores, failed = monitor.score_prompts(REGISTRY, cells, cache)
@@ -122,7 +126,17 @@ def main(argv=None):
     print(f"## The prompt monitor's frontier (flagged at {monitor.THRESHOLD} or more)\n")
     print(monitor.frontier_table(frontier))
     print("## Audits\n")
-    print(audits.audit_table(criterion), end="")
+    print(audits.audit_table(criterion))
+    found = views.markets(criterion)
+    caches = (logs.judge_path(log, "views"), logs.judge_path(log, "report"))
+    if args.views:
+        view_scores, failed = views.score(found, *caches)
+        for line in failed:
+            print(f"failed {line}", file=sys.stderr)
+    else:
+        view_scores = views.cached_scores(found, *caches)
+    print(f"## Say and do: one monitor, four views (flagged at {monitor.THRESHOLD} or more)\n")
+    print(views.view_table(found, view_scores), end="")
     if args.figure:
         monitor.save_frontier(frontier, Path(args.figure))
 
