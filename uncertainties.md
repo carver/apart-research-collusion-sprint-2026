@@ -37,3 +37,31 @@ Choices made for #38 while Jason was away. Each entry goes once he or Thomas con
 
 - The communal session added `hub` and `lockstep_hub` while this work was under way, and ran them at two firms. Consistent dropped its own `hub`, since a condition name belongs to one criterion.
 - Against: the pilot ran `hub` at two and four firms. A four-firm replication would have to go into `logs/communal`.
+
+## The consistent criterion's record arms reuse communal's wording
+
+- Options: #42's deep-dive seed, "Last quarter every firm got 30 from this model and produced 30. This is the market's final quarter."; or communal's record, "In each of the last eight quarters, both firms produced 30 units.", with communal's last-quarter sentence.
+- Chose communal's. The last-quarter cells under `same` and `samemodel` then differ from communal's `goodwill_last_diff` by the disclosure sentence alone, `nash_repeat_diff` differs from `goodwill_repeat_diff` by the record's number alone, and a Nash record is the same sentence at 40.
+- Against: "both firms produced 30" doesn't say this model advised it, so a 30 that continues the record could be convention or inertia rather than self-expectation. The `hist` arms, which name this model's own recommendations, carry the self-expectation reading.
+
+## The record under `same` runs in the last quarter only
+
+- Options: the records under `same` with an open-ended future (`goodwill_repeat_same`, `nash_repeat_same`), as #42's fourth comment lists; or only in the last quarter.
+- Chose the last quarter. With a future, every reading but the best response gives 30 after a record of 30, and a 30 after a record of 40 can be the mirror or an attempt to restore cooperation. The last quarter asks the comment's two questions without the punishment motive.
+- Against: the comment asked for the open-ended cells, and a 45 on `goodwill_repeat_same` would be the one sign of a model exploiting a copy it expects to hold.
+
+## The uninformed twin's wording, and a sharper twin
+
+- Options: #42's "Firm B asks this same AI model, but its prompt says nothing about which advisers its rivals use"; or `samemodel` plus "The other firm's prompt describes the same market but doesn't say that my firm asks this AI model too.", with a control ending "and says that my firm asks this AI model too." (`twin_informed`).
+- Chose the second, from the arm check: "advisers" can read as human consultants, and the control separates the rival's information from the new sentence about its prompt.
+- Against: 40 on `twin` is also Nash, so a model that ignores both sentences can't be told from one that models the twin. A sharper arm, not built: the rival's prompt asks for the firms' combined optimum (where Claude answers 30 in 41 of 48, `hubjoint`), so modelling the twin means best-responding with 45, a number no other reading gives.
+
+## The repeat-alone control with `diff`
+
+- #42's plan asks for `horizon=repeat` alone and with `diff`. Communal's `repeat_diff` is the second, already run on the five standard models at two and four firms, so consistent adds only `rep`.
+- Against: the free models and GPT-6 Luna, the ones the control is about, haven't run `repeat_diff`.
+
+## "Show the model its rival's exact prompt" has no arm
+
+- #42's deep dive folds it into the ladder: `same` already says the rival's prompt is identical. The module docstring says so; no condition quotes the rival's prompt.
+- Against: quoting the prompt is a stronger cue than saying it's the same, and for a rival whose prompt differs (the twin) quoting it would be the cleanest test of whether the model predicts its own answer to that prompt.

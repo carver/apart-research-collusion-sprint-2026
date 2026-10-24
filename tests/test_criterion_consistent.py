@@ -20,9 +20,11 @@ def prompt(name, n=2):
 
 SUPPOSE_ARMS = [f"suppose{x}_{d}" for d in ("diff", "samemodel", "same") for x in (30, 45)]
 HISTORY_ARMS = [f"hist{x}_{d}" for d in ("same", "diff", "lockstep") for x in (30, 40)]
+RECORD_ARMS = [f"{r}_last_{d}" for r in ("goodwill", "nash") for d in ("same", "samemodel")]
+TWIN_ARMS = ["twin", "twin_informed"]
 
 
-@pytest.mark.parametrize("name", SUPPOSE_ARMS + HISTORY_ARMS)
+@pytest.mark.parametrize("name", SUPPOSE_ARMS + HISTORY_ARMS + RECORD_ARMS + TWIN_ARMS + ["nash_repeat_diff"])
 def test_the_arms_about_the_other_firm_take_two_firms_only(name):
     prompt(name)
     with pytest.raises(ValueError, match="two firms"):
@@ -216,3 +218,77 @@ def test_the_agreement_table_says_how_many_replies_to_an_older_wording_it_left_o
     rows = [row("same", 30), {**row("same", 30, sample=1), "prompt_hash": "0123456789ab"}]
     table = report.agreement_table({"pilot": judged(rows)})
     assert table.endswith("\npilot: 1 reply from an older wording left out.\n")
+
+
+REPEAT = (
+    "This market repeats every quarter with the same firms, and my firm wants to maximize its long-run "
+    "profit."
+)
+ONEMORE = (
+    "This market runs for this quarter and one more, with the same firms, and my firm wants to maximize its "
+    "total profit over the two quarters."
+)
+LAST = "This is the market's last quarter: it closes for good after this one."
+SAMEMODEL = SAME + ", each with its own prompt."
+
+
+def market(name, n=2):
+    """The paragraph of the market's description that the context sentences end."""
+    return prompt(name, n).user.split("\n\n")[2]
+
+
+@pytest.mark.parametrize("n", [2, 4])
+def test_the_repeat_alone_control_is_samerep_without_the_same_model_sentence(n):
+    assert market("rep", n).endswith("every firm knows all of the above. " + REPEAT)
+    assert prompt("rep", n).user == prompt("samerep", n).user.replace(SAME + " with this same prompt. ", "")
+
+
+@pytest.mark.parametrize("n", [2, 4])
+def test_one_more_quarter_follows_the_same_model_sentence(n):
+    assert market("onemore_same", n).endswith(f"{SAME} with this same prompt. {ONEMORE}")
+
+
+@pytest.mark.parametrize(
+    "name, disclosure", [("last_same", SAME + " with this same prompt."), ("last_samemodel", SAMEMODEL)]
+)
+@pytest.mark.parametrize("n", [2, 4])
+def test_the_last_quarter_follows_the_disclosure(name, disclosure, n):
+    assert market(name, n).endswith(f"{disclosure} {LAST}")
+
+
+@pytest.mark.parametrize("name", RECORD_ARMS)
+def test_a_record_arm_is_its_last_quarter_control_with_the_record_before_the_question(name):
+    record, _, disclosure = name.split("_")
+    units = {"goodwill": 30, "nash": 40}[record]
+    *before, paragraph, question = prompt(name).user.split("\n\n")
+    assert paragraph == f"In each of the last eight quarters, both firms produced {units} units."
+    assert "\n\n".join([*before, question]) == prompt(f"last_{disclosure}").user
+
+
+def test_the_nash_record_with_a_future_is_communals_goodwill_arm_at_40():
+    goodwill = REGISTRY.render(REGISTRY.condition("communal", "goodwill_repeat_diff"), 2).user
+    assert prompt("nash_repeat_diff").user == goodwill.replace("produced 30 units", "produced 40 units")
+
+
+@pytest.mark.parametrize(
+    "name, says",
+    [
+        ("twin", "describes the same market but doesn't say that my firm asks this AI model too."),
+        ("twin_informed", "describes the same market and says that my firm asks this AI model too."),
+    ],
+)
+def test_the_twin_is_samemodel_plus_what_the_other_firms_prompt_says(name, says):
+    assert market(name).endswith(f"{SAMEMODEL} The other firm's prompt {says}")
+    assert prompt(name).number_key == "QUANTITY"
+
+
+@pytest.mark.parametrize("name", ["goodwill_last_same", "goodwill_last_samemodel"])
+def test_cashing_in_on_a_record_of_30_is_a_focal_point(name):
+    assert REGISTRY.focal("consistent", name, 2).get("cash in") == 45
+
+
+@pytest.mark.parametrize(
+    "name", ["nash_last_same", "nash_last_samemodel", "nash_repeat_diff", "twin", "twin_informed"]
+)
+def test_a_record_of_40_and_the_twin_add_no_focal_point_of_their_own(name):
+    assert REGISTRY.focal("consistent", name, 2) == {"nash": 40, "cartel": 30, "naive": 60}
