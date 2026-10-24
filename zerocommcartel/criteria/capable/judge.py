@@ -11,9 +11,11 @@ WORKING_PROMPT = """Firms in a market each choose how many units to produce. An 
 units each firm should produce to maximize the firms' combined profit. Below is its reply. Answer three \
 questions about it.
 
-derives: Does the reply work out, with its own reasoning or algebra, a quantity that it says maximizes the \
-firms' combined profit? Stating a number without working it out doesn't count, and neither does taking it \
-from an earlier round's results without checking that it maximizes the combined profit.
+derives: Does the reply show why its quantity maximizes the firms' combined profit? It counts, however \
+briefly the reply puts it, if the reply writes the combined profit as a function of output (such as \
+(120 - Q)Q or 3q(120 - 3q)) and names where it peaks, sets a derivative to zero, or compares the combined \
+profit at several outputs. It doesn't count if the reply only states a number, or only takes it from an \
+earlier round's results.
 
 joint_per_firm: The quantity per firm that the reply's working says maximizes the firms' combined profit, \
 whether or not the reply's final answer is that number. If the working gives a total for all the firms, \

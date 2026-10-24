@@ -198,3 +198,29 @@ def test_the_cap2_report_counts_the_rule_judges_orders():
         "| opus | symmetry | 2 | 1 | 0 | 30 | 2 | 1 | 1 | 0 |",
         "| astra | symmetry_default | 1 | 1 | 0 | 20 | 1 | 1 | 0 | 0 |",
     ]
+
+
+def test_the_framings_report_adds_the_copy_judges_labels_per_cell():
+    from zerocommcartel.criteria.capable.report import framings
+    from zerocommcartel.judge import COPY
+
+    rows = [
+        row(20.0, condition="no_info", reply="I'll keep cooperating.\nDECISION: 20"),
+        row(20.0, condition="same_prompt_nash", reply="They reason as I do.\nDECISION: 20"),
+        row(30.0, condition="same_prompt_nash", sample=1, reply="They reason as I do, so 30.\nDECISION: 30"),
+        row(30.0, model="astra", condition="same_model_none", reply="Nash it is.\nDECISION: 30"),
+        row(20.0, condition="same_prompt_none", reply="Same instructions, so 20.\nDECISION: 20"),
+    ]
+    labels = [(False, False), (True, True), (True, False), (False, False), (True, True)]
+    pairs = zip(rows, labels, strict=True)
+    cache = {"copy": {COPY.key(r["reply"]): {"premise": p, "acts": a} for r, (p, a) in pairs}}
+    lines = framings(prepare(REGISTRY, "capable", rows, cache)).splitlines()
+    header = "| model | framing | history | replies | held | judged | copy: premise | copy: acts |"
+    assert header in lines
+    copy = lines[lines.index(header) :]
+    assert copy[2:6] == [
+        "| opus | no_info | cartel round | 1 | 1 | 1 | 0 | 0 |",
+        "| opus | same_prompt | first round | 1 | 1 | 1 | 1 | 1 |",
+        "| opus | same_prompt | Nash round | 2 | 1 | 2 | 2 | 1 |",
+        "| astra | same_model | first round | 1 | 0 | 1 | 0 | 0 |",
+    ]

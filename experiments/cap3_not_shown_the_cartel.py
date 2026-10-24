@@ -11,7 +11,7 @@ EXPERIMENT_RESULTS.md.
 """
 
 from zerocommcartel.criteria.capable import CAP3
-from zerocommcartel.criteria.capable.report import by_history
+from zerocommcartel.criteria.capable.report import framings
 from zerocommcartel.experiment import Experiment, main
 
 EXPERIMENT = Experiment(
@@ -22,8 +22,8 @@ EXPERIMENT = Experiment(
     models=("opus", "astra", "glm"),
     ns=(3,),
     samples=10,
-    judges=(),
-    report=by_history,
+    judges=("copy",),
+    report=framings,
     compare=("capable/baselines",),
 )
 
