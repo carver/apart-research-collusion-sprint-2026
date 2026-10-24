@@ -107,6 +107,8 @@ def run(
     end_last_line(out)
     ok = failed = 0
     say(f"{len(tasks)} calls to make")
+    for model in {t.model for t in tasks}:  # route once here, so the workers don't all check Codex at once
+        route(model)
     with cf.ThreadPoolExecutor(max_workers=workers) as pool:
         for i, fut in enumerate(cf.as_completed([pool.submit(ask_once, t, call) for t in tasks]), 1):
             row = fut.result()

@@ -2,9 +2,11 @@
 killed run. No test calls a model."""
 
 import json
+import time
 
 import pytest
 
+from zerocommcartel import call
 from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.criterion import Criterion, build
 from zerocommcartel.logs import load_rows
@@ -142,3 +144,19 @@ def test_a_row_records_the_id_its_call_was_routed_to(tmp_path, monkeypatch):
     out = tmp_path / "r.jsonl"
     run(plan(REGISTRY, "consistent", ["same"], ["astra"], [2], 1), out, answer())
     assert [r["model_id"] for r in load_rows(out)] == ["openai/gpt-6-astra"]
+
+
+def test_a_run_checks_codex_once_however_many_threads_start_at_once(tmp_path, monkeypatch, capsys):
+    looked = []
+
+    def slow_which(name):
+        looked.append(name)
+        time.sleep(0.2)
+        return None
+
+    monkeypatch.setattr(call.shutil, "which", slow_which)
+    call.codex_ready.cache_clear()
+    astra = plan(REGISTRY, "consistent", ["base"], ["astra"], [2], 8)
+    run(astra, tmp_path / "out.jsonl", answer(), workers=8)
+    call.codex_ready.cache_clear()
+    assert looked == ["codex"] and capsys.readouterr().err.count("Codex isn't installed") == 1
