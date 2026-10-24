@@ -16,7 +16,7 @@ Run logs (`logs/`) go in a commit of their own, with nothing else in it. Hold th
 
 ## Several sessions
 
-Several agent sessions often work in this repo at once, so `main` moves under you: another session may rename a module, or rebase its held-back log commits onto new pushes. Before starting a change, `git fetch` and read what's new on `main`, and tell the other live sessions which files you'll touch (in Claude Code, `ListAgents`, then `SendMessage`).
+Several agent sessions often work in this repo at once, so `main` can moves under you: another session may merge its changes while you are mid-work. Before starting a change, `git fetch` and read what's new on `main`. When you merge into main, tell the other live sessions which files changed (in Claude Code, `ListAgents`, then `SendMessage`).
 
 ## The paper
 
