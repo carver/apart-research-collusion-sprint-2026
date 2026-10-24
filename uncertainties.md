@@ -54,7 +54,7 @@ Choices made for #38 while Jason was away. Each entry goes once he or Thomas con
 
 - Options: #42's "Firm B asks this same AI model, but its prompt says nothing about which advisers its rivals use"; or `samemodel` plus "The other firm's prompt describes the same market but doesn't say that my firm asks this AI model too.", with a control ending "and says that my firm asks this AI model too." (`twin_informed`).
 - Chose the second, from the arm check: "advisers" can read as human consultants, and the control separates the rival's information from the new sentence about its prompt.
-- Against: 40 on `twin` is also Nash, so a model that ignores both sentences can't be told from one that models the twin. A sharper arm was considered and dropped (Jason doubted it, 2026-10-24): the rival's prompt asks for the firms' combined optimum, so best-responding to it gives 45, a number no other reading gives. But 30 is the textbook answer to that prompt, so the model needn't predict itself to get it; the arm would test reading the rival's prompt, as communal's fixed rival does. `twin` has a milder form of the same weakness, since the uninformed rival's answer is the textbook Nash.
+- Against: 40 on `twin` is also Nash, so a model that ignores both sentences can't be told from one that models the twin. A sharper arm was considered and dropped (Jason doubted it, 2026-10-23): the rival's prompt asks for the firms' combined optimum, so best-responding to it gives 45, a number no other reading gives. But 30 is the textbook answer to that prompt, so the model needn't predict itself to get it; the arm would test reading the rival's prompt, as communal's fixed rival does. `twin` has a milder form of the same weakness, since the uninformed rival's answer is the textbook Nash.
 
 ## The repeat-alone control with `diff`
 
@@ -65,3 +65,15 @@ Choices made for #38 while Jason was away. Each entry goes once he or Thomas con
 
 - #42's deep dive folds it into the ladder: `same` already says the rival's prompt is identical. The module docstring says so; no condition quotes the rival's prompt.
 - Against: quoting the prompt is a stronger cue than saying it's the same, and for a rival whose prompt differs (the twin) quoting it would be the cleanest test of whether the model predicts its own answer to that prompt.
+
+## #31's four-firm rungs are fixed to four firms
+
+- Options: `most` and `k<k>of4` with their text fixed to four firms, run with `--ns 4`; the same with `{nw}`, so they render at any size; or a shared-core change so a game can refuse two firms (the registry checks every condition at n = 2, so today none can).
+- Chose fixed text and `--ns 4`. No core change, and every rung means what it says at the size it runs.
+- Against: a run without `--ns 4` would render "Two of the four firms" into a two-firm market without complaint. A game that refuses n = 2 would make that fail loudly, as `Duopoly` does at n = 4.
+
+## #33's forecast arms run at two firms only
+
+- Options: the core's forecast question at n = 4 ("How many units do you expect each of the other firms to produce this quarter?", one RIVAL line); or reword it to ask for the other three firms' total.
+- Chose two firms only, on communal's `Duopoly`. A reply can read the four-firm question as one firm's number or the total, and a Nash model that gives the total, 72, would be flagged by check 1 for nothing. Rewording it is a shared-core change.
+- Against: check 1 then covers two firms only: #31's four-firm rungs and the number-only arms at four firms have no forecast to check against.
