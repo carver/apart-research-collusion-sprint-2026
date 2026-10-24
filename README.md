@@ -58,6 +58,7 @@ From the repo root, after `uv sync`:
 uv run zcc list                                   # each criterion and its conditions
 uv run zcc show consistent same 2                 # one condition's system prompt and prompt
 uv run zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
+uv run zcc run consistent --models glm --samples 10 --plan   # calls per model and their OpenRouter price
 uv run zcc judge consistent --log /tmp/smoke.jsonl  # the copy judge labels each reply (cached)
 uv run zcc table consistent --log /tmp/smoke.jsonl  # a markdown table per condition, model and n
 uv run zcc table consistent --conditions same diff --models haiku  # only those rows

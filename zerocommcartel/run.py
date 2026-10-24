@@ -12,9 +12,11 @@ import fcntl
 import json
 import os
 import time
+from collections import Counter
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from statistics import mean
 
 from zerocommcartel.answer import parse
 from zerocommcartel.call import MODELS, NAMES, complete, route
@@ -69,6 +71,54 @@ def plan(
         for (name, n, model), prompt in prompts.items()
     ]
     return [t for t in tasks if t.key not in done]
+
+
+@dataclass(frozen=True)
+class Estimate:
+    """What a run's calls to one model would cost."""
+
+    model: str
+    backend: str  # where route sends its calls
+    calls: int
+    cost: (
+        float | None
+    )  # dollars for all its calls; 0 on a subscription or a free model, None with nothing to go on
+    basis: str  # how the cost was reached
+
+
+def estimate(tasks: Sequence[Task], rows: Iterable[dict]) -> list[Estimate]:
+    """Per model the tasks ask, in MODELS order: its calls and what they would cost. Claude and Codex models
+    run on subscriptions and `:free` OpenRouter ids cost nothing. A paid OpenRouter model's calls on each
+    condition are priced at the mean `cost` of its earlier calls in `rows` on that condition, since its price
+    per call moves with how long an arm's replies run (GLM-5.3's ran four times higher on #42's arms than on
+    #41's). A condition it hasn't run is priced at the model's mean over every condition, and the basis
+    names it. The mean, not the median, because a run's cost is a sum, and a few long replies weigh in it."""
+    prices: dict[str, dict[str, list[float]]] = {}
+    for row in rows:
+        if row.get("cost") is not None:
+            prices.setdefault(row["model"], {}).setdefault(row["condition"], []).append(row["cost"])
+    found = []
+    for model in sorted({t.model for t in tasks}, key=list(MODELS).index):
+        calls = Counter(t.name for t in tasks if t.model == model)
+        backend, model_id = route(model)
+        if backend != "openrouter" or model_id.endswith(":free"):
+            basis = "subscription" if backend != "openrouter" else "free model"
+            found.append(Estimate(model, backend, calls.total(), 0.0, basis))
+            continue
+        seen = prices.get(model, {})
+        everywhere = [cost for costs in seen.values() for cost in costs]
+        if not everywhere:
+            found.append(
+                Estimate(model, backend, calls.total(), None, "no price data: pilot one sample first")
+            )
+            continue
+        unpriced = [condition for condition in calls if condition not in seen]
+        cost = sum(n * mean(seen.get(condition) or everywhere) for condition, n in calls.items())
+        basis = "from earlier calls on each condition"
+        if unpriced:
+            basis += f" but {', '.join(unpriced)}, priced at {model}'s mean elsewhere"
+        found.append(Estimate(model, backend, calls.total(), cost, basis))
+    return found
 
 
 def ask_once(task: Task, call: Callable) -> dict:

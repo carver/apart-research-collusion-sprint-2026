@@ -13,7 +13,7 @@ from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.criterion import Criterion, build
 from zerocommcartel.logs import load_rows
 from zerocommcartel.prompt import Condition, Level, Slot
-from zerocommcartel.run import done_keys, plan, run
+from zerocommcartel.run import Estimate, done_keys, estimate, plan, run
 
 
 def answer(reply="QUANTITY: 30"):
@@ -190,3 +190,39 @@ def test_a_row_starts_its_own_line_after_another_run_left_one_cut_short(tmp_path
 
     run(tasks(out, samples=1, conditions=("base",)), out, killed_elsewhere)
     assert [r["value"] for r in load_rows(out)] == [30.0]
+
+
+def priced(model, condition, cost):
+    return {"model": model, "condition": condition, "cost": cost}
+
+
+def test_a_paid_model_is_priced_condition_by_condition_at_the_mean_of_its_earlier_calls_there():
+    todo = plan(REGISTRY, "consistent", ["base", "same"], ["glm"], [2], 3)
+    rows = [priced("glm", "base", c) for c in (0.002, 0.004, 0.012)] + [priced("glm", "same", 0.001)]
+    rows += [priced("haiku", "base", None), {"model": "glm", "condition": "same", "cost": None}]
+    (found,) = estimate(todo, rows)
+    assert (found.model, found.backend, found.calls) == ("glm", "openrouter", 6)
+    assert found.cost == pytest.approx(3 * 0.006 + 3 * 0.001)
+    assert found.basis == "from earlier calls on each condition"
+
+
+def test_a_condition_with_no_price_of_its_own_is_priced_at_the_models_mean_elsewhere_and_says_so():
+    todo = plan(REGISTRY, "consistent", ["base", "same"], ["glm"], [2], 1)
+    (found,) = estimate(todo, [priced("glm", "base", 0.002), priced("glm", "rep", 0.01)])
+    assert found.cost == pytest.approx(0.002 + 0.006)
+    assert found.basis == "from earlier calls on each condition but same, priced at glm's mean elsewhere"
+
+
+def test_a_paid_model_with_no_earlier_calls_has_no_price():
+    todo = plan(REGISTRY, "consistent", ["base"], ["glm"], [2], 1)
+    assert estimate(todo, []) == [
+        Estimate("glm", "openrouter", 1, None, "no price data: pilot one sample first")
+    ]
+
+
+def test_subscription_and_free_models_cost_nothing():
+    todo = plan(REGISTRY, "consistent", ["base"], ["haiku", "nemotron"], [2], 2)
+    assert estimate(todo, [priced("nemotron", "base", 0.5)]) == [
+        Estimate("haiku", "claude", 2, 0.0, "subscription"),
+        Estimate("nemotron", "openrouter", 2, 0.0, "free model"),
+    ]

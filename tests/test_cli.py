@@ -374,3 +374,19 @@ def test_grid_refuses_a_focal_point_no_reply_has_and_names_the_ones_they_do(logs
         zcc("grid", "consistent", "--conditions", "same", "--at", "carel")
     message = str(e.value.code)
     assert "carel" in message and "cartel" in message and "nash" in message
+
+
+@pytest.mark.parametrize("out", [None, "smoke.jsonl"])
+def test_run_plan_prices_the_calls_from_every_log_and_makes_none(logs_dir, claude, capsys, monkeypatch, out):
+    monkeypatch.setattr("zerocommcartel.call.call_openrouter", lambda *a: pytest.fail("called OpenRouter"))
+    earlier = logs_dir / "communal" / "results.jsonl"
+    earlier.parent.mkdir(parents=True)
+    earlier.write_text(json.dumps({"model": "glm", "condition": "base", "cost": 0.005}) + "\n")
+    capsys.readouterr()
+    plan = ["--conditions", "base", "--models", "haiku", "glm", "--ns", "2", "--samples", "4", "--plan"]
+    zcc("run", "consistent", *plan, *(["--out", logs_dir / out] if out else []))
+    printed = capsys.readouterr().out
+    assert claude == [] and earlier.read_text().count("\n") == 1 and not (logs_dir / "consistent").exists()
+    assert "8 calls to make" in printed and "subscription" in printed
+    assert "~$0.02 ($0.0050 a call), from earlier calls on each condition" in printed
+    assert "OpenRouter: ~$0.02" in printed

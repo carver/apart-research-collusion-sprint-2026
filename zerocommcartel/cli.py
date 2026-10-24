@@ -33,7 +33,7 @@ from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.criterion import BASELINE, Registry
 from zerocommcartel.judge import Judge, label, load_labels
 from zerocommcartel.prompt import MODEL
-from zerocommcartel.run import done_keys, plan, run
+from zerocommcartel.run import Task, done_keys, estimate, plan, run
 from zerocommcartel.table import Replies, grid, prepare, synth, table
 
 NS = [2, 4]  # the market sizes run and hashes cover by default
@@ -165,7 +165,25 @@ def cmd_run(registry: Registry, args):
         )
     except ValueError as e:
         sys.exit(f"no calls made: {e}")
+    if args.plan:
+        every = sources(registry, args.criterion, None)  # prices come from every log, --out or not
+        paths = dict.fromkeys([*every.shared, *every.own, src.log])
+        print(plan_text(tasks, [row for path in paths for row in logs.load_rows(path)]))
+        return
     run(tasks, src.log, workers=args.workers)
+
+
+def plan_text(tasks: list[Task], rows: list[dict]) -> str:
+    """The calls a run would make per model, their backend and their price, then the OpenRouter total."""
+    found = estimate(tasks, rows)
+    lines = [f"{len(tasks)} calls to make; --plan makes none"]
+    for e in found:
+        price = f"~${e.cost:.2f} (${e.cost / e.calls:.4f} a call), {e.basis}" if e.cost else e.basis
+        lines.append(f"  {e.model:<9} {e.backend:<11} {e.calls:>5} calls  {price}")
+    total = sum(e.cost for e in found if e.cost)
+    unpriced = [e.model for e in found if e.cost is None]
+    lines.append(f"OpenRouter: ~${total:.2f}" + (f", not counting {', '.join(unpriced)}" if unpriced else ""))
+    return "\n".join(lines)
 
 
 def cmd_judge(registry: Registry, args):
@@ -318,6 +336,11 @@ def main(argv=None, registry: Registry = REGISTRY):
     s.add_argument("--samples", type=int, default=3)
     s.add_argument("--workers", type=int, default=40)
     s.add_argument("--out", help="default: logs/<criterion>/results.jsonl")
+    s.add_argument(
+        "--plan",
+        action="store_true",
+        help="print the calls per model and their OpenRouter price, and call nothing",
+    )
     s = command("judge", "label the criterion's replies with judges (cached beside the log)")
     s.add_argument("criterion", choices=criteria)
     s.add_argument("--judges", nargs="+", default=["copy"], choices=list(registry.judges))
