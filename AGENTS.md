@@ -12,7 +12,11 @@ When Jason runs `/upskill`, also list every global tool the session called that 
 
 Commit straight to `main` and push; no branches or PRs. This holds for every collaborator. In a `/build`, the commits stay local until its review and refactor are done, then go up together.
 
-Run logs (`logs/`) go in a commit of their own, with nothing else in it. Hold that commit back until Jason or Thomas have reviewed the logs, and tell him it's waiting. Commits made after it wait too; to push them sooner, move them below it and push up to the last of them (`git push origin <sha>:main`). Until a log commit is pushed, name it by its subject, not its SHA: moving commits below it changes the SHA.
+Run logs (`logs/`) go in a commit of their own, with nothing else in it. Hold that commit back until Jason or Thomas have reviewed the logs, and tell him it's waiting. Commits made after it wait too; to push them sooner, move them below it and push up to the last of them (`git push origin <sha>:main`). Until a log commit is pushed, name it by its subject, not its SHA: moving commits below it changes the SHA. Keep one held-back log commit per criterion: fold each later run into it with an autosquash rebase, and add the run to the list in its message (its arms, the number of calls, and the code commit it ran on).
+
+## Several sessions
+
+Several agent sessions often work in this repo at once, so `main` moves under you: another session may rename a module, or rebase its held-back log commits onto new pushes. Before starting a change, `git fetch` and read what's new on `main`, and tell the other live sessions which files you'll touch (in Claude Code, `ListAgents`, then `SendMessage`).
 
 ## Checks
 
