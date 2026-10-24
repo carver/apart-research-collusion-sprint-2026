@@ -115,7 +115,16 @@ def markdown(entries: dict[str, dict]) -> str:
         source = entry["source"]
         origin = f"{source['module']}.{source['function']}" + "".join(f" {log}" for log in source["logs"])
         lines.append(f"| {key} | {entry['kind']} | {display(entry)} | {entry['how']} | {origin} |")
+    for key, entry in sorted(entries.items()):
+        if entry["kind"] == "table":
+            lines += ["", f"## {key}", "", _row(entry["header"]), "|---" * len(entry["header"]) + "|"]
+            lines += [_row(row) for row in entry["rows"]]
     return "\n".join(lines) + "\n"
+
+
+def _row(cells: list[str]) -> str:
+    """A markdown table row, with a | or a line break inside a cell escaped so it can't split the row."""
+    return "| " + " | ".join(cell.replace("|", "\\|").replace("\n", " ") for cell in cells) + " |"
 
 
 def stamp(repo: Repo | None) -> str:

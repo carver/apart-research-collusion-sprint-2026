@@ -24,7 +24,7 @@ Write one sentence per line, so diffs and merges go sentence by sentence. Never 
 | `#data-text("pilot.prompt.same.n2")` | the text, verbatim | prompts in the appendix |
 | `#todo[...]` | red TODO | anything still to write |
 
-`build/numbers.md` lists every key with its value, how it was computed and the logs it came from.
+`build/numbers.md` lists every key with its value, how it was computed and the logs it came from, then each table's rows.
 
 An interval belongs to one cell: replies to one model and one prompt, so one condition and market size. A count pooled across cells, like README's three models over two market sizes, has no interval, and `#ci` on it shows a red marker. Its replies come from different distributions, so a Wilson interval over them would be too narrow.
 

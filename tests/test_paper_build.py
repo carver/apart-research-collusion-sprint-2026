@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from paper.build import FINAL_NAME, BuildError, Problem, build
+from paper.build import FINAL_NAME, BuildError, Problem, build, markdown
 from paper.checks import probe_url
 
 PAPER = Path(__file__).resolve().parent.parent / "paper"
@@ -258,6 +258,19 @@ def test_a_final_build_refuses_uncommitted_changes_and_says_what_moved(repo):
     assert "dirty" in checks(report)
     assert "demo.same: 5/10 → 6/12" in report.changed
     assert not (paper_dir / f"{FINAL_NAME}.pdf").exists()
+
+
+def test_numbers_md_shows_each_tables_rows_with_a_pipe_in_a_cell_escaped():
+    entry = {
+        "kind": "table",
+        "header": ["arm", "Opus"],
+        "rows": [["same", "10/10"], ["a|b", "0/10"]],
+        "how": "answers at the cartel share",
+        "source": {"module": "paper.data.demo", "function": "demo", "logs": []},
+    }
+    out = markdown({"demo-table": entry})
+    assert "| demo-table | table | 2 rows |" in out
+    assert "## demo-table\n\n| arm | Opus |\n|---|---|\n| same | 10/10 |\n| a\\|b | 0/10 |\n" in out
 
 
 def test_changes_count_from_the_last_build_that_compiled(tmp_path):
