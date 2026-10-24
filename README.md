@@ -14,7 +14,7 @@ The pilot changes one sentence of the firm's prompt at a time. One of them is "E
 
 Some pilot code was copied into `zerocommcartel/` at the start of the sprint, and those parts are preexisting too. Commit 22a78a8 copied the model callers, the answer pattern, the log readers, the copy-premise judge and its prompt, the mention patterns, two table helpers and the prompt sentences verbatim. `game.py` reproduces the pilot's market text and questions, and a test checks that the pilot's prompts come out byte for byte. Each module's docstring says which of its parts came from the pilot, and `git log` shows every change made to them since.
 
-The rest of the code here when the sprint started is preexisting too: the pilot's tests and the shared tools in `bin/`, `lib/` and `.claude/skills/`. `git log` dates every later change.
+The rest of the code here when the sprint started is preexisting too: the pilot's tests and the shared tools in `bin/`, `lib/` and `.claude/skills/`. So is the report's Typst template, `paper/apart.typ`, copied on 2026-10-23 from Jason's earlier run (written 2026-10-21 and 22) and then brought up to the live template. `git log` dates every later change.
 
 What it found, Claude Haiku, Sonnet and Opus 5.5 pooled, two and four firms (cartel-share answers out of replies):
 
@@ -71,6 +71,8 @@ Without `--out` (`--log` for `judge` and `table`), each command uses `logs/<crit
 
 The frozen pilot's scripts still run as before (`python3 -I pilot/probe.py -h`, `python3 -I pilot/analyze.py`).
 
+The report is `paper/paper.typ`. `bin/build-paper` fills in its numbers, tables and figures from the logs, compiles it to `paper/build/DRAFT-paper.pdf` and checks it against the sprint's rules; `paper/README.md` says how to write it.
+
 Tests make no model calls:
 
 ```bash
@@ -87,6 +89,7 @@ logs/<criterion>/         a criterion's replies (results.jsonl) and its judges' 
 pilot/                    frozen: the probe, the analysis and copy-premise judge, benchmarks, power analysis
                           (BRIEF-judge.md is the judge's design; judge-gold.jsonl its hand-labelled gold set)
 logs/pilot/               frozen: the pilot's data (probe-results.jsonl, judge-copy.jsonl, probe-tables.md, run-*.log)
+paper/                    the report (paper.typ), its data sources and its build (bin/build-paper; paper/README.md)
 tests/                    tests of zerocommcartel/, and of pilot/ (test_pilot_*, frozen), which they load by path
 bin/, lib/                shared tools (see AGENTS.md); bin/pilot-lock keeps the pilot frozen
 .claude/skills            sprint-paper (a stage-by-stage workflow from rubric to report) and upskill

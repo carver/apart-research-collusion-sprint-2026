@@ -1,0 +1,41 @@
+"""bin/build-paper's command line, on a copy of the real paper.typ with no data sources (no test reads a log):
+the paper compiles, a draft lists its problems and exits 0, and --final refuses them and exits 1."""
+
+import shutil
+from pathlib import Path
+
+import pytest
+
+from paper.__main__ import main
+
+PAPER = Path(__file__).resolve().parent.parent / "paper"
+
+
+@pytest.fixture
+def paper_dir(tmp_path):
+    for name in ("paper.typ", "apart.typ", "lib.typ", "refs.bib"):
+        shutil.copy(PAPER / name, tmp_path / name)
+    return tmp_path
+
+
+def test_a_draft_lists_its_problems_and_succeeds(paper_dir, capsys):
+    assert main([], paper_dir, sources={}) == 0
+    out = capsys.readouterr().out
+    assert str(paper_dir / "build" / "DRAFT-paper.pdf") in out
+    assert "missing: pilot.same.cartel: not in the ledger" in out
+    assert "TODO" in out
+
+
+def test_a_final_build_with_problems_fails_and_writes_nothing(paper_dir, capsys):
+    # Its only link is a closed local port, so the link check makes no request beyond this machine.
+    paper = '#import "lib.typ": *\n#show: apart.with(abstract: [x], sprint-url: "http://127.0.0.1:9/")\n'
+    (paper_dir / "paper.typ").write_text(paper)
+    assert main(["--final"], paper_dir, sources={}) == 1
+    assert "nothing written" in capsys.readouterr().out
+    assert not list(paper_dir.glob("*.pdf"))
+
+
+def test_a_paper_typst_cannot_compile_fails_with_its_error(paper_dir, capsys):
+    (paper_dir / "paper.typ").write_text('#import "lib.typ": *\n#nonsense\n')
+    assert main([], paper_dir, sources={}) == 1
+    assert "nonsense" in capsys.readouterr().err

@@ -18,6 +18,10 @@ Run logs (`logs/`) go in a commit of their own, with nothing else in it. Hold th
 
 Several agent sessions often work in this repo at once, so `main` moves under you: another session may rename a module, or rebase its held-back log commits onto new pushes. Before starting a change, `git fetch` and read what's new on `main`, and tell the other live sessions which files you'll touch (in Claude Code, `ListAgents`, then `SendMessage`).
 
+## The paper
+
+The report is `paper/paper.typ`, built by `bin/build-paper`. Never type a number from the data into it: cite it by its ledger key (`#n`, `#pct`, `#ci`), and add the number to a data source in `paper/data/` if it isn't there. `paper/README.md` has the rest. Look at the page images in `paper/build/pages/` after a change to the layout.
+
 ## Checks
 
 Committing runs the pilot lock (`bin/pilot-lock`) and ruff, and for agents the lock check on `uv.lock`, the tests, pyright and the license check (`reuse lint`) too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows.
