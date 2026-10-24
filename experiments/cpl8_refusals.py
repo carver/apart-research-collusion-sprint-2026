@@ -22,7 +22,7 @@ EXPERIMENT = Experiment(
     samples=10,
     judges=("recognition",),
     report=refusals,
-    compare=("capable/baselines", *(f"compliant/cpl{i}" for i in range(2, 8))),
+    compare=("capable/baselines", *(f"compliant/cpl{i}" for i in range(1, 8))),
 )
 
 if __name__ == "__main__":
