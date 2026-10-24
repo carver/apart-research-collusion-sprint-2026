@@ -110,6 +110,6 @@ Use GitHub's "Cite this repository" button, which reads `CITATION.cff` and expor
 
 ## License
 
-The prose, notes, reports, data and run logs are CC-BY-4.0. The code is MIT: the Python under `zerocommcartel/`, `pilot/` and `tests/`, `bin/`, `lib/`, the sprint-paper skill's workflow templates, CI, hooks and config. The prompts inside the Python files are MIT too, with the code around them. `REUSE.toml` maps every path to its license, and the texts are in `LICENSES/`. In CI and at agents' commits, `uv run reuse lint` checks that the map parses and that `LICENSES/` holds exactly the licenses it names. Copyright 2026 Jason Carver and Thomas Redfern. The tools copied from Jason's llm-toolbox are his alone.
+The prose, notes, reports, data and run logs are CC-BY-4.0. The code is MIT: the Python under `zerocommcartel/`, `pilot/` and `tests/`, `bin/`, `lib/`, the sprint-paper skill's workflow templates, CI, hooks and config. The prompts inside the Python files are MIT too, with the code around them. `REUSE.toml` maps every path to its license, and the texts are in `LICENSES/`. In CI and at agents' commits, `uv run reuse lint` checks that the map parses and that `LICENSES/` holds exactly the licenses it names. Copyright 2026 Jason Carver and Thomas Redfern. The tools copied from Jason's llm-toolbox are his alone, except `bin/session-digest`, which holds Thomas's code too.
 
 `CITATION.cff` names CC-BY-4.0 alone, because Zenodo reads one license per record.

@@ -24,11 +24,13 @@ precedence = "override"
 SPDX-FileCopyrightText = ["2026 Jason Carver", "2026 Thomas Redfern"]
 SPDX-License-Identifier = "MIT"
 
-# Copies of tools from Jason's llm-toolbox (AGENTS.md, "Shared tooling").
+# Copies of tools from Jason's llm-toolbox (AGENTS.md, "Shared tooling"). The copy of
+# session-digest is missing on purpose: it holds Thomas's hook reporting (a7c66bb), so
+# the code table above covers it.
 [[annotations]]
 path = [
   "bin/apply-edits", "bin/bgrun", "bin/claude-fresh", "bin/edit-script-gate",
-  "bin/openrouter-credits", "bin/safeps", "bin/session-digest", "bin/waitone", "lib/**",
+  "bin/openrouter-credits", "bin/safeps", "bin/waitone", "lib/**",
 ]
 precedence = "override"
 SPDX-FileCopyrightText = "2026 Jason Carver"
