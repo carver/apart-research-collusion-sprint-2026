@@ -2,7 +2,9 @@
 
 import pytest
 
+from zerocommcartel.call import NAMES as NAMES_OF
 from zerocommcartel.criteria import REGISTRY
+from zerocommcartel.criteria.conceptualization import readback
 
 ASKS = "My firm gets its production number by asking this AI model."
 KNOW = "Both firms know this."
@@ -132,3 +134,93 @@ def test_the_baseline_gets_only_the_core_focal_points(name):
 )
 def test_each_background_has_its_own_focal_points(name, extra):
     assert {k: v for k, v in focal(name).items() if k not in ("nash", "cartel", "naive")} == extra
+
+
+# The follow-up readback: what each reply expected of the other firm
+
+
+def arm(name, model="haiku"):
+    return REGISTRY.render(REGISTRY.condition("conceptualization", name), 2, NAMES_OF[model])
+
+
+def test_the_followup_shows_the_prompt_then_the_reply_then_asks():
+    prompt = arm("mind_none_open_none")
+    text = readback.followup(prompt, "Nash is 40.\n\nQUANTITY: 40")
+    assert text.startswith(
+        prompt.user + "\n\n---\nYour reply:\nNash is 40.\n\nQUANTITY: 40\n---\n\nOne follow-up"
+    )
+    assert (
+        "how many units did you expect the other firm to produce this quarter, and what market price" in text
+    )
+    assert text.endswith("two final lines in exactly this form:\nOTHER: <number>\nPRICE: <number>")
+
+
+@pytest.mark.parametrize(
+    "text, other, price",
+    [
+        ("I expected the rival at 30.\nOTHER: 30\nPRICE: $40", 30, 40),
+        ("OTHER: 25\nOn reflection:\nOTHER: 30\nPRICE: 40.5", 30, 40.5),
+        ("**OTHER:** 0\n**PRICE:** 70", 0, 70),
+        ("OTHER: 30, and I didn't settle on a price.", 30, None),
+    ],
+)
+def test_read_takes_the_last_other_and_price_lines(text, other, price):
+    assert readback.read(text) == readback.Readback(other, price)
+
+
+ROWS = [
+    {"model": "haiku", "condition": "mind_none_open_none", "n": 2, "sample": 0, "reply": "QUANTITY: 30"},
+    {"model": "sonnet", "condition": "mind_same_single_coop", "n": 2, "sample": 1, "reply": "QUANTITY: 60"},
+]
+
+
+def test_each_reply_is_asked_once_with_its_arms_system_prompt(tmp_path):
+    cache, calls = tmp_path / "readback.jsonl", []
+
+    def call(model, system, user):
+        calls.append((model, system, user))
+        return "OTHER: 30\nPRICE: 40", {}
+
+    assert readback.ask(ROWS, REGISTRY, "conceptualization", cache, call) == (2, [], 0)
+    prompts = {row["model"]: arm(row["condition"], row["model"]) for row in ROWS}
+    assert sorted(calls) == sorted(
+        (row["model"], prompts[row["model"]].system, readback.followup(prompts[row["model"]], row["reply"]))
+        for row in ROWS
+    )
+    assert readback.load(cache) == {
+        readback.key(row["model"], prompts[row["model"]], row["reply"]): readback.Readback(30, 40)
+        for row in ROWS
+    }
+    assert readback.ask(ROWS, REGISTRY, "conceptualization", cache, call) == (0, [], 2)
+    assert len(calls) == 2
+
+
+def test_a_failed_call_is_reported_and_asked_again(tmp_path):
+    cache = tmp_path / "readback.jsonl"
+
+    def flaky(model, system, user):
+        if model == "sonnet":
+            raise RuntimeError("rate limited")
+        return "OTHER: 40\nPRICE: 50", {}
+
+    asked, failed, cached = readback.ask(ROWS, REGISTRY, "conceptualization", cache, flaky)
+    assert (asked, cached) == (1, 0)
+    assert len(failed) == 1 and "rate limited" in failed[0]
+    assert readback.ask(
+        ROWS, REGISTRY, "conceptualization", cache, lambda *a: ("OTHER: 30\nPRICE: 40", {})
+    ) == (
+        1,
+        [],
+        1,
+    )
+
+
+def test_the_key_changes_with_the_model_the_prompt_and_the_reply():
+    prompt, other = arm("mind_none_open_none"), arm("mind_same_open_none")
+    keys = {
+        readback.key("haiku", prompt, "QUANTITY: 30"),
+        readback.key("sonnet", prompt, "QUANTITY: 30"),
+        readback.key("haiku", other, "QUANTITY: 30"),
+        readback.key("haiku", prompt, "QUANTITY: 40"),
+    }
+    assert len(keys) == 4
