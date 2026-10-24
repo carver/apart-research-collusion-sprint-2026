@@ -24,5 +24,6 @@ Find every way an arm's answers could be misread while the arm is still a senten
    - **Classes.** Its positive and negative cases differ only in what it measures, not in a phrase their inputs echo, such as a disclosure sentence one class's replies repeat and the other's lack.
    - **The label's definition** fits no negative case: "the firms produce matching amounts" also describes two firms at Nash.
 6. **Fresh eyes.** Give a subagent the rendered prompts, the readings table and step 3's list (step 5's too, for an instrument), and ask it for a reading or a confound the table misses. Done when each finding is fixed in the arm or written in the brief as a caveat the user accepted.
+7. **Record the flaws.** Write every finding into `flaws.md` under its criterion and experiment: what it is, how it was found, and whether it was fixed before the run or accepted as a caveat, with the results it touches. The paper's claims plan reads them to drop the experiment, acknowledge the flaw or rerun. Done when each finding of steps 2–6 has an entry.
 
 Then build the arm with `/build`, with the readings table in its brief.

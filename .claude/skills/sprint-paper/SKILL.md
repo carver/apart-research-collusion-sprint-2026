@@ -22,7 +22,7 @@ A stage that adds an arm runs the `arm-check` skill on it before a builder write
 6. **Paper** (`templates/6-paper.js`). The paper is `paper/paper.typ`, built by `bin/build-paper`; read `paper/README.md` first. The humans write it: the template asks for a final version "primarily written by your team", so an agent drafts a section only when Jason or Thomas asks for one.
    1. final analysis as data sources in `paper/data/`, so every citable number, table and figure is in the ledger with its source and the paper cites it by key; then an independent recomputation that imports neither `paper/` nor the analysis code and compares its numbers with `paper/build/numbers.json`;
    2. an adversarial novelty sweep, one agent per finding, whose report binds what the paper may claim;
-   3. competing framings scored by rubric judges, then a claims plan, with a `#claim` for each claim whose wording rests on the numbers;
+   3. competing framings scored by rubric judges, then a claims plan, with a `#claim` for each claim whose wording rests on the numbers, that settles each `flaws.md` entry behind a reported result: drop the experiment, acknowledge the flaw in the limitations, or rerun it;
    4. the writing, by Jason and Thomas;
    5. reviewers: three rubric judges, a wording checker (the build fills in every digit, so it checks the words around them: does "most", "fell" or "every model" still fit, and does each such sentence have a `#claim`), prose and template, novelty with fresh searches, citations;
    6. a reviser, then a cold final judge;
