@@ -141,6 +141,21 @@ def test_an_answer_on_a_text_line_is_counted_apart():
     assert (c["replies"], c["parsed"], c["text answer"]) == ("2", "1", "1")
 
 
+def test_a_reply_is_read_with_todays_parser_not_its_logged_value():
+    """A fraction logged as its numerator, from before the parser read fractions (331c1ad), counts at its
+    quotient."""
+    rows = [row("communal", "dial", 100.0, reply="q = 100/3\n\nQUANTITY: 100/3")]
+    (found,) = prepare(REG, "communal", rows, {}).rows
+    assert found["value"] == pytest.approx(100 / 3)
+    assert cell(show("communal", rows), condition="dial")["other focal"] == "edt 1"
+
+
+def test_a_text_answer_logged_as_a_number_is_read_as_its_text_line():
+    rows = [row("communal", "out", 5.0, reply="QUANTITY: 5 would be wrong.\nDECLINE: no", answer="QUANTITY")]
+    (found,) = prepare(REG, "communal", rows, {}).rows
+    assert (found["answer"], found["value"], found.get("text")) == ("DECLINE", None, "no")
+
+
 def test_a_reply_from_an_older_wording_is_left_out_and_reported():
     rows = [row("communal", "same", 30), row("communal", "same", 40, sample=1, hash="0123456789ab")]
     out = show("communal", rows)

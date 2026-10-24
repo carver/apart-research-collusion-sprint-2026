@@ -2,7 +2,8 @@
 
 `prepare` picks the rows a table counts: for each (model, prompt hash, sample), the last reply, and only when
 the hash is its condition's current prompt, so replies to an older wording stay out. Each row gets the focal
-points of its cell and the labels of every judge that has judged it.
+points of its cell and the labels of every judge that has judged it, and its answer is read again from the
+reply by today's parser: a log keeps the answer as the parser of its day read it.
 
 `synth` is the cross-criterion view: per model and market size, how often the shared `same` condition (pooled
 over every criterion's log) lands on the cartel share, and how often deliberately (`criterion.deliberate`),
@@ -16,10 +17,11 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
+from zerocommcartel.answer import parse
 from zerocommcartel.call import MODELS, NAMES
 from zerocommcartel.criterion import NEAR, Registry, deliberate, near
 from zerocommcartel.mentions import MENTIONS
-from zerocommcartel.prompt import MODEL
+from zerocommcartel.prompt import MODEL, Prompt
 
 CORE_FOCAL = ("nash", "cartel", "naive")
 MENTIONED = ("antitrust", "collusion", "refusal")
@@ -52,18 +54,24 @@ def prepare(
     registry: Registry, criterion: str, rows: list[dict], labels: Mapping[str, Mapping[str, dict]]
 ) -> Replies:
     """`labels` maps each judge's name to its cache ({key: labels})."""
-    current: dict[tuple[str, int, str], str | None] = {}
+    prompts: dict[tuple[str, int, str], Prompt | None] = {}
 
-    def is_current(row: dict) -> bool:
+    def current_prompt(row: dict) -> Prompt | None:
+        """The row's prompt, when the row's hash is its condition's current wording."""
         cell = (row["condition"], row["n"], row["model"])
-        if cell not in current:
+        if cell not in prompts:
             try:
-                current[cell] = registry.render(
+                prompts[cell] = registry.render(
                     registry.condition(criterion, row["condition"]), row["n"], NAMES.get(row["model"], MODEL)
-                ).hash
+                )
             except ValueError:  # a condition since removed, or a market size it can't take
-                current[cell] = None
-        return row["prompt_hash"] == current[cell]
+                prompts[cell] = None
+        prompt = prompts[cell]
+        return prompt if prompt is not None and prompt.hash == row["prompt_hash"] else None
+
+    def reread(row: dict, prompt: Prompt) -> dict:
+        found = parse(row["reply"], prompt.number_key, prompt.text_keys)
+        return row | {"answer": found.key, "value": found.value, "text": found.text}
 
     def judged(reply: str) -> dict[str, dict]:
         keys = {name: registry.judges[name].key(reply) for name in labels}
@@ -74,10 +82,11 @@ def prepare(
     stale = 0
     for row in rows:
         key = (row["model"], row["prompt_hash"], row["sample"])
-        if not is_current(row):
+        prompt = current_prompt(row)
+        if prompt is None:
             stale += bool(row.get("reply"))
         elif row.get("reply"):
-            latest[key] = row
+            latest[key] = reread(row, prompt)
         else:
             failed.add(key)
     ready = [
