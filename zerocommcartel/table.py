@@ -162,6 +162,75 @@ def table(registry: Registry, replies: Replies) -> str:
     return out + "".join(f"\n{note}" for note in notes) + ("\n" if notes else "")
 
 
+SNIPPET = 200  # characters of a reply a quote shows
+
+
+def at_focal(row: dict, focal: str, below: bool = False) -> bool:
+    """Whether the row's parsed answer is at its focal point `focal` (within NEAR), or with `below`, more than
+    NEAR below it. False when it has no parsed answer or no such focal point."""
+    if row["value"] is None or focal not in row["focal"]:
+        return False
+    target = row["focal"][focal]
+    return row["value"] < target - NEAR if below else near(row["value"], target)
+
+
+def matching(
+    registry: Registry, replies: Replies, measures: Sequence[tuple[str, bool]], pattern: re.Pattern | None
+) -> list[dict]:
+    """The replies at (or, for a measure's `below`, under) every focal point in `measures` and matching
+    `pattern`, in the tables' order: condition, n, model, sample."""
+    order = list(registry.conditions(replies.criterion))
+    return sorted(
+        (
+            row
+            for row in replies.rows
+            if all(at_focal(row, focal, below) for focal, below in measures)
+            and (pattern is None or pattern.search(row["reply"]))
+        ),
+        key=lambda row: (order.index(row["condition"]), row["n"], model_rank(row["model"]), row["sample"]),
+    )
+
+
+def quotes(rows: Sequence[dict], total: int, pattern: re.Pattern | None, full: bool, limit: int) -> str:
+    """A count line, "k of total replies match", then a tagged block per row: its model, condition, market
+    size, sample and parsed answer, and a snippet of the reply (or the whole reply when `full`). At most
+    `limit` blocks, then a line saying how many more matched; limit 0 prints the count line alone."""
+    lines = [f"{len(rows)} of {total} replies match"]
+    for row in rows[:limit]:
+        tag = f"{row['model']} {row['condition']} n={row['n']} sample={row['sample']}"
+        lines.append(f"{tag} · {answer_label(row)}")
+        if full:
+            lines += ["  " + line for line in row["reply"].splitlines()]
+        else:
+            lines.append("  " + snippet(row["reply"], pattern))
+    if limit and len(rows) > limit:
+        lines.append(f"{len(rows) - limit} more match; --limit {len(rows)} shows them all")
+    return "\n".join(lines) + "\n"
+
+
+def answer_label(row: dict) -> str:
+    """The reply's parsed answer, as its answer line's key and its number or text."""
+    if row["value"] is not None:
+        return f"{row['answer']} {fmt(row['value'])}"
+    if row["text"]:
+        return f"{row['answer']} {row['text']}"
+    return "no answer"
+
+
+def snippet(reply: str, pattern: re.Pattern | None) -> str:
+    """About SNIPPET characters of the reply around the first match of `pattern` in the reply as written, or
+    the reply's end, with whitespace collapsed. An ellipsis marks each cut."""
+    found = pattern.search(reply) if pattern else None
+    if found:
+        middle = (found.start() + found.end()) // 2
+        start = max(0, min(middle - SNIPPET // 2, len(reply) - SNIPPET))
+    else:
+        start = max(0, len(reply) - SNIPPET)
+    end = min(len(reply), start + SNIPPET)
+    shown = " ".join(reply[start:end].split())
+    return ("…" if start else "") + shown + ("…" if end < len(reply) else "")
+
+
 def grid(registry: Registry, replies: Replies, focal: str, below: bool = False) -> str:
     """A line per condition and n, a column per model and one pooling them ("all"): of each cell's parsed
     answers, how many are at the focal point `focal` (within NEAR), or with `below`, more than NEAR below
@@ -173,9 +242,7 @@ def grid(registry: Registry, replies: Replies, focal: str, below: bool = False) 
     for row in parsed:
         by_model = hits.setdefault((row["condition"], row["n"]), {})
         if focal in row["focal"]:
-            target = row["focal"][focal]
-            hit = row["value"] < target - NEAR if below else near(row["value"], target)
-            by_model.setdefault(row["model"], []).append(hit)
+            by_model.setdefault(row["model"], []).append(at_focal(row, focal, below))
     models = sorted({row["model"] for row in parsed}, key=model_rank)
 
     def count(found: list[bool]) -> str:

@@ -89,3 +89,9 @@ Choices made for #38 while Jason was away. Each entry goes once he or Thomas con
 - The actions view shows only the two outputs, so every colluding pair is "30 and 30" and every competing pair "40 and 40": its flag rates come from two judge calls.
 - Kept as is. Without demand and costs, the outputs can't tell the two apart, and the two calls show which way the monitor guesses.
 - Against: sampling each text several times would show how firm that guess is; the judge cache keys on the text, so it gives one sample.
+
+## How many replies `zcc replies` prints by default
+
+- Options: (a) every matching reply; (b) at most 20, with a line saying how many more matched and the `--limit` that shows them all; (c) a smaller cap such as 10.
+- Chose (b). An unfiltered call on a criterion's log can match hundreds of replies, and each block costs an agent's context about 250 characters; 20 is enough to read a cell or pick a quote.
+- Against: a reader who wants every reply has to rerun with a bigger `--limit`, and a count of the matches is already on the first line, so a smaller cap such as 10 would serve quoting just as well.

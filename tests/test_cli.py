@@ -390,3 +390,168 @@ def test_run_plan_prices_the_calls_from_every_log_and_makes_none(logs_dir, claud
     assert "8 calls to make" in printed and "subscription" in printed
     assert "~$0.02 ($0.0050 a call), from earlier calls on each condition" in printed
     assert "OpenRouter: ~$0.02" in printed
+
+
+def replies_of(capsys, criterion, *argv):
+    capsys.readouterr()
+    zcc("replies", criterion, *argv)
+    return capsys.readouterr().out
+
+
+def add_reply(log, condition, sample, reply, model="haiku"):
+    """Appends a copy of the log's first `condition` row by `model`, with another sample and reply."""
+    rows = [json.loads(line) for line in log.read_text().splitlines()]
+    row = next(r for r in rows if r["condition"] == condition and r["model"] == model)
+    with log.open("a") as f:
+        f.write(json.dumps({**row, "sample": sample, "reply": reply}) + "\n")
+
+
+def count_line(capsys, log, *argv):
+    """The first line `zcc replies consistent --log log` prints with argv: its count."""
+    return replies_of(capsys, "consistent", "--log", log, *argv).splitlines()[0]
+
+
+def three_replies(tmp_path):
+    """A log of same at n = 2: sample 0 the fake's 30, sample 1 a copy-premise 30, sample 2 a Nash 40."""
+    out = tmp_path / "smoke.jsonl"
+    run_haiku("consistent", "same", out=out)
+    add_reply(out, "same", 1, "Every firm asks this same AI model, so 30 is best.\nQUANTITY: 30")
+    add_reply(out, "same", 2, "The Nash answer is 40.\nQUANTITY: 40")
+    return out
+
+
+def test_replies_counts_and_quotes_each_reply_with_its_tags(tmp_path, claude, capsys):
+    out = tmp_path / "smoke.jsonl"
+    run_haiku("consistent", "same", "base", out=out)
+    lines = replies_of(capsys, "consistent", "--log", out).splitlines()
+    assert lines == [
+        "2 of 2 replies match",
+        "haiku base n=2 sample=0 · QUANTITY 30",
+        "  Each makes 30. QUANTITY: 30 DECISION: 20",
+        "haiku same n=2 sample=0 · QUANTITY 30",
+        "  Each makes 30. QUANTITY: 30 DECISION: 20",
+    ]
+
+
+def test_replies_grep_finds_a_regex_and_i_ignores_case(tmp_path, claude, capsys):
+    out = three_replies(tmp_path)
+    found = replies_of(capsys, "consistent", "--log", out, "--grep", "same AI model")
+    assert found.splitlines()[0] == "1 of 3 replies match"
+    assert "haiku same n=2 sample=1 · QUANTITY 30" in found and "sample=2" not in found
+    assert "same AI model" in found
+    assert count_line(capsys, out, "--grep", "NASH ANSWER", "-i") == "1 of 3 replies match"
+    assert count_line(capsys, out, "--grep", "NASH ANSWER") == "0 of 3 replies match"
+
+
+def test_replies_filters_by_focal_point_like_grid(tmp_path, claude, capsys):
+    out = three_replies(tmp_path)
+    assert count_line(capsys, out, "--at", "cartel") == "2 of 3 replies match"
+    assert count_line(capsys, out, "--below", "nash") == "2 of 3 replies match"
+    assert count_line(capsys, out, "--at", "nash", "--grep", "Nash") == "1 of 3 replies match"
+
+
+def test_replies_count_prints_only_the_count_and_full_whole_replies(tmp_path, claude, capsys):
+    out = three_replies(tmp_path)
+    assert replies_of(capsys, "consistent", "--log", out, "--count") == "3 of 3 replies match\n"
+    full = replies_of(capsys, "consistent", "--log", out, "--full", "--grep", "Nash answer")
+    assert full == (
+        "1 of 3 replies match\n"
+        "haiku same n=2 sample=2 · QUANTITY 40\n"
+        "  The Nash answer is 40.\n"
+        "  QUANTITY: 40\n"
+    )
+
+
+def test_a_snippet_is_about_200_characters_around_the_match_or_the_end(tmp_path, claude, capsys):
+    out = tmp_path / "smoke.jsonl"
+    run_haiku("consistent", "same", out=out)
+    add_reply(out, "same", 1, "x" * 300 + " the copy premise " + "y" * 300 + "\nQUANTITY: 30")
+    around = replies_of(capsys, "consistent", "--log", out, "--grep", "copy premise").splitlines()[2]
+    assert around.startswith("  …") and around.endswith("…") and "copy premise" in around
+    assert 195 <= len(around.strip()) <= 210
+    ends = replies_of(capsys, "consistent", "--log", out, "--conditions", "same").splitlines()
+    tail = ends[ends.index("haiku same n=2 sample=1 · QUANTITY 30") + 1]
+    assert tail.startswith("  …") and tail.endswith("QUANTITY: 30")
+    assert 195 <= len(tail.strip()) <= 205
+
+
+def test_replies_prints_at_most_limit_blocks_and_says_how_many_more(tmp_path, claude, capsys):
+    out = tmp_path / "smoke.jsonl"
+    run_haiku("consistent", "same", out=out)
+    for sample in range(1, 25):
+        add_reply(out, "same", sample, f"Reply {sample}.\nQUANTITY: 30")
+    limited = replies_of(capsys, "consistent", "--log", out, "--limit", "2").splitlines()
+    assert limited[0] == "25 of 25 replies match"
+    assert sum(" · QUANTITY" in line for line in limited) == 2
+    assert limited[-1] == "23 more match; --limit 25 shows them all"
+    default = replies_of(capsys, "consistent", "--log", out).splitlines()
+    assert sum(" · QUANTITY" in line for line in default) == 20
+    assert default[-1] == "5 more match; --limit 25 shows them all"
+
+
+def test_replies_come_in_condition_then_sample_order(tmp_path, claude, capsys):
+    out = tmp_path / "smoke.jsonl"
+    run_haiku("consistent", "same", "base", out=out)
+    add_reply(out, "base", 3, "Late base.\nQUANTITY: 40")
+    add_reply(out, "base", 1, "Early base.\nQUANTITY: 40")
+    tags = [line for line in replies_of(capsys, "consistent", "--log", out).splitlines() if " · " in line]
+    assert [t.split(" · ")[0] for t in tags] == [
+        "haiku base n=2 sample=0",
+        "haiku base n=2 sample=1",
+        "haiku base n=2 sample=3",
+        "haiku same n=2 sample=0",
+    ]
+
+
+@pytest.mark.parametrize(
+    "argv, message",
+    [(["--grep", "("], "--grep"), (["--at", "charisma"], "charisma")],
+    ids=["bad-regex", "unknown-focal"],
+)
+def test_replies_refuses_a_bad_regex_or_focal_point(tmp_path, claude, capsys, argv, message):
+    out = three_replies(tmp_path)
+    with pytest.raises(SystemExit) as e:
+        zcc("replies", "consistent", "--log", out, *argv)
+    assert message in str(e.value.code) + capsys.readouterr().err
+
+
+def test_grep_and_its_snippet_search_the_reply_as_written(tmp_path, claude, capsys):
+    out = tmp_path / "smoke.jsonl"
+    run_haiku("consistent", "same", out=out)
+    add_reply(
+        out, "same", 1, "x" * 300 + " every firm asks this same\nAI model " + "y" * 300 + "\nQUANTITY: 30"
+    )
+    lines = replies_of(capsys, "consistent", "--log", out, "--grep", r"same\nAI").splitlines()
+    assert lines[0] == "1 of 2 replies match"
+    assert "same AI model" in lines[2]
+    answer_lines = replies_of(capsys, "consistent", "--log", out, "--grep", "^QUANTITY: 30$")
+    assert answer_lines.splitlines()[0] == "2 of 2 replies match"
+
+
+def test_a_negative_limit_is_refused(tmp_path, claude, capsys):
+    out = three_replies(tmp_path)
+    with pytest.raises(SystemExit):
+        zcc("replies", "consistent", "--log", out, "--limit", "-1")
+    assert "--limit" in capsys.readouterr().err
+
+
+def test_filters_that_leave_no_replies_still_print_the_count_line(tmp_path, claude, capsys):
+    out = three_replies(tmp_path)
+    assert replies_of(capsys, "consistent", "--log", out, "--models", "sonnet") == "0 of 0 replies match\n"
+
+
+def test_n_counts_the_filtered_replies_and_k_the_matching_ones(tmp_path, claude, capsys):
+    out = three_replies(tmp_path)
+    run_haiku("consistent", "base", out=out)
+    found = replies_of(capsys, "consistent", "--log", out, "--conditions", "same", "--grep", "Nash")
+    assert found.splitlines()[0] == "1 of 3 replies match"
+
+
+def test_a_text_answer_and_no_answer_are_tagged_as_such(tmp_path, claude, capsys):
+    out = tmp_path / "smoke.jsonl"
+    run_haiku("compliant", "decline_no_info", out=out)
+    add_reply(out, "decline_no_info", 1, "I won't.\nDECLINE: coordinating output harms buyers")
+    add_reply(out, "decline_no_info", 2, "I can't say.")
+    tags = [line for line in replies_of(capsys, "compliant", "--log", out).splitlines() if " · " in line]
+    assert "haiku decline_no_info n=2 sample=1 · DECLINE coordinating output harms buyers" in tags
+    assert "haiku decline_no_info n=2 sample=2 · no answer" in tags

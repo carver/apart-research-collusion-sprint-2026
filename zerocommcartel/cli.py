@@ -7,6 +7,7 @@
     uv run zcc table consistent                       # a markdown table per condition, model and n
     uv run zcc table consistent --conditions same --models haiku  # only those rows
     uv run zcc grid consistent --conditions same samemodel --at cartel --below nash  # condition x model
+    uv run zcc replies consistent --conditions same --at nash --grep "same (AI )?model" -i  # quote replies
     uv run zcc synth                                  # the measures beside same's cartel and deliberate rates
     uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 
@@ -23,6 +24,7 @@ sonnet, opus); OpenRouter models need OPENROUTER_API_KEY.
 import argparse
 import contextlib
 import inspect
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -34,7 +36,7 @@ from zerocommcartel.criterion import BASELINE, Registry
 from zerocommcartel.judge import Judge, label, load_labels
 from zerocommcartel.prompt import MODEL
 from zerocommcartel.run import Task, done_keys, estimate, plan, run
-from zerocommcartel.table import Replies, grid, prepare, synth, table
+from zerocommcartel.table import Replies, grid, matching, prepare, quotes, synth, table
 
 NS = [2, 4]  # the market sizes run and hashes cover by default
 LOG_HELP = (
@@ -229,16 +231,16 @@ def cmd_table(registry: Registry, args):
         print(table(registry, found), end="")
 
 
-def filtered_replies(registry: Registry, args) -> Replies | None:
-    """The replies of the conditions, models and market sizes asked for; None, having said so, when none
-    match. Exits on a condition the criterion lacks."""
+def filtered_replies(registry: Registry, args, empty_ok: bool = False) -> Replies | None:
+    """The replies of the conditions, models and market sizes asked for. When none match: with `empty_ok`,
+    the empty replies, else None, having said so. Exits on a condition the criterion lacks."""
     try:
         for name in args.conditions or []:
             registry.condition(args.criterion, name)
     except ValueError as e:
         sys.exit(str(e))
     found = replies(registry, args.criterion, args.log, args.conditions, args.models, args.ns)
-    if (args.conditions or args.models or args.ns) and not found.rows:
+    if (args.conditions or args.models or args.ns) and not found.rows and not empty_ok:
         print("No replies match the conditions, models and market sizes asked for.")
         return None
     return found
@@ -257,12 +259,44 @@ def cmd_grid(registry: Registry, args):
     if found is None:
         return
     measures = args.measures or [("cartel", False)]
-    named = {name for row in found.rows for name in row["focal"]}
-    for focal in sorted({focal for focal, _ in measures} - named):
-        sys.exit(f"no reply asked for has a focal point {focal!r}; theirs are {', '.join(sorted(named))}")
+    refuse_unknown_focal(found, measures)
     for focal, below in measures:
         print(f"## {'below' if below else 'at'} {focal}\n")
         print(grid(registry, found, focal, below))
+
+
+def cmd_replies(registry: Registry, args):
+    """The replies themselves, to read or quote: a count line, "k of N replies match", then a block per
+    matching reply, tagged with its model, condition, number of firms (n), sample and parsed answer.
+
+    N counts the replies left by --conditions, --models and --ns. A reply matches when it also passes every
+    other filter given: --at and --below as in `zcc grid` (only replies with a parsed number pass them), and
+    --grep, a Python regex searched in the reply's text (-i ignores case). Each block shows about 200
+    characters around the first --grep match, or the reply's last 200 without --grep; --full shows whole
+    replies, and --count only the count line. At most --limit blocks print (default 20); a last line says
+    how many more matched. It reads what table reads."""
+    found = filtered_replies(registry, args, empty_ok=True)
+    assert found is not None  # empty_ok never gives None
+    flags = re.MULTILINE | (re.IGNORECASE if args.ignore_case else 0)
+    try:
+        pattern = re.compile(args.grep, flags) if args.grep else None
+    except re.error as e:
+        sys.exit(f"bad --grep {args.grep!r}: {e}")
+    measures = args.measures or []
+    if found.rows:
+        refuse_unknown_focal(found, measures)
+    limit = 0 if args.count else args.limit
+    print(
+        quotes(matching(registry, found, measures, pattern), len(found.rows), pattern, args.full, limit),
+        end="",
+    )
+
+
+def refuse_unknown_focal(found: Replies, measures: list[tuple[str, bool]]) -> None:
+    """Exits naming any focal point in `measures` that none of the replies has."""
+    named = {name for row in found.rows for name in row["focal"]}
+    for focal in sorted({focal for focal, _ in measures} - named):
+        sys.exit(f"no reply asked for has a focal point {focal!r}; theirs are {', '.join(sorted(named))}")
 
 
 def cmd_synth(registry: Registry, args):
@@ -298,6 +332,39 @@ def cmd_hashes(registry: Registry, args):
                     print(f"{name} {cond} {n} {registry.render(spec, n).hash}")
     for name, judge in registry.judges.items():
         print(f"judge {name} {judge.key('')}")
+
+
+def filter_options(s: argparse.ArgumentParser, criteria: list[str], conditions: str, models: str) -> None:
+    """The criterion, its --log, and the options that narrow its replies, which table, grid and replies share.
+    `conditions` and `models` name, for the help, what each narrowing keeps (rows, columns, replies)."""
+    s.add_argument("criterion", choices=criteria)
+    s.add_argument("--log", help=LOG_HELP)
+    s.add_argument("--conditions", nargs="+", help=f"only these conditions' {conditions}; default: all")
+    s.add_argument(
+        "--models", nargs="+", choices=list(MODELS), help=f"only these models' {models}; default: all"
+    )
+    s.add_argument("--ns", nargs="+", type=int, help="only these numbers of firms; default: all")
+
+
+def at_least_zero(text: str) -> int:
+    value = int(text)
+    if value < 0:
+        raise argparse.ArgumentTypeError(f"can't be negative: {value}")
+    return value
+
+
+def focal_options(s: argparse.ArgumentParser, help: str) -> None:
+    """--at FOCAL and --below FOCAL, collected as (focal, below) pairs in args.measures."""
+    for flag, below, what in (("--at", False, "at"), ("--below", True, "below")):
+        s.add_argument(
+            flag,
+            dest="measures",
+            action="extend",
+            nargs="+",
+            metavar="FOCAL",
+            type=lambda focal, below=below: (focal, below),
+            help=help.format(what=what),
+        )
 
 
 def main(argv=None, registry: Registry = REGISTRY):
@@ -346,29 +413,19 @@ def main(argv=None, registry: Registry = REGISTRY):
     s.add_argument("--judges", nargs="+", default=["copy"], choices=list(registry.judges))
     s.add_argument("--log", help=LOG_HELP)
     s = command("table", "a markdown table of the criterion's replies")
-    s.add_argument("criterion", choices=criteria)
-    s.add_argument("--log", help=LOG_HELP)
-    s.add_argument("--conditions", nargs="+", help="only these conditions' rows; default: all")
-    s.add_argument("--models", nargs="+", choices=list(MODELS), help="only these models' rows; default: all")
-    s.add_argument("--ns", nargs="+", type=int, help="only these numbers of firms; default: all")
+    filter_options(s, criteria, conditions="rows", models="rows")
     s = command("grid", "condition x model counts at a focal point, for results write-ups")
-    s.add_argument("criterion", choices=criteria)
-    s.add_argument("--log", help=LOG_HELP)
-    s.add_argument("--conditions", nargs="+", help="only these conditions' rows; default: all")
-    s.add_argument(
-        "--models", nargs="+", choices=list(MODELS), help="only these models' columns; default: all"
-    )
-    s.add_argument("--ns", nargs="+", type=int, help="only these numbers of firms; default: all")
-    for flag, below, what in (("--at", False, "at"), ("--below", True, "below")):
-        s.add_argument(
-            flag,
-            dest="measures",
-            action="extend",
-            nargs="+",
-            metavar="FOCAL",
-            type=lambda focal, below=below: (focal, below),
-            help=f"a grid of the answers {what} each focal point",
-        )
+    filter_options(s, criteria, conditions="rows", models="columns")
+    focal_options(s, "a grid of the answers {what} each focal point")
+    s = command("replies", "the matching replies, counted and quoted with their tags")
+    filter_options(s, criteria, conditions="replies", models="replies")
+    focal_options(s, "only the answers {what} the focal point")
+    s.add_argument("--grep", metavar="REGEX", help="only replies whose text matches this Python regex")
+    s.add_argument("-i", "--ignore-case", action="store_true", help="--grep ignores case")
+    shown = s.add_mutually_exclusive_group()
+    shown.add_argument("--full", action="store_true", help="whole replies instead of snippets")
+    shown.add_argument("--count", action="store_true", help="only the count line")
+    s.add_argument("--limit", type=at_least_zero, default=20, help="at most this many replies (default 20)")
     command("synth", "is each criterion necessary? its measure beside same's cartel and deliberate rates")
     s = command("hashes", "prompt hashes and judge keys; diff them across a shared-core change")
     s.add_argument("--ns", nargs="+", type=int, default=NS, help="numbers of firms")
@@ -383,6 +440,7 @@ COMMANDS = {
     "judge": cmd_judge,
     "table": cmd_table,
     "grid": cmd_grid,
+    "replies": cmd_replies,
     "synth": cmd_synth,
     "hashes": cmd_hashes,
 }
