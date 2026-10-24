@@ -55,7 +55,7 @@ const gatherDigest = gathered.map(g => `### ${g.file}\n${g.summary}\nGaps: ${(g.
 
 const LENSES = [
   ['surprise', 'You hunt for the result that would make AI-safety researchers say "wow, I did not expect that" — a surprising, quotable empirical finding about frontier-model collusion that is cheap to demonstrate convincingly.'],
-  ['rigor', 'You design the cleanest causal experiment: pre-registered hypothesis, positive and negative controls, enough seeds, a metric with a known competitive and collusive benchmark. Execution Quality 5 is your goal.'],
+  ['rigor', 'You design the cleanest causal experiment: a clear hypothesis, positive and negative controls, enough seeds, a metric with a known competitive and collusive benchmark. Execution Quality 5 is your goal.'],
   ['defender', 'You think from a defender or regulator: a concrete countermeasure or detector with a clear theory of change, evaluated against an adaptive colluder. Impact 5 is your goal.'],
   ['beyond-markets', 'You look outside price-setting markets: everyday agent deployments (code review, hiring, procurement, grading, multi-agent research pipelines, ad auctions, negotiation, LLM-as-judge) where agents could collude against a principal or a third party.'],
   ['measurement', 'You care about detection and measurement: information-theoretic or statistical detectors, combining speech and actions, or new evidentiary standards, validated with ground-truth colluders and honest agents (ROC/AUC).'],
@@ -126,7 +126,7 @@ const judgements = (await parallel(JUDGES.map(([k, persona]) => () =>
 ))).filter(Boolean)
 
 phase('Select')
-const selection = await agent(`${CTX}\nYou are the selection lead. Candidates with novelty/feasibility dossiers:\n${JSON.stringify(dossiers)}\n\nJudge panel:\n${JSON.stringify(judgements)}\n\nWrite ${NEW}/notes/ideas/selection.md: a ranked table (mean scores per dimension, novelty verdict, feasibility), the recommended project and runner-up with reasons, how to fold the judges' killer improvements in, and a design sketch for the recommended project: research question, hypotheses (pre-registered), conditions, controls (incl. positive control), models (Claude via claude -p + named free models; paid models only if essential, within $10), n per cell, metrics and statistics, figures the paper would show, risks and fallback. Return the full markdown of the recommendation section as text.`,
+const selection = await agent(`${CTX}\nYou are the selection lead. Candidates with novelty/feasibility dossiers:\n${JSON.stringify(dossiers)}\n\nJudge panel:\n${JSON.stringify(judgements)}\n\nWrite ${NEW}/notes/ideas/selection.md: a ranked table (mean scores per dimension, novelty verdict, feasibility), the recommended project and runner-up with reasons, how to fold the judges' killer improvements in, and a design sketch for the recommended project: research question, hypotheses, conditions, controls (incl. positive control), models (Claude via claude -p + named free models; paid models only if essential, within $10), n per cell, metrics and statistics, figures the paper would show, risks and fallback. Return the full markdown of the recommendation section as text.`,
   { label: 'select', phase: 'Select' })
 
 return { gathered: gathered.map(g => g.file), n_ideas: allIdeas.length, candidates: dossiers.map(d => ({ id: d.id, title: d.title, novelty: d.novelty && d.novelty.verdict, feasible: d.feasibility && d.feasibility.feasible })), judgements, selection }

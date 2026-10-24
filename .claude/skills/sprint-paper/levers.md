@@ -10,10 +10,9 @@ What raises each rubric dimension to a 5, and which stage delivers it. Check eve
 
 ## Execution Quality
 
-- A pre-registered hypothesis, GO rules and a fallback, written before the main run. Every deviation is dated in `decisions.md` and reported in an appendix, including overridden stop rules and redefinitions made before data.
 - A positive control that runs in the same sessions, and a negative control or baseline.
 - Judges and coders validated on a gold set labelled before they run, with agreement or kappa reported. State that model-written gold labels are model-written.
-- Session-clustered statistics (sessions as the unit), seeds, variance, and multiple-comparison correction within the confirmatory family. Report confirmatory nulls and results in the opposite direction.
+- Session-clustered statistics (sessions as the unit), seeds, variance, and multiple-comparison correction across the tests the paper reports. Report nulls and results in the opposite direction.
 - **The headline gets its own controls.** A striking effect found by accident is exploratory until it has them: a matched control isolating the active ingredient, a dose or word ladder, same-time anchors, a second model family, more days on noisy cells.
 - An independent recomputation of the key numbers by an agent that doesn't import the analysis code.
 
