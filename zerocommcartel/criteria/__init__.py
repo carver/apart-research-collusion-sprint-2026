@@ -1,6 +1,14 @@
-"""The four criteria of issue #38, in one registry. A new criterion goes in a folder here and in this list."""
+"""The criteria of issue #38, in one registry. A new criterion goes in a folder here and in this list."""
 
-from zerocommcartel.criteria import capable, communal, compliant, consistent
+from zerocommcartel.criteria import capable, communal, compliant, conceptualization, consistent
 from zerocommcartel.criterion import build
 
-REGISTRY = build([capable.CRITERION, compliant.CRITERION, communal.CRITERION, consistent.CRITERION])
+REGISTRY = build(
+    [
+        capable.CRITERION,
+        compliant.CRITERION,
+        communal.CRITERION,
+        consistent.CRITERION,
+        conceptualization.CRITERION,
+    ]
+)

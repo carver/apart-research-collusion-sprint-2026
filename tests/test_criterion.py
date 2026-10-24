@@ -152,5 +152,5 @@ def test_conflicts_and_mistakes_are_refused_and_name_the_criterion(criteria, mat
     assert "'a'" in str(err.value) or "'b'" in str(err.value)
 
 
-def test_the_four_criteria_build():
-    assert list(REGISTRY.criteria) == ["capable", "compliant", "communal", "consistent"]
+def test_the_criteria_build():
+    assert list(REGISTRY.criteria) == ["capable", "compliant", "communal", "consistent", "conceptualization"]
