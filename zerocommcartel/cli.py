@@ -224,12 +224,12 @@ def cmd_table(registry: Registry, args):
 
     Notes below the table count the replies to an older wording of their condition, which it leaves out, and
     the calls that failed with no reply yet. It reads what run and judge read (see their -h)."""
-    found = matching(registry, args)
+    found = filtered_replies(registry, args)
     if found is not None:
         print(table(registry, found), end="")
 
 
-def matching(registry: Registry, args) -> Replies | None:
+def filtered_replies(registry: Registry, args) -> Replies | None:
     """The replies of the conditions, models and market sizes asked for; None, having said so, when none
     match. Exits on a condition the criterion lacks."""
     try:
@@ -253,7 +253,7 @@ def cmd_grid(registry: Registry, args):
     `zcc table` shows: nash, cartel, naive, or one of the condition's own, such as "copies vs nash". A cell
     whose condition has no such focal point shows "-". The grids come in the order the options are given;
     with neither, it's --at cartel. It reads what table reads."""
-    found = matching(registry, args)
+    found = filtered_replies(registry, args)
     if found is None:
         return
     measures = args.measures or [("cartel", False)]

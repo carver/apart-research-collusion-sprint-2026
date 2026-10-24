@@ -296,8 +296,9 @@ OPENROUTER_IDS = {"gpt-6-astra": "openai/gpt-6-astra", "gpt-6-luna": "openai/gpt
 @functools.cache
 def codex_ready() -> bool:
     """Whether the Codex CLI is installed and logged in with ChatGPT, so its calls bill the subscription.
-    Asked once per process; when it isn't, says so on stderr, since OpenAI's models then cost money on
-    OpenRouter."""
+    Cached, so asked once per process, unless several threads ask before the first answer: `run` routes
+    each model before its workers start for that reason. When Codex isn't ready, says so on stderr, since
+    OpenAI's models then cost money on OpenRouter."""
     ready = False
     if shutil.which("codex"):
         try:
