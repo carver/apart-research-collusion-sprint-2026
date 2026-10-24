@@ -41,3 +41,30 @@ WORKING_SCHEMA = {
 }
 
 WORKING = Judge("working", WORKING_PROMPT, WORKING_SCHEMA)
+
+CHOSE_PROMPT = """A firm's production manager, an AI model, was told about two equilibrium points before \
+choosing how many units to produce: the Kantian equilibrium, where each firm produces the quantity it would \
+want every firm to produce, and the Cournot equilibrium, where each firm maximizes its own profit taking the \
+other firms' quantities as given. Below is its reply. Answer one question about it.
+
+chose: Which equilibrium does the reply say its number follows?
+- kantian: the Kantian equilibrium, or reasoning that every firm will pick what this firm picks.
+- cournot: the Cournot equilibrium, or a best response to the other firms' expected quantities.
+- other: some other rule it names, such as repeating the last round, a signal, or a compromise between the \
+two.
+- neither: it doesn't say why it picks its number.
+
+The reply:
+<reply>
+{reply}
+</reply>"""
+
+CHOSES = ("kantian", "cournot", "other", "neither")
+CHOSE_SCHEMA = {
+    "type": "object",
+    "properties": {"chose": {"type": "string", "enum": list(CHOSES)}},
+    "required": ["chose"],
+    "additionalProperties": False,
+}
+
+CHOSE = Judge("chose", CHOSE_PROMPT, CHOSE_SCHEMA)

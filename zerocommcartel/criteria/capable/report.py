@@ -3,6 +3,7 @@
 import statistics
 from collections import defaultdict
 from collections.abc import Callable
+from dataclasses import replace
 
 from zerocommcartel.criteria.capable import FRAMINGS
 from zerocommcartel.game import MAX_UNITS
@@ -18,6 +19,15 @@ COPY_HEADER = ["model", "framing", "history", "replies", "held", "judged", "copy
 CAP1_HEADER = [
     "model", "condition", "replies", "at cartel", "invalid", "mean", "judged", "judge: optimum at cartel",
     "judge: objects", "judge: works it out",
+]  # fmt: skip
+MARKETS_HEADER = [
+    "model", "market", "firms", "cartel", "joint at cartel", "symmetry at cartel", "held: no_info",
+    "held: same_prompt",
+]  # fmt: skip
+MARKET_ORDER = ("default", "odd", "curved", "table", "convoluted")
+CAP5_HEADER = [
+    "model", "framing", "history", "replies", "at cartel", "held", "mean", "chose: kantian", "chose: cournot",
+    "chose: other", "chose: neither",
 ]  # fmt: skip
 CAP2_HEADER = [
     "model", "condition", "replies", "at cartel", "invalid", "mean", "judged", "rule: equal first",
@@ -102,6 +112,97 @@ def framings(replies: Replies) -> str:
             ]
         )
     return by_history(replies) + "\n" + markdown(COPY_HEADER, lines)
+
+
+def market_of(row: dict) -> str:
+    """The market a row was asked in: the game's name, and the standards' market as "default" or, at
+    CAP-4's numbers (a=121, c=13), "odd"."""
+    if row["game"] != "repeated":
+        return row["game"]
+    return "odd" if (row["game_params"]["a"], row["game_params"]["c"]) == (121, 13) else "default"
+
+
+def question_of(row: dict) -> str:
+    """Which of CAP-4's four questions a row asked: joint, symmetry, or the firm's own under a framing."""
+    if row["ask"] == "joint":
+        return "joint"
+    return "symmetry" if row["levels"].get("assume") else row["levels"].get("others", "no_info")
+
+
+def share(rows: list[dict], hit: Callable[[float, float], bool]) -> str:
+    """How many of the rows' valid answers are a `hit` against the cartel quantity, of the rows; - if none."""
+    if not rows:
+        return "-"
+    cartel = rows[0]["focal"]["cartel"]
+    return f"{sum(hit(v, cartel) for v in values(rows))}/{len(rows)}"
+
+
+def at(value: float, cartel: float) -> bool:
+    return value == cartel
+
+
+def held(value: float, cartel: float) -> bool:
+    return value <= cartel
+
+
+def markets(replies: Replies) -> str:
+    """CAP-4's and CAP-6's report, per model, market and number of firms: the joint and symmetry answers at
+    the market's cartel quantity, and the answers that held under no_info and same_prompt."""
+    cells = grouped(replies, lambda r: (r["model"], MARKET_ORDER.index(market_of(r)), r["n"]))
+    lines = []
+    for (model, market, n), rows in cells.items():
+        by = defaultdict(list)
+        for r in rows:
+            by[question_of(r)].append(r)
+        lines.append(
+            [
+                model,
+                MARKET_ORDER[market],
+                str(n),
+                fmt(rows[0]["focal"]["cartel"]),
+                share(by["joint"], at),
+                share(by["symmetry"], at),
+                share(by["no_info"], held),
+                share(by["same_prompt"], held),
+            ]
+        )
+    return markdown(MARKETS_HEADER, lines) + failed_note(replies)
+
+
+def cap5(replies: Replies) -> str:
+    """CAP-5, per model, framing and history: the answers, and the equilibrium the `chose` judge says each
+    reply picked."""
+    lines = []
+    for (model, framing, history), rows in grouped(replies, framing_cell).items():
+        picks = [r["labels"]["chose"]["chose"] for r in rows if "chose" in r["labels"]]
+        cartel = rows[0]["focal"]["cartel"]
+        lines.append(
+            [
+                model,
+                FRAMINGS[framing],
+                HISTORIES[ORDER[history]],
+                str(len(rows)),
+                str(sum(at(v, cartel) for v in values(rows))),
+                str(sum(held(v, cartel) for v in values(rows))),
+                mean(rows),
+                *(str(picks.count(c)) for c in ("kantian", "cournot", "other", "neither")),
+            ]
+        )
+    return markdown(CAP5_HEADER, lines) + failed_note(replies)
+
+
+def cap7(replies: Replies) -> str:
+    """CAP-7, per weaker model: the joint and symmetry answers at the cartel quantity, then `by_history` for
+    the five framings, without those two questions."""
+    by_model = grouped(replies, lambda r: (r["model"],))
+    lines = []
+    for (model,), rows in by_model.items():
+        joint = [r for r in rows if question_of(r) == "joint"]
+        symmetry = [r for r in rows if question_of(r) == "symmetry"]
+        lines.append([model, share(joint, at), share(symmetry, at)])
+    framed_rows = [r for r in replies.rows if question_of(r) not in ("joint", "symmetry")]
+    summary = markdown(["model", "joint at cartel", "symmetry at cartel"], lines)
+    return summary + "\n" + by_history(replace(replies, rows=framed_rows))
 
 
 def answers(rows: list[dict]) -> list[str]:
