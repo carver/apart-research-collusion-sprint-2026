@@ -124,3 +124,41 @@ Built before the arm-check skill existed; its flaws surfaced in later reviews an
 - **The actions view has two texts,** 30 and 30 or 40 and 40, so its column rests on two judge calls. Found by review. Accepted.
 - **The competing class is small and mostly Astra's** (26 of 40 markets). Found by the results. Accepted.
 - **The masked words still show the form of the demand** ("Price is N − Q"), though not its numbers. Found while testing. Accepted.
+
+## Conceptualization (#42)
+
+Results: [the pilot](https://github.com/carver/apart-research-collusion-sprint-2026/issues/42#issuecomment-6387983692), whose arms this criterion rebuilt after an arm check on 2026-10-24. A fresh-eyes review found most of the entries below.
+
+### Every arm
+
+- **Ten replies a cell, one wording per arm.** Accepted. Touches every per-model count.
+- **Claude's context.** The Claude calls carry `claude -p`'s environment block, which names the model, so Claude knows its own name and developer, and Astra and GLM must infer them. From #41. Accepted. Touches `selfnamed`, `sibling` and `otherdev` across families.
+- **The question still asks "to maximize its profit" this quarter** beside "long-run profit" on the open-ended horizon, which tilts it toward Nash. From `rep`. Accepted.
+- **The records state 30, 40 and 50,** focal points that can anchor. Found by the arm check. Accepted: on the neutral rung the final-quarter backgrounds tell anchoring from the mirror (the pilot: 0 of 15 at 30 in the last quarter after the 30s record).
+
+### The rungs
+
+- **The pilot's rungs didn't share one form.** Its neutral and won't-cooperate rungs lacked "My firm gets its production number by asking this AI model", which beside a record makes the record this model's own past advice, and the core `same` and `samemodel` sentences ("Every firm in this market, including mine, ...") differ from the one-sided rungs in structure as well as in who the rival asks. Found by the fresh-eyes review. Fixed before the run: every rung reads "My firm gets ... <the other firm's clause> Both firms know this.", except the neutral rung, which keeps only the first sentence; `informed` adds "Both firms know this" to it as an arm of its own (Jason's call), since what the rival knows moved Sonnet and Opus on `twin`.
+- **The pilot's "whatever my firm chooses" rung changed who moves first,** and its intended answer, leading a follower at 60, is also the answer that ignores the rival. Found by the pilot's results and the arm check. Fixed: dropped; `nevercoop` is the far pole.
+- **The pilot's "reasons very differently ... seldom reaches the same answer" rung changed two things** and primed sameness. Found by the arm check. Fixed: dropped.
+- **The pilot's same-developer rung differed from `diff` in two sentences,** and "the same developer" had no referent. Found by the arm check. Fixed: `otherdev` in the same form, and both name this AI model as the reference.
+- **Astra is never told its own name** (`call.py` replaces Codex's instructions), so for Astra `named` (GPT-6 Astra) is self-recognition and renders `selfnamed`'s prompt, and the two cells share replies. Found by the fresh-eyes review. Accepted: `selfnamed` gives every model a self-named rung; leave Astra out of `named`.
+- **`nevercoop` hands over the answer:** its second clause defines a best response, and "every firm knows" makes Nash the textbook answer, as lockstep made 30. Found by the fresh-eyes review. Accepted: read it as a floor and a check that the rung sentence lands, not as a belief about the rival.
+- **The shared-AI rungs can draw an antitrust refusal at 40** ("coordinating through a shared algorithm is collusion"), against the hypothesis on the rungs it ranks highest. Found by the fresh-eyes review. Accepted: `zcc table`'s antitrust column counts it per cell.
+
+### The backgrounds
+
+- **The pilot's cheat of 45 put tit-for-tat and cashing in on one number** (the best response to 30 is 45). Found by the arm check. Fixed: the cheat is 50, so 35, 40, 45 and 50 each name one reading.
+- **The cheat column's answers spread** from 35 (the best response to the last 50) to 45, with fictitious play's 43.75 near cashing in, and a 40 is also the best response to an expected 40. Found by the fresh-eyes review. Accepted: read that column's answers off 30 through the readback's expected rival output.
+- **"Last" had two meanings** in the pilot's cheat record beside "the market's last quarter". Found by the fresh-eyes review. Fixed: "the market's final quarter", and records count "the eight quarters so far".
+- **The single quarter takes two wordings,** "runs for this quarter only" with no record and "the market's final quarter" after one. Found by the arm check. Accepted: compare a record's final quarter with its open-ended version, not with the no-record single quarter.
+- **Under `same`, the cheat record makes "this same prompt" false:** a copy with my prompt would have made my number. A model can keep its self-concept by reading the prompt as a template with its own history. Found by the fresh-eyes review. Accepted: a move off 30 there shows only that the model drops "the other firm makes what I make".
+- **30 answers a rival expected at 60** (the best response to 60), on `human`, `nevercoop` or after the cheat, and a punitive 60 after the cheat reads back like a leader's. Found by the fresh-eyes review. Accepted: the readback splits them (60 units and $40 for the accommodating 30).
+
+### The readback (`readback.py`)
+
+- **On a bare number it reads the prompt:** shown "QUANTITY: 60" alone, it answered as if ignoring the rival in 5 of 9 calls under the neutral prompt and as a leader in 7 of 9 under the follower rung. Found by the arm check. Accepted: it reads reasoned replies only.
+- **Haiku's readback misreads some 60s.** On planted replies under the neutral and `same` rungs, Sonnet and Opus read all 48 right (a leader at 30 units and $40, ignoring the rival at 0 and $70, Nash at 40 and $50, the cartel at 30 and $70). Haiku read its cartel and Nash replies right, but 5 of its 12 planted 60s as Nash (40 and $50), 4 of them under `same`. Found by the arm check. Accepted. Touches Haiku's readbacks of 60s, most on the shared-model rungs.
+- **"Expects a match" isn't the mirror belief:** an expected rival output equal to the reply's own answer fits the mirror, cooperation and a continued record. Found by the arm check. Accepted: the report's grid says "expects a match", and the final-quarter backgrounds leave only the mirror and anchoring.
+- **A counterfactual question read the prompt, not the reply:** asked what the other firm would have made had the model said 45, Opus answered 45 under `same` for every planted reply, Nash and ignoring the rival included. Found by the arm check's planted replies. Fixed: dropped before the build.
+- **No real reply that ignores its rival has checked it;** planted ones did. Found by the arm check. Accepted.
