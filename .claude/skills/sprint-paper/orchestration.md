@@ -17,6 +17,6 @@ Lessons from a 101-agent run. Each one cost real time once.
 
 ## Keeping numbers honest
 
-- Have one analysis script write a numbers ledger (`numbers.json`) that the paper cites by key. The fact-checker checks every printed number against it.
+- The paper cites every number by its ledger key, never typed: data sources in `paper/data/` fill the ledger and `bin/build-paper` fills the numbers in (`paper/README.md`). A wording checker reads the words around them, and each `#claim` fails the build when the numbers stop supporting its wording.
 - Agents' reports overstate. Have an auditor recompute pilot GO numbers from raw logs, and an independent script recompute the paper's key numbers.
 - Code-everything coders must be blind to the condition: give them only the text, and check their prompt for cell names.
