@@ -34,6 +34,9 @@ MODELS = {  # key: (backend, id)
     "luna": ("codex", "gpt-6-luna"),
     "astra": ("codex", "gpt-6-astra"),
     "glm": ("openrouter", "z-ai/glm-5.3"),
+    "gpt35": ("openrouter", "openai/gpt-3.5-turbo-0613"),
+    "commandr": ("openrouter", "cohere/command-r-08-2024"),
+    "llama8b": ("openrouter", "meta-llama/llama-3.1-8b-instruct"),
 }
 
 
@@ -51,6 +54,9 @@ NAMES = {
     "luna": "GPT-6 Luna",
     "astra": "GPT-6 Astra",
     "glm": "GLM-5.3",
+    "gpt35": "GPT-3.5 Turbo",
+    "commandr": "Command R",
+    "llama8b": "Llama 3.1 8B",
 }
 
 
@@ -108,16 +114,27 @@ PAID_OK = {
     "openai/gpt-6-luna",  # paid panels Jason approved, 2026-10-20; now only where Codex isn't ready
     "openai/gpt-6-astra",
     "z-ai/glm-5.3",  # approved 2026-10-23, for the communal criterion (#41)
+    "openai/gpt-3.5-turbo-0613",  # Thomas approved 2026-10-24, older models for the capable criterion (#39)
+    "cohere/command-r-08-2024",
+    "meta-llama/llama-3.1-8b-instruct",
+}
+
+# Below the default cap for a model whose context or output limit is smaller; gpt-3.5-turbo-0613's whole
+# context is 4,096 tokens, and the longest capable prompt about 1,300
+MAX_TOKENS = {
+    "openai/gpt-3.5-turbo-0613": 2000,
+    "cohere/command-r-08-2024": 4000,
+    "meta-llama/llama-3.1-8b-instruct": 8000,
 }
 
 
 def openrouter_body(model_id: str, system: str, prompt: str) -> dict:
     """The request: temperature 1.0, and room for hidden reasoning before the answer line
-    (EXPERIMENT_STANDARDS.md, "Models")."""
+    (EXPERIMENT_STANDARDS.md, "Models"), less for a model in MAX_TOKENS."""
     return {
         "model": model_id,
         "temperature": 1.0,
-        "max_tokens": 32000,
+        "max_tokens": MAX_TOKENS.get(model_id, 32000),
         "usage": {"include": True},
         "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
     }

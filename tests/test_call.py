@@ -111,6 +111,31 @@ def test_openrouter_runs_at_temperature_1_with_room_for_hidden_reasoning():
     ]
 
 
+def test_a_model_with_limits_below_32000_tokens_gets_a_lower_cap():
+    older = ("openai/gpt-3.5-turbo-0613", "cohere/command-r-08-2024", "meta-llama/llama-3.1-8b-instruct")
+    caps = {
+        model_id: openrouter_body(model_id, "You manage production.", "It is now round 2.").get("max_tokens")
+        for model_id in older
+    }
+    assert caps == {
+        "openai/gpt-3.5-turbo-0613": 2000,
+        "cohere/command-r-08-2024": 4000,
+        "meta-llama/llama-3.1-8b-instruct": 8000,
+    }
+
+
+def test_the_older_models_run_on_openrouter_paid_and_named():
+    older = {
+        "gpt35": ("openai/gpt-3.5-turbo-0613", "GPT-3.5 Turbo"),
+        "commandr": ("cohere/command-r-08-2024", "Command R"),
+        "llama8b": ("meta-llama/llama-3.1-8b-instruct", "Llama 3.1 8B"),
+    }
+    assert {m: (MODELS.get(m), call.NAMES.get(m)) for m in older} == {
+        m: (("openrouter", model_id), name) for m, (model_id, name) in older.items()
+    }
+    assert {model_id for model_id, _ in older.values()} <= PAID_OK
+
+
 def test_the_command_pins_model_and_effort_and_shuts_codex_down(tmp_path):
     cmd = codex_command("gpt-6-astra", tmp_path / "instructions.md")
     joined = " ".join(cmd)
