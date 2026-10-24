@@ -16,7 +16,7 @@ SPDX-License-Identifier = "CC-BY-4.0"
 # Code, CI, hooks and config.
 [[annotations]]
 path = [
-  "zerocommcartel/**.py", "pilot/**.py", "tests/**.py", "bin/**", ".claude/skills/**.js",
+  "zerocommcartel/**.py", "experiments/**.py", "pilot/**.py", "tests/**.py", "bin/**", ".claude/skills/**.js",
   ".claude/settings.json", ".github/**", ".gitignore", ".pre-commit-config.yaml",
   ".python-version", "pyproject.toml", "uv.lock",
 ]
