@@ -19,7 +19,7 @@ def shown(path: Path) -> str:
 
 
 def status(report: Report, final: bool) -> str:
-    """The block a build ends with: the paper's measures, what changed, and its problems."""
+    """The block a build ends with: the paper's measures, what changed, its problems and its warnings."""
     low, high = ABSTRACT_WORDS
     folder = shown(report.pages[0].parent) if report.pages else "no pages"
     head = f"{shown(report.pdf)}: {len(report.pages)} pages" if report.pdf else "Final build refused"
@@ -47,6 +47,10 @@ def status(report: Report, final: bool) -> str:
         lines += [f"  {problem.check}: {problem.detail}" for problem in report.problems]
     elif final and report.pdf:
         lines += ["", f"Wrote {shown(report.pdf)} and {FINAL_NAME}-numbers.json beside it. Commit both."]
+    if report.warnings:
+        count = f"{len(report.warnings)} warning{'' if len(report.warnings) == 1 else 's'}"
+        lines += ["", f"{count} (neither a draft nor --final refuses them):"]
+        lines += [f"  {warning}" for warning in report.warnings]
     return "\n".join(lines)
 
 

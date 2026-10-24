@@ -23,6 +23,8 @@ from paper.checks import (
     failed_claims,
     missing_sections,
     rules,
+    swallowed_semicolons,
+    unclaimed_wording,
     unreferenced,
     unshipped,
 )
@@ -52,6 +54,7 @@ class Report:
     size: int
     changed: list[str]  # the ledger's entries that changed since the last build
     problems: list[Problem] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)  # a draft and a final build both print them
 
 
 _reading: list[set[str]] = []  # the .jsonl files the running data source has opened
@@ -167,7 +170,8 @@ def build(paper_dir: Path, sources: Mapping[str, Source] | None = None, final: b
         "# Changes since the last build\n\n" + "".join(f"- {c}\n" for c in changed)
     )
     shutil.copy(numbers, built)
-    problems += rules(page)
+    paper_text = (paper_dir / "paper.typ").read_text()
+    problems += rules(page) + swallowed_semicolons(paper_text)
     if final:
         logs = sorted({log for entry in ledger.entries.values() for log in entry["source"]["logs"]})
         problems += broken_links(page) + unshipped(repo, logs)
@@ -194,4 +198,5 @@ def build(paper_dir: Path, sources: Mapping[str, Source] | None = None, final: b
         size=len(page.pdf),
         changed=changed,
         problems=problems,
+        warnings=unclaimed_wording(paper_text),
     )

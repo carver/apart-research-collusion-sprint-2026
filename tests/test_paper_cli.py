@@ -35,6 +35,18 @@ def test_a_final_build_with_problems_fails_and_writes_nothing(paper_dir, capsys)
     assert not list(paper_dir.glob("*.pdf"))
 
 
+def test_a_swallowed_semicolon_is_a_problem_and_unclaimed_wording_a_warning(paper_dir, capsys):
+    paper = '#import "lib.typ": *\n#show: apart.with(abstract: [x])\nEvery model: #n("demo.a"); then more.\n'
+    (paper_dir / "paper.typ").write_text(paper)
+    assert main([], paper_dir, sources={}) == 0
+    out = capsys.readouterr().out
+    assert 'semicolon: line 3: #n("demo.a"); drops its' in out
+    assert (
+        "1 warning (neither a draft nor --final refuses them):\n  line 3: every, with no #claim after it"
+        in out
+    )
+
+
 def test_a_paper_typst_cannot_compile_fails_with_its_error(paper_dir, capsys):
     (paper_dir / "paper.typ").write_text('#import "lib.typ": *\n#nonsense\n')
     assert main([], paper_dir, sources={}) == 1

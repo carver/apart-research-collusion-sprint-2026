@@ -64,9 +64,12 @@ On every build:
 - no `#todo` markers
 - every number, table, figure and text in the ledger
 - every claim holds
+- no call followed straight by a semicolon (`#n("key");`): Typst ends the call there and drops the `;`, so write `\;`
 - every figure and table referenced in the text
 - the Code and Data, LLM Usage Statement, and "Limitations and Dual-Use / Ethical Considerations" sections
 - the PDF: 25 MB at most
+
+It also warns, without refusing anything, about a sentence that cites the ledger and holds a word such as "every", "none", "most", "nearly" or "fell" with no `#claim` later in its paragraph. Many such words are fine; the warning asks whether the wording needs a claim.
 
 A draft lists what fails and exits 0. `--final` also needs every link in the PDF to resolve (a network failure counts), no uncommitted changes, and every log the numbers came from pushed to `origin/main`. Only then does it write the unmarked `zerocommcartel.pdf` and `zerocommcartel-numbers.json`, which get committed together. Submit that PDF once: since 2026-10-22 a resubmission under the same title doesn't replace the PDF (`requirements.md`, §8).
 

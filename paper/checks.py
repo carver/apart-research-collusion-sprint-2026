@@ -1,7 +1,9 @@
-"""The sprint's rules for the report (requirements.md), checked on a typeset paper, and the extra checks of a
-final build: every link resolves, and the paper and its logs are committed and pushed."""
+"""The sprint's rules for the report (requirements.md), checked on a typeset paper; checks of paper.typ's text
+(a semicolon Typst swallows, and wording with no #claim behind it, which only warns); and the extra checks of
+a final build: every link resolves, and the paper and its logs are committed and pushed."""
 
 import http.client
+import re
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -18,6 +20,17 @@ REQUIRED_SECTIONS = ("Code and Data", "LLM Usage Statement", LIMITATIONS)
 DOI = ("https://doi.org/", "http://doi.org/", "https://dx.doi.org/", "http://dx.doi.org/")
 TOP = 73.0  # pt: the top margin, so a References heading at or above this height starts its page
 USER_AGENT = "Mozilla/5.0 (paper link check; zerocommcartel)"
+EMBEDDED = re.compile(r"#[A-Za-z_][\w-]*")  # the start of an embedded expression: #n, #todo, #sym
+FIELD = re.compile(r"\.[A-Za-z_][\w-]*")  # a field or method after it: .dash, .len
+CLOSING = {"(": ")", "[": "]"}
+CITES = re.compile(r"#(?:n|pct|ci)\(")
+STRING = re.compile(r'"[^"\n]*"')  # a key, or quoted words, whose words aren't the sentence's own
+WORDING = re.compile(  # words whose truth rests on the numbers beside them, not inside a hyphenated word
+    r"(?<![\w-])(?:every|all|none|no one|nobody|neither|never|always|only|most|mostly|nearly|almost"
+    r"|fell|falls|rose|rises|raises|raised|lowers|lowered|higher|lower|more often|less often|fewer"
+    r"|strongest|weakest|highest|lowest|largest|smallest)(?![\w-])",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -48,6 +61,96 @@ def unreferenced(page: Typeset) -> list[str]:
 
 def missing_sections(page: Typeset) -> list[str]:
     return [section for section in REQUIRED_SECTIONS if section not in page.headings]
+
+
+def code_lines(text: str) -> list[str]:
+    """paper.typ's lines, each cut at a `//` comment outside a string, so a comment counts for nothing."""
+    lines = []
+    for line in text.split("\n"):
+        quoted = False
+        for i, char in enumerate(line):
+            if char == '"' and line[i - 1 : i] != "\\":
+                quoted = not quoted
+            elif not quoted and line.startswith("//", i):
+                line = line[:i]
+                break
+        lines.append(line)
+    return lines
+
+
+def _past_group(line: str, start: int) -> int | None:
+    """The index just past the bracketed group that opens at `start`, ( or [, skipping strings; None when it
+    doesn't close on the line."""
+    expected, i, quoted = [CLOSING[line[start]]], start + 1, False
+    while i < len(line) and expected:
+        char = line[i]
+        if quoted:
+            i += char == "\\"  # skip the escaped character
+            quoted = char != '"'
+        elif char == '"':
+            quoted = True
+        elif char in CLOSING:
+            expected.append(CLOSING[char])
+        elif char == expected[-1]:
+            expected.pop()
+        i += 1
+    return None if expected else i
+
+
+def _past_embedded(line: str, start: re.Match[str]) -> int | None:
+    """The index just past the embedded expression whose #name is `start`, with its fields, argument lists
+    and content blocks; None when a group doesn't close on the line."""
+    end = start.end()
+    while end < len(line):
+        if field := FIELD.match(line, end):
+            end = field.end()
+        elif line[end] in CLOSING:
+            if (end := _past_group(line, end)) is None:
+                return None
+        else:
+            break
+    return end
+
+
+def swallowed_semicolons(text: str) -> list[Problem]:
+    """Each embedded expression followed straight by a semicolon, outside comments: Typst ends the expression
+    at the semicolon and drops it (`#n("key");`, `#todo[...];`, `#sym.dash;`), so the sentence loses its
+    punctuation with no error."""
+    found = []
+    for number, line in enumerate(code_lines(text), 1):
+        for match in EMBEDDED.finditer(line):
+            end = _past_embedded(line, match)
+            if end is not None and line[end : end + 1] == ";":
+                expression = line[match.start() : end + 1]
+                found.append(
+                    Problem("semicolon", f'line {number}: {expression} drops its ";" (write \\; to keep it)')
+                )
+    return found
+
+
+def _claimed_later(lines: list[str], i: int) -> bool:
+    """Whether a #claim follows line i in its paragraph, before the next blank line."""
+    for later in lines[i + 1 :]:
+        if not later.strip():
+            return False
+        if later.lstrip().startswith("#claim("):
+            return True
+    return False
+
+
+def unclaimed_wording(text: str) -> list[str]:
+    """Each sentence (a line, in paper.typ's one sentence per line) that cites the ledger and holds a word
+    whose truth rests on the numbers, with no #claim later in its paragraph. A warning, since many such words
+    are fine where they stand."""
+    lines = code_lines(text)
+    found = []
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith("#claim") or not CITES.search(line):
+            continue
+        words = sorted({m.group(0).lower() for m in WORDING.finditer(STRING.sub("", line))})
+        if words and not _claimed_later(lines, i):
+            found.append(f"line {i + 1}: {', '.join(words)}, with no #claim after it")
+    return found
 
 
 def rules(page: Typeset) -> list[Problem]:
