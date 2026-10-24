@@ -79,11 +79,11 @@ class Experiment:
     @property
     def folder(self) -> str:
         """The experiment's folder in logs/: its criterion's, then its id, lowercased, without the dash
-        ("capable/cap2")."""
+        ("capable/cap2"). zcc counts the log in it as the criterion's (`logs.experiment_logs`)."""
         return f"{self.criterion}/{self.id.lower().replace('-', '')}"
 
     def log(self) -> Path:
-        return logs.LOGS / self.folder / "results.jsonl"
+        return logs.experiment_log(self.folder)
 
     def fresh_log(self) -> Path:
         """A new log in the experiment's folder, named by the minute it starts."""
@@ -149,26 +149,20 @@ def main(
         run(tasks, log, call)
     rows = [r for r in logs.load_rows(log) if e.mine(r)]
     sizes = set(e.ns) | {n for cond in e.conditions for n in e.ns_of(cond)}
+    compared = [logs.experiment_log(folder) for folder in e.compare]
     beside = [
-        r
-        for folder in e.compare
-        for r in logs.load_rows(logs.LOGS / folder / "results.jsonl")
-        if r["model"] in e.models and r["n"] in sizes
+        r for path in compared for r in logs.load_rows(path) if r["model"] in e.models and r["n"] in sizes
     ]
     for name in e.judges:
         # the compared rows too, into this experiment's own cache, unless their own folder labelled them
         judge = registry.judges[name]
-        elsewhere = {
-            key
-            for folder in e.compare
-            for key in load_labels(judge, logs.judge_path(logs.LOGS / folder / "results.jsonl", name))
-        }
+        elsewhere = {key for path in compared for key in load_labels(judge, logs.judge_path(path, name))}
         replies = [r["reply"] for r in rows + beside if r.get("reply")]
         cache = logs.judge_path(log, name)
         judged, failed, cached = label(judge, replies, cache, judge_call, known=elsewhere)
         print(f"{name}: judged {judged}, {len(failed)} failed, {cached} already labelled")
     # a judge's labels for the compared rows sit beside their own log or this one's
-    logged = [log, *(logs.LOGS / folder / "results.jsonl" for folder in e.compare)]
+    logged = [log, *compared]
     labels = {
         name: {
             key: found

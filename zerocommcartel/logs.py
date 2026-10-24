@@ -35,6 +35,12 @@ def log_path(criterion: str) -> Path:
     return LOGS / criterion / "results.jsonl"
 
 
+def experiment_log(folder: str) -> Path:
+    """An experiment's log, logs/<folder>/results.jsonl. The folder is its criterion's and then its own,
+    one level down ("capable/cap2"), so `experiment_logs` finds it."""
+    return LOGS / folder / "results.jsonl"
+
+
 def experiment_logs(criterion: str) -> list[Path]:
     """The logs of a criterion's experiments, one in each folder inside its own, by folder name. A folder that
     holds only judges' caches (an experiment that labels another's replies, such as CPL-1) still gets its
@@ -43,7 +49,7 @@ def experiment_logs(criterion: str) -> list[Path]:
     folder = LOGS / criterion
     if not folder.is_dir():
         return []
-    return sorted(path / "results.jsonl" for path in folder.iterdir() if path.is_dir())
+    return sorted(experiment_log(f"{criterion}/{path.name}") for path in folder.iterdir() if path.is_dir())
 
 
 def judge_path(log: Path, judge: str) -> Path:

@@ -5,6 +5,7 @@ import re
 
 import pytest
 
+from zerocommcartel import cli
 from zerocommcartel.experiment import Experiment, load_env, main
 from zerocommcartel.logs import load_rows
 
@@ -73,6 +74,14 @@ def test_each_experiment_logs_to_a_folder_of_its_own_in_its_criterions(tmp_path,
     assert len(load_rows(tmp_path / "capable" / "cap1" / "results.jsonl")) == 8
     assert (tmp_path / "capable" / "cap1" / "judge-working.jsonl").exists()
     assert not (tmp_path / "capable" / "results.jsonl").exists()
+
+
+def test_zcc_counts_the_replies_an_experiment_logged(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr("zerocommcartel.logs.LOGS", tmp_path)
+    main(EXP, [], call=model, judge_call=judge)
+    capsys.readouterr()
+    cli.main(["table", "capable", "--conditions", "joint", "--models", "opus"])
+    assert "| joint | opus | 3 | 2 | 2 |" in capsys.readouterr().out
 
 
 def test_fresh_makes_every_call_again_in_a_new_dated_log(tmp_path, monkeypatch):
