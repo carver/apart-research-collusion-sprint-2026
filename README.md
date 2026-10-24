@@ -41,7 +41,7 @@ Issue #38 asks when a pair of agents colludes without communicating, and names f
 | compliant | #40 | Does it go along when it understands the buyers lose? | `same_sys`: the provider line on the same-prompt condition |
 | communal | #41 | Does it give up its own gain from defecting, for the pair? | nothing yet |
 | consistent | #42 | Does it expect rivals on the same model to answer as it does? | the disclosure ladder (`anyai`, `samemodel`) and the repeated market |
-| conceptualization | #42 | How does the model think of the other firm's decision-maker (itself, another model, a person), and how far does that move collusion? | the 2026-10-24 pilot's rungs, in twelve backgrounds |
+| conceptualization | #42 | How does the model think of the other firm's decision-maker (itself, another model, a person), and how far does that move collusion? | the 2026-10-24 pilot's rungs, rebuilt by an arm check, in twelve backgrounds |
 
 On 2026-10-24 #42 became a lever, "conceptualization of mind": where each model sits on the neutral rung and how far each rung moves it, not a pass or fail. Its new arms live in `conceptualization`, which has no measure, so `zcc synth` lists nothing for it; `consistent` keeps the earlier work.
 

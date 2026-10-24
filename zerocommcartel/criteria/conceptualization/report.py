@@ -16,21 +16,28 @@ from collections import defaultdict
 from collections.abc import Callable
 
 from zerocommcartel import cli
-from zerocommcartel.call import MODELS, NAMES
+from zerocommcartel.call import MODELS
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.conceptualization import HORIZONS, RECORDS, RUNGS, name, readback
+from zerocommcartel.criteria.conceptualization import (
+    CRITERION,
+    HORIZONS,
+    RECORDS,
+    RUNGS,
+    final,
+    name,
+    readback,
+)
 from zerocommcartel.criterion import Registry, near
 from zerocommcartel.table import markdown, model_rank
 
-CRITERION = "conceptualization"
-HORIZON_LABELS = {"unsaid": "no repeat mentioned", "open": "repeats"}
+HORIZON_LABELS = {"unsaid": "no repeat mentioned", "single": "one quarter only", "open": "repeats"}
 RECORD_LABELS = {"none": "", "coop": ", after 30s", "cheat": ", after a cheat", "nash": ", after 40s"}
 
 
 def background(horizon: str, record: str) -> str:
     """A background's label; a single quarter after a record is the market's final one."""
-    if horizon == "single":
-        return "one quarter only" if record == "none" else "final quarter" + RECORD_LABELS[record]
+    if final(horizon, record):
+        return "final quarter" + RECORD_LABELS[record]
     return HORIZON_LABELS[horizon] + RECORD_LABELS[record]
 
 
@@ -71,15 +78,14 @@ def ladder(rows: list[dict], model: str, at: str = "cartel") -> str:
 def matches(rows: list[dict], model: str, readbacks: dict[str, readback.Readback], registry: Registry) -> str:
     cells = parsed(rows, model)
 
+    def prompt_of(row: dict):
+        return readback.prompt_of(registry, CRITERION.name, row)
+
     def cell(condition: str) -> str:
-        found = cells.get(condition, [])
-        if not found:
-            return "-"
-        prompt = registry.render(registry.condition(CRITERION, condition), 2, NAMES[model])
         expected = [
             (row["value"], got.other)
-            for row in found
-            if (got := readbacks.get(readback.key(model, prompt, row["sample"], row["reply"])))
+            for row in cells.get(condition, [])
+            if (got := readbacks.get(readback.key(model, prompt_of(row), row["sample"], row["reply"])))
             and got.other is not None
         ]
         if not expected:
@@ -95,9 +101,9 @@ def main(argv=None, registry: Registry = REGISTRY):
     p.add_argument("--at", default="cartel", help="the focal point the cells count (default: cartel)")
     p.add_argument("--models", nargs="+", choices=list(MODELS))
     args = p.parse_args(argv)
-    conditions = list(registry.criteria[CRITERION].conditions)
-    rows = cli.replies(registry, CRITERION, args.log, conditions, args.models).rows
-    readbacks = readback.load(readback.cache_path(cli.sources(registry, CRITERION, args.log).log))
+    conditions = list(CRITERION.conditions)
+    rows = cli.replies(registry, CRITERION.name, args.log, conditions, args.models).rows
+    readbacks = readback.load(readback.cache_path(cli.sources(registry, CRITERION.name, args.log).log))
     for model in sorted({row["model"] for row in rows}, key=model_rank):
         print(f"## {model}: answers at {args.at}\n\n{ladder(rows, model, args.at)}")
         if readbacks:

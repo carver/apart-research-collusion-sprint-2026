@@ -31,10 +31,10 @@ from zerocommcartel import cli, logs
 from zerocommcartel.answer import parse
 from zerocommcartel.call import MODELS, NAMES, complete
 from zerocommcartel.criteria import REGISTRY
+from zerocommcartel.criteria.conceptualization import CRITERION
 from zerocommcartel.criterion import Registry
-from zerocommcartel.prompt import Prompt
+from zerocommcartel.prompt import MODEL, Prompt
 
-CRITERION = "conceptualization"
 QUESTION = (
     "One follow-up question about your reply above. When you chose that number, how many units did you "
     "expect the other firm to produce this quarter, and what market price did you expect? Answer briefly, "
@@ -73,6 +73,12 @@ def cache_path(log: Path) -> Path:
     return log.parent / "readback.jsonl"
 
 
+def prompt_of(registry: Registry, criterion: str, row: dict) -> Prompt:
+    """The prompt a row's reply answered, as `table.prepare` renders it."""
+    condition = registry.condition(criterion, row["condition"])
+    return registry.render(condition, row["n"], NAMES.get(row["model"], MODEL))
+
+
 def ask(
     rows: Iterable[dict],
     registry: Registry,
@@ -87,16 +93,15 @@ def ask(
     done = load(cache)
     pending, cached = {}, 0
     for row in rows:
-        prompt = registry.render(
-            registry.condition(criterion, row["condition"]), row["n"], NAMES[row["model"]]
-        )
+        prompt = prompt_of(registry, criterion, row)
         found = key(row["model"], prompt, row["sample"], row["reply"])
         if found in done:
             cached += 1
         else:
             pending[found] = (row, prompt)
-    cache.parent.mkdir(parents=True, exist_ok=True)
-    logs.end_last_line(cache)
+    if pending:
+        cache.parent.mkdir(parents=True, exist_ok=True)
+        logs.end_last_line(cache)
     asked, failed = 0, []
     with cf.ThreadPoolExecutor(max_workers=workers) as pool:
         futs = {
@@ -134,10 +139,10 @@ def main(argv=None, registry: Registry = REGISTRY, call: Callable = complete):
     p.add_argument("--conditions", nargs="+", help="default: every condition of the criterion's own")
     p.add_argument("--models", nargs="+", choices=list(MODELS))
     args = p.parse_args(argv)
-    conditions = args.conditions or list(registry.criteria[CRITERION].conditions)
-    rows = cli.replies(registry, CRITERION, args.log, conditions, args.models).rows
-    cache = cache_path(cli.sources(registry, CRITERION, args.log).log)
-    asked, failed, cached = ask(rows, registry, CRITERION, cache, call)
+    conditions = args.conditions or list(CRITERION.conditions)
+    rows = cli.replies(registry, CRITERION.name, args.log, conditions, args.models).rows
+    cache = cache_path(cli.sources(registry, CRITERION.name, args.log).log)
+    asked, failed, cached = ask(rows, registry, CRITERION.name, cache, call)
     print(f"readback: asked {asked}, {len(failed)} failed, {cached} already cached, into {cache}")
     for line in failed:
         print(f"  failed {line}")
