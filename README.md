@@ -85,7 +85,9 @@ uv run pytest
 ```
 zerocommcartel/           the sprint's code: the shared core and the zcc command line
 zerocommcartel/criteria/  one folder per criterion (capable, compliant, communal, consistent)
+experiments/              one script per experiment, which runs, judges and reports it (EXPERIMENT_STANDARDS.md)
 logs/<criterion>/         a criterion's replies (results.jsonl) and its judges' labels (judge-<name>.jsonl)
+logs/<criterion>/<id>/    an experiment's replies and labels (logs/capable/cap2/), which zcc counts as its criterion's
 pilot/                    frozen: the probe, the analysis and copy-premise judge, benchmarks, power analysis
                           (BRIEF-judge.md is the judge's design; judge-gold.jsonl its hand-labelled gold set)
 logs/pilot/               frozen: the pilot's data (probe-results.jsonl, judge-copy.jsonl, probe-tables.md, run-*.log)
