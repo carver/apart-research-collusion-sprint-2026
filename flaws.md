@@ -4,6 +4,50 @@ Each entry is a weakness of an experiment that has run, found by an arm check (`
 
 An entry gives the flaw, how it was found, its status (fixed before the run, or accepted and still in the data), and the results it touches. Entries are grouped by criterion and experiment.
 
+## Communal (#41)
+
+Results: [first runs](https://github.com/carver/apart-research-collusion-sprint-2026/issues/41#issuecomment-6375910489), then one comment per experiment after it, and the [reporting notes](https://github.com/carver/apart-research-collusion-sprint-2026/issues/41#issuecomment-6378274404), whose "Discount or correct" section most entries below come from.
+
+Built before the arm-check skill existed; its flaws surfaced in the write-ups and the results.
+
+### Every arm
+
+- **Ten replies a cell, one wording per arm.** Accepted. Touches every per-model count.
+- **Claude's context.** The Claude calls carry `claude -p`'s environment block, which names the model ("You are powered by the model named Haiku 5.5"); Astra and GLM get only the prompt. Found by the write-up. Accepted. Touches cross-family comparisons, most of all the mirror arms, where `same` says "this same AI model" and only the Claude models are told which model that is. Comparisons between arms within a model hold.
+- **Astra through OpenRouter.** Every Astra call in this criterion went to `openai/gpt-6-astra` on OpenRouter (560 rows); the consistent criterion's went through Codex (`gpt-6-astra`). Found by the write-up. Accepted. Touches any comparison of Astra across the two criteria.
+
+### The rule judge (`judge-rule.jsonl`)
+
+- **No gold set.** A Haiku judge, checked by hand on 16 pilot replies and a smoke run of every arm. Of the four premise-and-Nash replies read by hand, it labelled two wrong. Found by the write-up. Accepted. Touches the order-of-operations counts (21 of 25 Nash replies best-responding first, 138 of 139 cartel answers setting the outputs equal first), the `mirror-stated equal-first` measure, and whose profit the replies say they serve.
+- **Only `same` was labelled for the order of operations,** not the 51 premise-and-Nash replies from every copy arm that the #41 to-do counted. Found by the write-up. Accepted. Touches the claim that the order of operations explains mirror-stated defection.
+- **Wrong frame on the run-the-firm arms.** Its prompt describes "a firm asked an AI assistant", and its labels have no option for the rival or the buyers. Found by the results. Accepted: ignore its labels on `run_*`; the focal points carry that result.
+
+### The fixed rival and leaving arms (`fixed_<d>`, `leave_<d>`)
+
+- **At a rival of 20 the pair's optimum is Nash** (40), so a reply that ignored the rival would score as communal. Found while building. Fixed before the run: the rival is at 24.
+- **Every question asked for the firm's own profit** ("to maximize its profit"), so the null might only show obedience to the question. Found by the write-up. Accepted: the first arms stay in the pooled counts, and the neutral questions run after them (`_plain`, `_best`, 3cbde47) gave the same null.
+- **The model advises one firm,** so an answer at the pair's optimum gives away a client's money. Found by the write-up. Accepted: the advising arms stay in the pooled counts, and the run-the-firm arms run after them (1504505) gave the same null.
+
+### The run-the-firm arms (`run_<r>`, `run_<r>_locked`, `run_<r>_offline`)
+
+- **Locked against offline rests on GLM's six gifts** (four 0s, two 96s), too few to read anything into. Found by the results. Accepted. Touches any claim that the shutdown matters.
+
+### The correlation dial (`dial<p>`)
+
+- **The pin tells the model the Nash number,** "they will have it produce 40 units". Found by the write-up. Accepted. Touches the dial; the focal curves assume it.
+- **Three Astra replies on `dial50` answered "100/3",** which the parser of the time logged as 100. Found by the results. Fixed in the reading, not the data: zcc reads each reply with today's parser, which reads the fraction, so the tables and the paper count the three at the mirror point.
+- **`dial100`'s "otherwise 40" clause reads as live** to Haiku, two of whose replies answer Nash from it. Found by the results. Accepted: `dial100` is secondary, and `lockstep_same` is the clean test of the mirror made certain.
+
+### The lockstep arms (`lockstep_same`, `lockstep_hub`)
+
+- **The lockstep sentence hands the model the math:** it turns the question into a one-variable maximization, so 30 is the textbook answer to the problem as stated. Found by the write-up. Accepted. Read the arms as the contrast with `same` and `hub`, not as evidence that a model colludes when told it can.
+- **Under lockstep, whose profit a reply cites can't tell the readings apart.** With the copy locked, the firm's profit is half the pair's, so the rise in replies citing the pair's profit (13 of 20 Haiku and Sonnet replies, against 3 of 20 on `same`) fits either reading. Found by the write-up. Accepted. Touches any claim about lockstep and concern for the pair.
+
+### The goodwill record (`goodwill_<h>_diff`, `onesided_<h>_diff`)
+
+- **The record states 30,** so part of the 30s could be anchoring on the number. Found by the write-up. Accepted. The last-quarter zero argues against anchoring alone.
+- **The arms keep "to maximize its profit".** No neutral-question version ran. Found by the write-up. Accepted.
+
 ## Consistent (#42)
 
 Results: [first runs](https://github.com/carver/apart-research-collusion-sprint-2026/issues/42#issuecomment-6380771051), [#31's rungs and #33's audits](https://github.com/carver/apart-research-collusion-sprint-2026/issues/42#issuecomment-6382659228).
