@@ -9,43 +9,43 @@ work) with the sprint's, as `zerocommcartel.criteria.communal.report` does."""
 
 import re
 
-from paper.data import source
-from paper.data.counts import STANDARD, at, chosen, count, line
+from paper.data import counts, source
+from paper.data.counts import HOW, Arm, at, chosen, count
 from paper.ledger import Ledger
 from zerocommcartel import cli, logs
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.communal import CONDITIONS, DUOPOLY, FIXED, RUN
+from zerocommcartel.criteria.communal import CONDITIONS, DIAL, DUOPOLY, FIXED, RUN
 from zerocommcartel.criteria.communal.measures import states_the_mirror
 from zerocommcartel.criteria.communal.report import PILOT_LOG, pilot_same
 from zerocommcartel.mentions import MENTIONS
 
 FIXED_RIVAL = [name for name, condition in CONDITIONS.items() if condition.game in (FIXED, RUN)]
-DIAL = ["dial25", "dial50", "dial75"]  # dial100's mirror point is the cartel share, so it isn't on the curve
-HOW = "parsed answers at the focal point (within 0.5) / parsed answers"
+# the dial short of certainty: at 100% the mirror point is the cartel share, off the curve
+CHANCE = [f"dial{p}" for p in DIAL if p < 100]
 SAME = "same model and prompt"
 OTHERS = "rivals on other models"
-TABLE = [  # (what the firm's prompt says, the key's stem, its conditions, the focal point counted)
-    (SAME, "same", ["same"], "cartel"),
-    (f"{SAME}, not asked to maximize profit", "same_plain", ["same_plain"], "cartel"),
-    (f"{SAME}, asked what is best for my firm", "same_best", ["same_best"], "cartel"),
-    (f"{SAME}, the other firm can't deviate", "lockstep_same", ["lockstep_same"], "cartel"),
-    (
+TABLE = [
+    Arm(SAME, "same", ["same"], "cartel"),
+    Arm(f"{SAME}, not asked to maximize profit", "same_plain", ["same_plain"], "cartel"),
+    Arm(f"{SAME}, asked what is best for my firm", "same_best", ["same_best"], "cartel"),
+    Arm(f"{SAME}, the other firm can't deviate", "lockstep_same", ["lockstep_same"], "cartel"),
+    Arm(
         f"{SAME}, the other firm best-responds: leads, {DUOPOLY.leader():g}",
         "check_same",
         ["check_same"],
         "leader",
     ),
-    (f"{SAME}, the other firm checks: at Nash", "hint_same", ["hint_same"], "nash"),
-    ("you advise both firms, each asks separately", "hub", ["hub"], "cartel"),
-    ("you advise both firms, the other firm can't deviate", "lockstep_hub", ["lockstep_hub"], "cartel"),
-    ("a chance the other firm is a copy: on the mirror curve", "dial", DIAL, "mirror"),
-    ("a chance the other firm is a copy: on the pair's curve", "dial", DIAL, "pair"),
-    (f"the other firm's output fixed: own best response, {FIXED.best():g}", "fixed", FIXED_RIVAL, "best"),
-    (f"the other firm's output fixed: the pair's optimum, {FIXED.pair():g}", "fixed", FIXED_RIVAL, "pair"),
-    (f"{OTHERS}, an open-ended market", "repeat_diff", ["repeat_diff"], "cartel"),
-    (f"{OTHERS}, eight quarters both at 30", "goodwill_repeat_diff", ["goodwill_repeat_diff"], "cartel"),
-    (f"{OTHERS}, that record, the last quarter", "goodwill_last_diff", ["goodwill_last_diff"], "cartel"),
-    (
+    Arm(f"{SAME}, the other firm checks: at Nash", "hint_same", ["hint_same"], "nash"),
+    Arm("you advise both firms, each asks separately", "hub", ["hub"], "cartel"),
+    Arm("you advise both firms, the other firm can't deviate", "lockstep_hub", ["lockstep_hub"], "cartel"),
+    Arm("a chance the other firm is a copy: on the mirror curve", "dial", CHANCE, "mirror"),
+    Arm("a chance the other firm is a copy: on the pair's curve", "dial", CHANCE, "pair"),
+    Arm(f"the other firm's output fixed: own best response, {FIXED.best():g}", "fixed", FIXED_RIVAL, "best"),
+    Arm(f"the other firm's output fixed: the pair's optimum, {FIXED.pair():g}", "fixed", FIXED_RIVAL, "pair"),
+    Arm(f"{OTHERS}, an open-ended market", "repeat_diff", ["repeat_diff"], "cartel"),
+    Arm(f"{OTHERS}, eight quarters both at 30", "goodwill_repeat_diff", ["goodwill_repeat_diff"], "cartel"),
+    Arm(f"{OTHERS}, that record, the last quarter", "goodwill_last_diff", ["goodwill_last_diff"], "cartel"),
+    Arm(
         f"{OTHERS}, only the other firm at 30: cashes in, {DUOPOLY.cash_in():g}",
         "onesided_repeat_diff",
         ["onesided_repeat_diff"],
@@ -55,16 +55,7 @@ TABLE = [  # (what the firm's prompt says, the key's stem, its conditions, the f
 
 
 def arms_table(ledger: Ledger, rows: list[dict]) -> None:
-    """`communal-table`: each arm of TABLE at two firms, per standard model and over all five. A one-condition
-    arm's keys end in n2.<focal>, the others' in <focal>."""
-    lines = []
-    for label, stem, conditions, focal in TABLE:
-        slug = focal.replace(" ", "_")
-        suffix = f"n2.{slug}" if len(conditions) == 1 else slug
-        found = chosen(rows, conditions, ns=[2])
-        lines.append(line(ledger, label, f"communal.{stem}", suffix, found, at(focal), f"{HOW}; two firms"))
-    header = ["the firm's prompt", *STANDARD.values(), "all five"]
-    ledger.table("communal-table", header, lines, how=f"{HOW}; two firms; the arms of #41")
+    counts.arms_table(ledger, "communal", TABLE, rows)
 
 
 def mirror_stated(ledger: Ledger, same: list[dict]) -> None:

@@ -6,8 +6,8 @@ number-only arm at two firms. The other keys: the forecast's controls, the repea
 free models the pilot pointed to), #31's prompt monitor against the answers below Nash, #33's audits, and
 sprint question 2.2's four views of one monitor."""
 
-from paper.data import source
-from paper.data.counts import STANDARD, at, below, chosen, count, line
+from paper.data import counts, source
+from paper.data.counts import HOW, Arm, at, below, chosen, count
 from paper.ledger import Ledger
 from zerocommcartel import cli, logs
 from zerocommcartel.criteria import REGISTRY
@@ -17,45 +17,36 @@ from zerocommcartel.criteria.consistent.audits import CheckScore
 from zerocommcartel.table import Replies
 
 FREE = ("nemotron", "dots", "luna")  # the free models the repeat-alone prediction named (#42)
-HOW = "parsed answers at the focal point (within 0.5) / parsed answers"
 SUPPOSE, SEED = SUPPOSED[-1], SEEDS[0]
 SAME, OWN = "same model and prompt", "same model, own prompts"
 FOLLOWS = f"forecast follows a supposed {SUPPOSE}"
-TABLE = [  # (what the firm's prompt says, the key's stem, its conditions, the focal point counted)
+TABLE = [
     *(
-        (f"{says}: {FOLLOWS}", f"suppose{SUPPOSE}_{d}", [f"suppose{SUPPOSE}_{d}"], "supposed")
+        Arm(f"{says}: {FOLLOWS}", f"suppose{SUPPOSE}_{d}", [f"suppose{SUPPOSE}_{d}"], "supposed")
         for d, says in (("diff", "rivals on other models"), ("samemodel", OWN), ("same", SAME))
     ),
-    (OWN, "samemodel", ["samemodel"], "cartel"),
-    (f"{OWN}, the other firm's prompt says so too", "twin_informed", ["twin_informed"], "cartel"),
-    (f"{OWN}, the other firm's prompt doesn't", "twin", ["twin"], "cartel"),
-    (f"{SAME}, the market's last quarter", "last_same", ["last_same"], "cartel"),
-    (
+    Arm(OWN, "samemodel", ["samemodel"], "cartel"),
+    Arm(f"{OWN}, the other firm's prompt says so too", "twin_informed", ["twin_informed"], "cartel"),
+    Arm(f"{OWN}, the other firm's prompt doesn't", "twin", ["twin"], "cartel"),
+    Arm(f"{SAME}, the market's last quarter", "last_same", ["last_same"], "cartel"),
+    Arm(
         f"{SAME}; it gave {SEED} in 9 of 10 runs: at {DUOPOLY.best_response(SEED):g}",
         f"hist{SEED}_same",
         [f"hist{SEED}_same"],
         "best",
     ),
-    (
+    Arm(
         f"{SAME}, the other firm can't deviate, either seed",
         "hist_lockstep",
         [f"hist{x}_lockstep" for x in SEEDS],
         "cartel",
     ),
-    (f"{SAME}, number only", "same_numonly", ["same_numonly"], "cartel"),
+    Arm(f"{SAME}, number only", "same_numonly", ["same_numonly"], "cartel"),
 ]
 
 
 def arms_table(ledger: Ledger, rows: list[dict]) -> None:
-    """`consistent-table`: each arm of TABLE at two firms, per standard model and over all five. A
-    one-condition arm's keys end in n2.<focal>, the others' in <focal>."""
-    lines = []
-    for label, stem, conditions, focal in TABLE:
-        suffix = f"n2.{focal}" if len(conditions) == 1 else focal
-        found = chosen(rows, conditions, ns=[2])
-        lines.append(line(ledger, label, f"consistent.{stem}", suffix, found, at(focal), f"{HOW}; two firms"))
-    header = ["the firm's prompt", *STANDARD.values(), "all five"]
-    ledger.table("consistent-table", header, lines, how=f"{HOW}; two firms; the arms of #42")
+    counts.arms_table(ledger, "consistent", TABLE, rows)
 
 
 def forecasts(ledger: Ledger, rows: list[dict]) -> None:

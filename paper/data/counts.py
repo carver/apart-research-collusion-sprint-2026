@@ -4,13 +4,25 @@ The rows are a criterion's `zerocommcartel.table.Replies` rows, so the paper cou
 the last reply per call to each condition's current wording, read with today's parser, with its cell's focal
 points and its judges' labels. A count's denominator is the parsed answers. This module has no source."""
 
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Sequence
+from typing import NamedTuple
 
 from paper.ledger import CELL, Ledger, display
 from zerocommcartel.criterion import NEAR, near
 
 # the five models every criterion runs, by their names in the tables
 STANDARD = {"haiku": "Haiku", "sonnet": "Sonnet", "opus": "Opus", "astra": "Astra", "glm": "GLM"}
+HOW = "parsed answers at the focal point (within 0.5) / parsed answers"
+
+
+class Arm(NamedTuple):
+    """A line of a criterion's table: what the firm's prompt says, the stem of its keys, the conditions it
+    pools and the focal point it counts."""
+
+    label: str
+    stem: str
+    conditions: Sequence[str]
+    focal: str
 
 
 def at(focal: str) -> Callable[[dict], bool]:
@@ -71,3 +83,18 @@ def line(
     by_model = [cell(f"{stem}.{m}.{suffix}", [r for r in rows if r["model"] == m], how) for m in STANDARD]
     five = [row for row in rows if row["model"] in STANDARD]
     return [label, *by_model, cell(f"{stem}.{suffix}", five, f"{how}; the five standard models")]
+
+
+def arms_table(ledger: Ledger, criterion: str, arms: Sequence[Arm], rows: list[dict]) -> None:
+    """`<criterion>-table`: a line per arm at two firms, per standard model and over all five. An arm of one
+    condition records keys ending in n2.<focal>, the others in <focal>, a space in the focal point's name
+    written as an underscore."""
+    how = f"{HOW}; two firms"
+    lines = []
+    for arm in arms:
+        slug = arm.focal.replace(" ", "_")
+        suffix = f"n2.{slug}" if len(arm.conditions) == 1 else slug
+        found = chosen(rows, arm.conditions, ns=[2])
+        lines.append(line(ledger, arm.label, f"{criterion}.{arm.stem}", suffix, found, at(arm.focal), how))
+    header = ["the firm's prompt", *STANDARD.values(), "all five"]
+    ledger.table(f"{criterion}-table", header, lines, how=f"{how}; the arms of the {criterion} criterion")
