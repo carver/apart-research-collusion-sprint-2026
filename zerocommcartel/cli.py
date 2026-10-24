@@ -255,11 +255,15 @@ def main(argv=None, registry: Registry = REGISTRY):
     sub = p.add_subparsers(dest="cmd", required=True)
 
     def command(name: str, summary: str) -> argparse.ArgumentParser:
-        """A subcommand whose -h shows its function's docstring."""
+        """A subcommand whose -h shows its function's docstring. One without a docstring fails here, so no
+        command's -h goes blank."""
+        doc = COMMANDS[name].__doc__
+        if not doc:
+            raise ValueError(f"zcc {name}: its function has no docstring for -h to show")
         return sub.add_parser(
             name,
             help=summary,
-            description=inspect.cleandoc(COMMANDS[name].__doc__ or ""),
+            description=inspect.cleandoc(doc),
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
 
