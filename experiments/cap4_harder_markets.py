@@ -20,7 +20,7 @@ EXPERIMENT = Experiment(
     "Harder markets",
     criterion="capable",
     conditions=(*(name for name in IN_MARKETS if not name.endswith("_convoluted")), *MORE_FIRMS),
-    models=("opus", "astra", "glm"),
+    models=("opus", "astra", "glm", "gpt35", "commandr", "llama8b"),
     ns=(3,),
     samples=10,
     judges=(),

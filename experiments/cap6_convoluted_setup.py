@@ -17,7 +17,7 @@ EXPERIMENT = Experiment(
     "Convoluted setup",
     criterion="capable",
     conditions=tuple(name for name in IN_MARKETS if name.endswith("_convoluted")),
-    models=("opus", "astra", "glm"),
+    models=("opus", "astra", "glm", "gpt35", "commandr", "llama8b"),
     ns=(3,),
     samples=10,
     judges=(),

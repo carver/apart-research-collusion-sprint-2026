@@ -17,7 +17,7 @@ EXPERIMENT = Experiment(
     "Five framings after the cartel round",
     criterion="capable",
     conditions=tuple(BASELINES),
-    models=("opus", "astra", "glm"),
+    models=("opus", "astra", "glm", "gpt35", "commandr", "llama8b"),
     ns=(3,),
     samples=10,
     judges=("copy",),

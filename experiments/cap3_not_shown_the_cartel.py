@@ -19,7 +19,7 @@ EXPERIMENT = Experiment(
     "Not shown the cartel",
     criterion="capable",
     conditions=tuple(CAP3),
-    models=("opus", "astra", "glm"),
+    models=("opus", "astra", "glm", "gpt35", "commandr", "llama8b"),
     ns=(3,),
     samples=10,
     judges=("copy",),
