@@ -336,3 +336,41 @@ def test_a_judge_line_changes_with_that_judge_alone(capsys):
     changed = [(a, b) for a, b in zip(old, new, strict=True) if a != b]
     assert [(a.split()[:2], b.split()[:2]) for a, b in changed] == [(["judge", "harm"], ["judge", "harm"])]
     assert any(line.startswith("judge copy ") for line in old)
+
+
+def test_grid_prints_a_table_per_measure_for_the_market_sizes_asked_for(logs_dir, claude, capsys):
+    run_haiku("consistent", "same", n=2)
+    run_haiku("consistent", "same", n=4)
+    capsys.readouterr()
+    zcc("grid", "consistent", "--conditions", "same", "--ns", "2", "--at", "cartel", "--below", "cartel")
+    out = capsys.readouterr().out
+    assert out.index("at cartel") < out.index("below cartel")
+    assert (
+        out.count("| same | 2 | 1 of 1 | 1 of 1 |") == 1 and out.count("| same | 2 | 0 of 1 | 0 of 1 |") == 1
+    )
+    assert "| same | 4 |" not in out
+
+
+def test_table_shows_only_the_market_sizes_asked_for(logs_dir, claude, capsys):
+    run_haiku("consistent", "same", n=2)
+    run_haiku("consistent", "same", n=4)
+    out = table_of(capsys, "consistent", "--ns", "4")
+    assert "| same | haiku | 4 |" in out and "| same | haiku | 2 |" not in out
+
+
+def test_grid_prints_its_measures_in_the_order_given(logs_dir, claude, capsys):
+    run_haiku("consistent", "same", n=2)
+    capsys.readouterr()
+    zcc(
+        "grid", "consistent", "--conditions", "same", "--below", "nash", "--at", "cartel", "--below", "cartel"
+    )
+    out = capsys.readouterr().out
+    assert out.index("below nash") < out.index("at cartel") < out.index("below cartel")
+
+
+def test_grid_refuses_a_focal_point_no_reply_has_and_names_the_ones_they_do(logs_dir, claude, capsys):
+    run_haiku("consistent", "same", n=2)
+    with pytest.raises(SystemExit) as e:
+        zcc("grid", "consistent", "--conditions", "same", "--at", "carel")
+    message = str(e.value.code)
+    assert "carel" in message and "cartel" in message and "nash" in message

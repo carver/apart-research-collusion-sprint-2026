@@ -17,7 +17,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from zerocommcartel.call import MODELS, NAMES
-from zerocommcartel.criterion import Registry, deliberate, near
+from zerocommcartel.criterion import NEAR, Registry, deliberate, near
 from zerocommcartel.mentions import MENTIONS
 from zerocommcartel.prompt import MODEL
 
@@ -151,6 +151,37 @@ def table(registry: Registry, replies: Replies) -> str:
         notes.append(f"{replies.failed} call{'' if replies.failed == 1 else 's'} failed with no reply yet.")
     out = markdown(TABLE_HEADER, [cell_line(c, m, n, cells[(c, m, n)]) for c, m, n in keys])
     return out + "".join(f"\n{note}" for note in notes) + ("\n" if notes else "")
+
+
+def grid(registry: Registry, replies: Replies, focal: str, below: bool = False) -> str:
+    """A line per condition and n, a column per model and one pooling them ("all"): of each cell's parsed
+    answers, how many are at the focal point `focal` (within NEAR), or with `below`, more than NEAR below
+    it, as "k of m". A cell whose focal points don't include `focal`, or that has no parsed answer, shows
+    "-"."""
+    order = list(registry.conditions(replies.criterion))
+    parsed = [row for row in replies.rows if row["value"] is not None]
+    hits: dict[tuple[str, int], dict[str, list[bool]]] = {}
+    for row in parsed:
+        by_model = hits.setdefault((row["condition"], row["n"]), {})
+        if focal in row["focal"]:
+            target = row["focal"][focal]
+            hit = row["value"] < target - NEAR if below else near(row["value"], target)
+            by_model.setdefault(row["model"], []).append(hit)
+    models = sorted({row["model"] for row in parsed}, key=model_rank)
+
+    def count(found: list[bool]) -> str:
+        return f"{sum(found)} of {len(found)}" if found else "-"
+
+    lines = [
+        [
+            condition,
+            str(n),
+            *(count(hits[(condition, n)].get(model, [])) for model in models),
+            count([hit for found in hits[(condition, n)].values() for hit in found]),
+        ]
+        for condition, n in sorted(hits, key=lambda c: (order.index(c[0]), c[1]))
+    ]
+    return markdown(["condition", "n", *models, "all"], lines)
 
 
 def synth(registry: Registry, replies: Sequence[Replies]) -> str:

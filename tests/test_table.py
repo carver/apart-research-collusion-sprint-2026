@@ -6,7 +6,7 @@ from zerocommcartel.criterion import Criterion, Measure, build, deliberate, shar
 from zerocommcartel.game import Cournot
 from zerocommcartel.judge import COPY
 from zerocommcartel.prompt import Condition, Level, Slot
-from zerocommcartel.table import prepare, synth, table
+from zerocommcartel.table import grid, prepare, synth, table
 
 REG = build(
     [
@@ -275,3 +275,39 @@ def test_replies_to_a_prompt_that_names_the_model_stay_current():
     ]  # fmt: skip
     replies = prepare(reg, "capable", rows, {})
     assert (hashes["haiku"] != hashes["opus"], len(replies.rows), replies.stale) == (True, 2, 0)
+
+
+def grid_rows():
+    """same at two firms: Haiku 30, 30, 40 and a failed call, Sonnet 30, 40; same at four firms: Haiku 15;
+    dial (whose focal points add edt 33.3): Haiku 33.3."""
+    rows = [row("communal", "same", v, sample=i) for i, v in enumerate([30, 30, 40])]
+    rows += [row("communal", "same", None, sample=3, error="timeout")]
+    rows += [row("communal", "same", v, model="sonnet", sample=i) for i, v in enumerate([30, 40])]
+    rows += [row("communal", "same", 15, n=4), row("communal", "dial", 33.3)]
+    return prepare(REG, "communal", rows, {})
+
+
+def test_a_grid_counts_each_models_parsed_answers_at_a_focal_point_and_pools_them():
+    assert cells(grid(REG, grid_rows(), "cartel")) == [
+        {"condition": "same", "n": "2", "haiku": "2 of 3", "sonnet": "1 of 2", "all": "3 of 5"},
+        {"condition": "same", "n": "4", "haiku": "1 of 1", "sonnet": "-", "all": "1 of 1"},
+        {"condition": "dial", "n": "2", "haiku": "0 of 1", "sonnet": "-", "all": "0 of 1"},
+    ]
+
+
+def test_a_grid_shows_a_dash_where_a_cell_has_no_such_focal_point():
+    found = cells(grid(REG, grid_rows(), "edt"))
+    assert [(c["condition"], c["n"], c["haiku"], c["all"]) for c in found] == [
+        ("same", "2", "-", "-"),
+        ("same", "4", "-", "-"),
+        ("dial", "2", "1 of 1", "1 of 1"),
+    ]
+
+
+def test_a_grid_can_count_the_answers_below_a_focal_point():
+    found = cells(grid(REG, grid_rows(), "nash", below=True))
+    assert [(c["haiku"], c["sonnet"], c["all"]) for c in found] == [
+        ("2 of 3", "1 of 2", "3 of 5"),
+        ("1 of 1", "-", "1 of 1"),
+        ("1 of 1", "-", "1 of 1"),
+    ]

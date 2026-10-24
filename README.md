@@ -61,6 +61,7 @@ uv run zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
 uv run zcc judge consistent --log /tmp/smoke.jsonl  # the copy judge labels each reply (cached)
 uv run zcc table consistent --log /tmp/smoke.jsonl  # a markdown table per condition, model and n
 uv run zcc table consistent --conditions same diff --models haiku  # only those rows
+uv run zcc grid consistent --conditions same samemodel --at cartel --below nash  # condition x model counts
 uv run zcc synth                                  # the measures beside same's cartel and deliberate rates
 uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 ```

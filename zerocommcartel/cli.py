@@ -6,6 +6,7 @@
     uv run zcc judge consistent                       # the copy judge labels each reply (cached)
     uv run zcc table consistent                       # a markdown table per condition, model and n
     uv run zcc table consistent --conditions same --models haiku  # only those rows
+    uv run zcc grid consistent --conditions same samemodel --at cartel --below nash  # condition x model
     uv run zcc synth                                  # the measures beside same's cartel and deliberate rates
     uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 
@@ -33,7 +34,7 @@ from zerocommcartel.criterion import BASELINE, Registry
 from zerocommcartel.judge import Judge, label, load_labels
 from zerocommcartel.prompt import MODEL
 from zerocommcartel.run import done_keys, plan, run
-from zerocommcartel.table import Replies, prepare, synth, table
+from zerocommcartel.table import Replies, grid, prepare, synth, table
 
 NS = [2, 4]  # the market sizes run and hashes cover by default
 LOG_HELP = (
@@ -99,8 +100,9 @@ def replies(
     given: str | None,
     conditions: list[str] | None = None,
     models: list[str] | None = None,
+    ns: list[int] | None = None,
 ) -> Replies:
-    """The criterion's replies, only those of `conditions` and `models` when either is given."""
+    """The criterion's replies, only those of `conditions`, `models` and market sizes `ns` when given."""
     src = sources(registry, criterion, given)
     labels = {name: labels_beside(judge, [*src.shared, *src.own]) for name, judge in registry.judges.items()}
     rows = [
@@ -108,6 +110,7 @@ def replies(
         for row in counted_rows(src)
         if (conditions is None or row["condition"] in conditions)
         and (models is None or row["model"] in models)
+        and (ns is None or row["n"] in ns)
     ]
     return prepare(registry, criterion, rows, labels)
 
@@ -203,16 +206,45 @@ def cmd_table(registry: Registry, args):
 
     Notes below the table count the replies to an older wording of their condition, which it leaves out, and
     the calls that failed with no reply yet. It reads what run and judge read (see their -h)."""
+    found = matching(registry, args)
+    if found is not None:
+        print(table(registry, found), end="")
+
+
+def matching(registry: Registry, args) -> Replies | None:
+    """The replies of the conditions, models and market sizes asked for; None, having said so, when none
+    match. Exits on a condition the criterion lacks."""
     try:
         for name in args.conditions or []:
             registry.condition(args.criterion, name)
     except ValueError as e:
         sys.exit(str(e))
-    found = replies(registry, args.criterion, args.log, args.conditions, args.models)
-    if (args.conditions or args.models) and not found.rows:
-        print("No replies match the conditions and models asked for.")
+    found = replies(registry, args.criterion, args.log, args.conditions, args.models, args.ns)
+    if (args.conditions or args.models or args.ns) and not found.rows:
+        print("No replies match the conditions, models and market sizes asked for.")
+        return None
+    return found
+
+
+def cmd_grid(registry: Registry, args):
+    """A grid per measure, for reading results across models: a line per condition and number of firms (n),
+    a column per model and a last one pooling them ("all").
+
+    Each cell counts the parsed answers (those with a number) as "k of m": with --at FOCAL, the ones at that
+    focal point (within 0.5); with --below FOCAL, the ones more than 0.5 below it. A focal point is a name
+    `zcc table` shows: nash, cartel, naive, or one of the condition's own, such as "copies vs nash". A cell
+    whose condition has no such focal point shows "-". The grids come in the order the options are given;
+    with neither, it's --at cartel. It reads what table reads."""
+    found = matching(registry, args)
+    if found is None:
         return
-    print(table(registry, found), end="")
+    measures = args.measures or [("cartel", False)]
+    named = {name for row in found.rows for name in row["focal"]}
+    for focal in sorted({focal for focal, _ in measures} - named):
+        sys.exit(f"no reply asked for has a focal point {focal!r}; theirs are {', '.join(sorted(named))}")
+    for focal, below in measures:
+        print(f"## {'below' if below else 'at'} {focal}\n")
+        print(grid(registry, found, focal, below))
 
 
 def cmd_synth(registry: Registry, args):
@@ -295,6 +327,25 @@ def main(argv=None, registry: Registry = REGISTRY):
     s.add_argument("--log", help=LOG_HELP)
     s.add_argument("--conditions", nargs="+", help="only these conditions' rows; default: all")
     s.add_argument("--models", nargs="+", choices=list(MODELS), help="only these models' rows; default: all")
+    s.add_argument("--ns", nargs="+", type=int, help="only these numbers of firms; default: all")
+    s = command("grid", "condition x model counts at a focal point, for results write-ups")
+    s.add_argument("criterion", choices=criteria)
+    s.add_argument("--log", help=LOG_HELP)
+    s.add_argument("--conditions", nargs="+", help="only these conditions' rows; default: all")
+    s.add_argument(
+        "--models", nargs="+", choices=list(MODELS), help="only these models' columns; default: all"
+    )
+    s.add_argument("--ns", nargs="+", type=int, help="only these numbers of firms; default: all")
+    for flag, below, what in (("--at", False, "at"), ("--below", True, "below")):
+        s.add_argument(
+            flag,
+            dest="measures",
+            action="extend",
+            nargs="+",
+            metavar="FOCAL",
+            type=lambda focal, below=below: (focal, below),
+            help=f"a grid of the answers {what} each focal point",
+        )
     command("synth", "is each criterion necessary? its measure beside same's cartel and deliberate rates")
     s = command("hashes", "prompt hashes and judge keys; diff them across a shared-core change")
     s.add_argument("--ns", nargs="+", type=int, default=NS, help="numbers of firms")
@@ -308,6 +359,7 @@ COMMANDS = {
     "run": cmd_run,
     "judge": cmd_judge,
     "table": cmd_table,
+    "grid": cmd_grid,
     "synth": cmd_synth,
     "hashes": cmd_hashes,
 }
