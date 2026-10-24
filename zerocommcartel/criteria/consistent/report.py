@@ -18,9 +18,9 @@ It also prints #31's prompt-monitor frontier (zerocommcartel.criteria.consistent
 the monitor's cache beside the log holds, #33's audits (zerocommcartel.criteria.consistent.audits) and its
 four-view monitor (zerocommcartel.criteria.consistent.views), from its judges' caches.
 
-Without --log the criterion's rows are those `zcc table consistent` counts: its own log, plus the baseline
-rows other criteria's logs hold. The pilot's replies to `same` and `samemodel` (logs/pilot/, frozen) share
-the criterion's prompts and carry the pilot's copy labels."""
+Without --log the criterion's rows are those `zcc table consistent` counts (`zcc table -h` says which logs
+those are). The pilot's replies to `same` and `samemodel` (logs/pilot/, frozen) share the criterion's prompts
+and carry the pilot's copy labels."""
 
 import argparse
 import sys
@@ -99,8 +99,7 @@ def main(argv=None):
     )
     p.add_argument(
         "--log",
-        help="the criterion's log, alone; default logs/consistent/results.jsonl, with the baseline rows of "
-        "the other criteria's logs",
+        help="the criterion's log, alone; default: the logs `zcc table consistent` reads",
     )
     p.add_argument("--pilot-log", default=str(PILOT_LOG), help="default: logs/pilot/probe-results.jsonl")
     p.add_argument(
