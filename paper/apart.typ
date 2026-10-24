@@ -1,32 +1,23 @@
-// Clone of the official Apart Research sprint template (paper/template/apart-template.docx).
+// Clone of the official Apart Research sprint template (the Google Doc that requirements.md links).
+// Preexisting: written before the sprint in Jason's earlier run (apart-oneshot-collusion 36de5f2,
+// 2026-10-22) and copied here; git log shows each change since. The paper imports it through lib.typ.
 // Layout facts taken from the docx: US Letter, 1-inch margins, Old Standard TT throughout,
 // body 11 pt at 1.15 line spacing, title 20 pt bold between a 3 pt and a 1 pt rule,
-// section headings 14 pt bold #434343, subsection headings 13 pt bold #666666,
-// abstract heading 14 pt bold centred, abstract body justified and inset (~0.99 in left,
-// ~1.13 in right), footnotes 10 pt. Fonts: build.sh passes --font-path.
+// section headings 14 pt bold and subsection headings 13 pt bold, both black (since the
+// template's restyle by 2026-10-23), abstract heading 14 pt bold centred, abstract body italic,
+// justified and inset (~0.99 in left, ~1.13 in right), "-" bullets, footnotes 10 pt.
+// Fonts: bin/build-paper passes paper/fonts/.
 
-#let todo-color = rgb("#c00000")
-
-// A result or decision still to come. Renders in red so no placeholder survives unseen;
-// build.sh counts them.
-#let TODO(body) = text(fill: todo-color, weight: "bold")[[TODO: #body]]
-
-// A multi-line skeleton note (what a section will say once results land), in red.
-#let todo-block(body) = block(
-  stroke: (left: 1.5pt + todo-color), inset: (left: 6pt, y: 2pt), width: 100%,
-  text(fill: todo-color, size: 10pt)[*TODO.* #body],
-)
-
-// A figure that doesn't exist yet: a grey box of the given height with its caption.
-#let todo-figure(height: 2in, caption: [], body) = figure(
-  rect(width: 100%, height: height, stroke: 0.5pt + todo-color, fill: luma(245),
-    align(center + horizon, text(fill: todo-color, size: 10pt)[*TODO figure.* #body])),
-  caption: caption,
-)
-
-#let heading-gray = rgb("#434343")
-#let subheading-gray = rgb("#666666")
 #let link-blue = rgb("#1155cc")
+
+// The marks on every page of a draft: a faint diagonal watermark, and a footer with the stamp
+// (the commit and build time).
+#let draft-marks(stamp) = (
+  background: rotate(-45deg, text(fill: luma(88%), weight: "bold", align(center)[
+    #text(size: 96pt)[DRAFT] \ #text(size: 24pt)[not for submission]
+  ])),
+  footer: align(center, text(size: 8pt, fill: luma(40%))[DRAFT, not for submission · #stamp]),
+)
 
 #let apart(
   title: "Project Title",
@@ -35,11 +26,14 @@
   sprint-name: "AI Collusion Research Sprint",
   sprint-url: "https://apartresearch.com/sprints/ai-collusion-research-sprint-2026-10-23-to-2026-10-25",
   sprint-date: "October 2026",
+  draft: true,
+  stamp: "",
+  commit: "",
   body,
 ) = {
-  set document(title: title)
+  set document(title: title, description: if commit != "" { "Built from commit " + commit })
   // The template PDF carries no page numbers; set numbering: "1" here to add them.
-  set page(paper: "us-letter", margin: 1in)
+  set page(paper: "us-letter", margin: 1in, ..if draft { draft-marks(stamp) })
   set text(font: "Old Standard TT", size: 11pt, lang: "en", top-edge: "ascender", bottom-edge: "descender")
   // Google Docs "1.15" on Old Standard TT gives ~15.5 pt from baseline to baseline at 11 pt.
   set par(leading: 0.41em, spacing: 0.8em, justify: false)
@@ -48,23 +42,23 @@
   set footnote.entry(separator: line(length: 2in, stroke: 0.5pt), gap: 0.4em)
   show footnote.entry: set text(size: 10pt)
 
-  // Section headings: "1. Introduction", 14 pt bold, dark gray (docx Heading2 as used).
+  // Section headings: "1. Introduction", 14 pt bold (docx Heading2 as used).
   set heading(numbering: (..n) => if n.pos().len() == 1 { numbering("1.", ..n) })
   show heading.where(level: 1): it => {
-    set text(size: 14pt, weight: "bold", fill: heading-gray)
+    set text(size: 14pt, weight: "bold")
     set par(justify: false)
     block(above: 1.35em, below: 0.75em, sticky: true, {
       if it.numbering != none and it.outlined { counter(heading).display(it.numbering) + h(0.3em) }
       it.body
     })
   }
-  // Subsections ("Limitations", "Future Work"): 13 pt bold, lighter gray, unnumbered.
+  // Subsections ("Limitations", "Future Work"): 13 pt bold, unnumbered.
   show heading.where(level: 2): it => {
-    set text(size: 13pt, weight: "bold", fill: subheading-gray)
+    set text(size: 13pt, weight: "bold")
     block(above: 1.1em, below: 0.6em, sticky: true, it.body)
   }
   show heading.where(level: 3): it => {
-    set text(size: 11pt, weight: "bold", fill: subheading-gray)
+    set text(size: 11pt, weight: "bold")
     block(above: 0.9em, below: 0.5em, sticky: true, it.body)
   }
 
@@ -77,7 +71,7 @@
   show table: set text(size: 9pt)
   show table: set par(justify: false, leading: 0.3em)
 
-  set list(indent: 1em)
+  set list(indent: 1em, marker: [-])
   set enum(indent: 1em)
 
   // ---- Title block ------------------------------------------------------------------
@@ -107,11 +101,12 @@
     align(center)[*With* \ Apart Research]
   }
 
-  // Abstract.
+  // Abstract. The metadata lets bin/build-paper count its words.
+  [#metadata(abstract) <abstract>]
   v(12pt)
   align(center, text(size: 14pt, weight: "bold")[Abstract])
   v(16pt)
-  pad(left: 0.99in, right: 1.13in, par(justify: true, abstract))
+  pad(left: 0.99in, right: 1.13in, par(justify: true, emph(abstract)))
   v(10pt)
 
   body
