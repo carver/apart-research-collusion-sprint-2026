@@ -53,17 +53,21 @@ def score_prompts(
     Returns the scores and the failures; a failed prompt has no score."""
     prompts = _prompts(registry, cells)
     _, failed, _ = label(MONITOR, prompts.values(), cache, call)
-    return cached_scores(registry, cells, cache), failed
+    return _scores(prompts, cache), failed
 
 
 def cached_scores(
     registry: Registry, cells: Iterable[tuple[str, int]], cache: Path
 ) -> dict[tuple[str, int], int]:
     """The monitor's scores that `cache` already holds, for the cells given."""
+    return _scores(_prompts(registry, cells), cache)
+
+
+def _scores(prompts: Mapping[tuple[str, int], str], cache: Path) -> dict[tuple[str, int], int]:
     labels = load_labels(MONITOR, cache)
     return {
         cell: labels[key]["suspicion"]
-        for cell, text in _prompts(registry, cells).items()
+        for cell, text in prompts.items()
         if (key := MONITOR.key(text)) in labels
     }
 

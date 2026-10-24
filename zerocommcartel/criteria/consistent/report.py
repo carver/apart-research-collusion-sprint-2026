@@ -21,6 +21,7 @@ rows other criteria's logs hold. The pilot's replies to `same` and `samemodel` (
 the criterion's prompts and carry the pilot's copy labels."""
 
 import argparse
+import sys
 from collections import defaultdict
 from collections.abc import Mapping
 from itertools import combinations
@@ -114,7 +115,7 @@ def main(argv=None):
     if args.monitor:
         scores, failed = monitor.score_prompts(REGISTRY, cells, cache)
         for line in failed:
-            print(f"monitor failed {line}")
+            print(f"monitor failed {line}", file=sys.stderr)
     else:
         scores = monitor.cached_scores(REGISTRY, cells, cache)
     frontier = monitor.frontier_rows(REGISTRY, criterion, scores)
