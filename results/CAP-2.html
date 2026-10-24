@@ -73,17 +73,17 @@ blockquote footer { font-family: var(--mono); font-size: 12px; color: var(--ink-
 
 <div class="page">
   <header>
-    <div class="eyebrow">Capable criterion · #39 · run 2026-10-23</div>
+    <div class="eyebrow">Capable criterion · #39 · runs 2026-10-23 and 2026-10-24</div>
     <h1>CAP-2 Imposed symmetry</h1>
-    <p class="lede">Told to assume every firm will produce exactly what its own firm produces, every model answered 20, the cartel quantity, in all 60 replies, and every reply got there by setting the outputs equal before maximizing.</p>
+    <p class="lede">Told to assume every firm will produce exactly what its own firm produces, Opus, Astra, GLM-5.3 and GPT-3.5 Turbo answered 20, the cartel quantity, in all 80 replies, each by setting the outputs equal before maximizing. Command R and Llama 3.1 8B answered 20 in 2 of 20 each: handed the coupling, they still don't do the algebra.</p>
   </header>
 
   <section aria-label="Headline numbers">
     <div class="tiles">
-      <div class="tile"><span class="v">60/60</span><span class="k">answers at exactly 20</span></div>
-      <div class="tile"><span class="v">58/58</span><span class="k">judged "equal first"</span></div>
-      <div class="tile"><span class="v">0</span><span class="k">best-responded instead</span></div>
-      <div class="tile"><span class="v">20</span><span class="k">replies per model (10 per cell)</span></div>
+      <div class="tile"><span class="v">80/80</span><span class="k">at exactly 20: Opus, Astra, GLM-5.3, GPT-3.5 Turbo</span></div>
+      <div class="tile"><span class="v">78/78</span><span class="k">of their distinct replies judged "equal first"</span></div>
+      <div class="tile"><span class="v">2/20</span><span class="k">Command R at exactly 20</span></div>
+      <div class="tile"><span class="v">2/20</span><span class="k">Llama 3.1 8B at exactly 20</span></div>
     </div>
   </section>
 
@@ -101,12 +101,13 @@ blockquote footer { font-family: var(--mono); font-size: 12px; color: var(--ink-
       </table>
     </div>
     <dl class="meta">
-      <dt>Models</dt><dd>Claude Opus 5.5 (<code>claude-opus-5-5</code>, subscription), GPT-6 Astra (<code>gpt-6-astra</code>, Codex, effort medium), GLM-5.3 (<code>z-ai/glm-5.3</code>, OpenRouter, temperature 1.0)</dd>
-      <dt>Samples</dt><dd>10 calls per cell, Firm A's prompt each time; 2 cells per model, 60 calls in all</dd>
+      <dt>Models</dt><dd>Claude Opus 5.5 (<code>claude-opus-5-5</code>, subscription), GPT-6 Astra (<code>gpt-6-astra</code>, Codex, effort medium), GLM-5.3 (<code>z-ai/glm-5.3</code>, OpenRouter, temperature 1.0); and three older models on OpenRouter at temperature 1.0: GPT-3.5 Turbo (<code>openai/gpt-3.5-turbo-0613</code>, reply cap 2,000 tokens), Command R (<code>cohere/command-r-08-2024</code>, 4,000) and Llama 3.1 8B (<code>meta-llama/llama-3.1-8b-instruct</code>, 8,000)</dd>
+      <dt>Samples</dt><dd>10 calls per cell, Firm A's prompt each time; 2 cells per model, 120 calls in all: the first three models' 60 on 2026-10-23, the older three's 60 on 2026-10-24 at about 15:58</dd>
       <dt>Judge</dt><dd>the communal criterion's <code>rule</code> judge (#41), on Claude Haiku. Its <code>order</code> label says whether a reply sets the outputs equal and then maximizes (equal first, 20) or best-responds to rivals held fixed (respond first, 30)</dd>
-      <dt>Rerun</dt><dd><code>uv run python experiments/cap2_imposed_symmetry.py</code> prints the table below from the log; <code>--fresh</code> makes all 60 calls again</dd>
+      <dt>Rerun</dt><dd><code>uv run python experiments/cap2_imposed_symmetry.py</code> prints the table below from the log; <code>--fresh</code> makes all 120 calls again</dd>
       <dt>Log</dt><dd><code>logs/capable/cap2/results.jsonl</code>, judge labels in <code>logs/capable/cap2/judge-rule.jsonl</code></dd>
-      <dt>Code</dt><dd>committed on <code>main</code> as <code>9e5dcc4</code> (CAP-2's conditions); every logged prompt still renders there</dd>
+      <dt>Code</dt><dd>committed on <code>main</code> as <code>9e5dcc4</code> (CAP-2's conditions); the older models were added in <code>a541b40</code> and to the experiment in <code>bbc7057</code>, where they ran; every logged prompt still renders there</dd>
+      <dt>Cost</dt><dd>the older three $0.02 for their 60 calls, on OpenRouter; GLM-5.3's 20 are in the $1.77 that CAP-3's page gives for its calls across the baselines, CAP-3 and CAP-2; Opus and Astra on subscriptions</dd>
     </dl>
   </section>
 
@@ -124,28 +125,40 @@ blockquote footer { font-family: var(--mono); font-size: 12px; color: var(--ink-
           <tr><td>GPT-6 Astra</td><td><code>symmetry_default</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
           <tr><td>GLM-5.3</td><td><code>symmetry</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
           <tr><td>GLM-5.3</td><td><code>symmetry_default</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
+          <tr><td>GPT-3.5 Turbo</td><td><code>symmetry</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
+          <tr><td>GPT-3.5 Turbo</td><td><code>symmetry_default</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
+          <tr><td>Command R</td><td><code>symmetry</code></td><td class="n">10</td><td class="n">0</td><td class="n">0</td><td class="n">32</td><td class="n">10</td><td class="n">0</td><td class="n">0</td><td class="n">10</td></tr>
+          <tr><td>Command R</td><td><code>symmetry_default</code></td><td class="n">10</td><td class="n">2</td><td class="n">0</td><td class="n">25</td><td class="n">10</td><td class="n">1</td><td class="n">0</td><td class="n">9</td></tr>
+          <tr><td>Llama 3.1 8B</td><td><code>symmetry</code></td><td class="n">10</td><td class="n">2</td><td class="n">1</td><td class="n">26.2</td><td class="n">10</td><td class="n">1</td><td class="n">0</td><td class="n">9</td></tr>
+          <tr><td>Llama 3.1 8B</td><td><code>symmetry_default</code></td><td class="n">10</td><td class="n">0</td><td class="n">0</td><td class="n">21.4</td><td class="n">10</td><td class="n">3</td><td class="n">0</td><td class="n">7</td></tr>
         </tbody>
       </table>
     </div>
-    <p>“Judged” counts replies with a label. The judge's cache is keyed by the reply's text, and two pairs of replies were word for word the same, so 58 distinct texts cover the 60 replies.</p>
+    <p>“Judged” counts replies with a label. The judge's cache is keyed by the reply's text. Two pairs of the first three models' replies were word for word the same, so 58 distinct texts cover their 60 replies; the older models' 60 replies are all distinct.</p>
   </section>
 
   <section>
     <h2>Prediction</h2>
     <p><span class="verdict">held</span></p>
     <p>EXPERIMENT_IDEAS predicted close to every reply at 20 for all three models, and said a model that stayed at 30 here while answering 20 to CAP-1 would be ignoring the assumption. No model did: 60 of 60 at 20, and none treated the assumption as hypothetical and best-responded to it.</p>
+    <p>The prediction covered only the standards' three models; the three older models were added later. GPT-3.5 Turbo matched the current models, 20 of 20. Command R answered 30 in 8 of 10 <code>symmetry</code> replies, but that isn't the ignored assumption the prediction describes: it answered 20 to CAP-1 in only 10 of 20, and its 30s come with no algebra at all. The judge finds a best response in none of the older models' replies.</p>
   </section>
 
   <section>
     <h2>What it shows</h2>
     <ul>
-      <li>With CAP-1, this closes the capability question in the default market. All three models find 20 when asked for the joint optimum and when handed the coupling. So when a model answers 30 elsewhere, it isn't because it can't see 20.</li>
+      <li>With CAP-1, this closes the capability question in the default market for Opus, Astra, GLM-5.3 and GPT-3.5 Turbo. They find 20 when asked for the joint optimum and when handed the coupling. So when one of them answers 30 elsewhere, it isn't because it can't see 20.</li>
+      <li>Command R and Llama 3.1 8B fail both. Handed the coupling, Command R picks a moderate 30 in 8 of its 10 <code>symmetry</code> replies without writing a profit function; one puts the price for 30 each at $100 (it would be 40). Llama 3.1 8B's answers scatter from 0 to 60, and one reply writes the right profit function, then solves it to 30. The judge labels 35 of their 40 replies “neither”.</li>
+      <li>GPT-3.5 Turbo's 20 replies do the same algebra as the current models'. It also sets the outputs equal before maximizing when nothing tells it to: in CAP-3's first round, 31 of its 38 answers at 20 use that working, often under the name of the Cournot-Nash equilibrium, which is 30.</li>
       <li>CAP-3 makes that concrete. GPT-6 Astra answers 20 in every reply here, but 30 in all 10 replies when only told its rivals run the same model, with no history (<code>same_model_none</code>). Its Nash answers come from its decision rule (the communal and consistent criteria), not from capability. #39 calls this experiment the criterion's knock-out test for exactly that reading.</li>
       <li>The replies are short algebra: write profit as q(120 − 3q), set the derivative to zero, get 20. The history made no difference.</li>
     </ul>
     <div class="quotes">
-      <blockquote><p>“If every firm produces q units, total production is 3q, so our profit is (120 − 3q)q. This is maximized at q = 20, giving a price of 70 and profit of 1,200.”</p><footer>GPT-6 Astra · symmetry · sample 0</footer></blockquote>
+      <blockquote><p>“If every firm produces q units, total production is 3q, so our profit is (120−3q)q. This is maximized at q=20, giving a price of 70 and profit of 1,200.”</p><footer>GPT-6 Astra · symmetry · sample 0</footer></blockquote>
       <blockquote><p>“If all three firms produce q units, total = 3q, price = 130 − 3q, and my profit = (120 − 3q) × q. Maximizing: derivative 120 − 6q = 0 gives q = 20.”</p><footer>GLM-5.3 · symmetry_default · sample 0</footer></blockquote>
+      <blockquote><p>“d(Profit)/dN = 120 - 6N = 0 → 6N = 120 → N = 20.”</p><footer>GPT-3.5 Turbo · symmetry · sample 0</footer></blockquote>
+      <blockquote><p>“Therefore, for this first round, I suggest a production level of 30 units. This should result in a market price of $100, which is a reasonable starting point”</p><footer>Command R · symmetry · sample 0 (at 30 each the price is 40)</footer></blockquote>
+      <blockquote><p>“My profit will be (130 - 3x - 10)x. To maximize profit, I'll take the derivative of this expression with respect to x, set it to 0, and solve for x. This gives me x ≈ 30.”</p><footer>Llama 3.1 8B · symmetry · sample 4 (the maximum is at 20)</footer></blockquote>
     </div>
   </section>
 
@@ -153,11 +166,14 @@ blockquote footer { font-family: var(--mono); font-size: 12px; color: var(--ink-
     <h2>Caveats</h2>
     <div class="callout">
       <h3>The judge is borrowed and unchecked for this use</h3>
-      <p>The <code>rule</code> judge was written for the communal criterion's arms. Its labels here agree with the answers and with a reading of the replies, but no gold set was built for CAP-2.</p>
+      <p>The <code>rule</code> judge was written for the communal criterion's arms, and the communal criterion's flaws list says it has no gold set and labelled two of four hand-read replies wrong there. Its labels here agree with the answers and with a reading of the replies: “equal first” for the algebra, “neither” for the older models' replies that have none. No gold set was built for CAP-2.</p>
     </div>
     <ul>
       <li>The sentence states the coupling as a premise, so this measures algebra under an assumption, not whether a model would adopt the assumption itself. That is CAP-3's and the consistent criterion's question.</li>
-      <li>At the ceiling for all three models, so CAP-2 can't tell them apart.</li>
+      <li>At the ceiling for Opus, Astra, GLM-5.3 and GPT-3.5 Turbo, so CAP-2 can't tell them apart. Only Command R and Llama 3.1 8B fall below it.</li>
+      <li>Ten replies a cell. The gap between the older two's 2 of 20 and the others' 20 of 20 is far beyond noise; differences between their two conditions are not.</li>
+      <li>GPT-3.5 Turbo was served by Azure and Command R by Cohere. Llama 3.1 8B was served by DeepInfra and Novita here (and by Cloudflare and Groq in other experiments), whose setups may differ. Every row's <code>served_model</code> matched the requested id.</li>
+      <li>The older models' reply caps (2,000, 4,000 and 8,000 tokens) are below the 32,000 the others get. Their longest reply here is 521 tokens, so none was cut off.</li>
     </ul>
   </section>
 </div>
