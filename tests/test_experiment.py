@@ -165,11 +165,35 @@ def test_a_condition_can_have_market_sizes_of_its_own(tmp_path, capsys):
     ]
 
 
-def test_an_experiment_can_log_to_another_folder(tmp_path, monkeypatch):
+def test_an_experiment_judges_the_rows_it_reads_into_its_own_folder(tmp_path, monkeypatch):
     monkeypatch.setattr("zerocommcartel.logs.LOGS", tmp_path)
-    elsewhere = Experiment(**{**EXP.__dict__, "id": "CPL-1", "log_folder": "capable/baselines"})
-    main(elsewhere, [], call=model, judge_call=judge)
-    assert len(load_rows(tmp_path / "capable" / "baselines" / "results.jsonl")) == 8
+    base = Experiment(**{**EXP.__dict__, "id": "BASELINES", "conditions": ("joint_default",), "judges": ()})
+    main(base, [], call=model, judge_call=judge)
+    reader = Experiment(
+        **{**EXP.__dict__, "id": "CPL-1", "criterion": "compliant", "conditions": ()}
+        | {"compare": ("capable/baselines",)}
+    )
+    main(reader, [], call=model, judge_call=judge)
+    assert len(load_rows(tmp_path / "compliant" / "cpl1" / "judge-working.jsonl")) == 1
+    assert not (tmp_path / "capable" / "baselines" / "judge-working.jsonl").exists()
+
+
+def test_a_reply_already_labelled_where_it_came_from_isnt_judged_again(tmp_path, monkeypatch):
+    monkeypatch.setattr("zerocommcartel.logs.LOGS", tmp_path)
+    base = Experiment(**{**EXP.__dict__, "id": "BASELINES", "conditions": ("joint_default",)})
+    main(base, [], call=model, judge_call=judge)  # labels its replies in its own folder
+    asked = []
+
+    def counting(judge_, prompt):
+        asked.append(prompt)
+        return judge(judge_, prompt)
+
+    reader = Experiment(
+        **{**EXP.__dict__, "id": "CPL-1", "criterion": "compliant", "conditions": ()}
+        | {"compare": ("capable/baselines",)}
+    )
+    main(reader, [], call=model, judge_call=counting)
+    assert asked == []
 
 
 def test_rows_from_another_criterions_experiment_count_under_their_own(tmp_path, monkeypatch, capsys):

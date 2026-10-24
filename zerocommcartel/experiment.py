@@ -11,7 +11,8 @@ experiment makes, makes the ones its log lacks, has its judges label the replies
 Each experiment has a folder of its own inside its criterion's, named by its id: CAP-2's replies go to
 logs/capable/cap2/results.jsonl, its judges' labels beside them, and a --fresh run to
 logs/capable/cap2/results-<date>-<time>.jsonl. An experiment whose report compares its cells with another's
-(CAP-3 with the baselines) reads that experiment's log as it is and makes none of its calls.
+(CAP-3 with the baselines) reads that experiment's log as it is and makes none of its calls; its judges label
+those replies too, into its own folder, unless their own folder has labelled them.
 
 OpenRouter models need OPENROUTER_API_KEY; when it isn't set, the repo's .env is read for it."""
 
@@ -62,7 +63,6 @@ class Experiment:
     report: Callable[[Replies], str]  # the experiment's tables, from its replies
     compare: tuple[str, ...] = ()  # folders in logs/ ("capable/baselines") whose replies the report shows too
     sizes: dict[str, tuple[int, ...]] = field(default_factory=dict)  # a condition's own market sizes
-    log_folder: str = ""  # a folder in logs/ in place of the experiment's own, to judge another's replies
 
     def ns_of(self, condition: str) -> tuple[int, ...]:
         return self.sizes.get(condition, self.ns)
@@ -79,8 +79,8 @@ class Experiment:
     @property
     def folder(self) -> str:
         """The experiment's folder in logs/: its criterion's, then its id, lowercased, without the dash
-        ("capable/cap2"), unless it names another."""
-        return self.log_folder or f"{self.criterion}/{self.id.lower().replace('-', '')}"
+        ("capable/cap2")."""
+        return f"{self.criterion}/{self.id.lower().replace('-', '')}"
 
     def log(self) -> Path:
         return logs.LOGS / self.folder / "results.jsonl"
@@ -148,12 +148,6 @@ def main(
     if tasks:
         run(tasks, log, call)
     rows = [r for r in logs.load_rows(log) if e.mine(r)]
-    for name in e.judges:
-        judge = registry.judges[name]
-        judged, failed, cached = label(
-            judge, [r["reply"] for r in rows if r.get("reply")], logs.judge_path(log, name), judge_call
-        )
-        print(f"{name}: judged {judged}, {len(failed)} failed, {cached} already labelled")
     sizes = set(e.ns) | {n for cond in e.conditions for n in e.ns_of(cond)}
     beside = [
         r
@@ -161,7 +155,19 @@ def main(
         for r in logs.load_rows(logs.LOGS / folder / "results.jsonl")
         if r["model"] in e.models and r["n"] in sizes
     ]
-    # a judge's labels for the compared rows sit beside their own log, written by their own script
+    for name in e.judges:
+        # the compared rows too, into this experiment's own cache, unless their own folder labelled them
+        judge = registry.judges[name]
+        elsewhere = {
+            key
+            for folder in e.compare
+            for key in load_labels(judge, logs.judge_path(logs.LOGS / folder / "results.jsonl", name))
+        }
+        replies = [r["reply"] for r in rows + beside if r.get("reply")]
+        cache = logs.judge_path(log, name)
+        judged, failed, cached = label(judge, replies, cache, judge_call, known=elsewhere)
+        print(f"{name}: judged {judged}, {len(failed)} failed, {cached} already labelled")
+    # a judge's labels for the compared rows sit beside their own log or this one's
     logged = [log, *(logs.LOGS / folder / "results.jsonl" for folder in e.compare)]
     labels = {
         name: {
