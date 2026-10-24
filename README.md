@@ -35,9 +35,9 @@ GPT-6 Astra takes the same sentence in 13 of 16 replies. GPT-6 luna and the free
 
 Issue #38 asks when a pair of agents colludes without communicating, and names four conditions. Each one is a criterion: a folder in `zerocommcartel/criteria/` with its own sub-issue of #38, so one person can own it without touching anyone else's.
 
-| criterion | issue | asks | starts with, from the pilot |
+| criterion | issue | asks | starts with |
 |---|---|---|---|
-| capable | #39 | Does the model see the mutually beneficial option? | `hubjoint`: asked outright for the firms' combined optimum |
+| capable | #39 | Does the model see the mutually beneficial option? | CAP-1's `joint`: asked outright for the firms' combined optimum, in the repeated market |
 | compliant | #40 | Does it go along when it understands the buyers lose? | `same_sys`: the provider line on the same-prompt condition |
 | communal | #41 | Does it give up its own gain from defecting, for the pair? | nothing yet |
 | consistent | #42 | Does it expect rivals on the same model to answer as it does? | the disclosure ladder (`anyai`, `samemodel`) and the repeated market |
@@ -53,7 +53,7 @@ The rest of `zerocommcartel/` is the shared core: the game (`game.py`), the prom
 
 ## Run it
 
-Claude calls go through `bin/claude-fresh`, a locked-down `claude -p` on a Claude subscription, so the `claude` CLI must be installed and logged in. OpenRouter models need `OPENROUTER_API_KEY` in the environment. Only free (`:free`) models run, plus the paid ids listed in `PAID_OK` in `zerocommcartel/call.py`. Smoke tests and pilots use Claude on the subscription.
+Claude calls go through `bin/claude-fresh`, a locked-down `claude -p` on a Claude subscription, so the `claude` CLI must be installed and logged in. GPT-6 Astra and luna go through a locked-down `codex exec` on a ChatGPT subscription (`call_codex` in `zerocommcartel/call.py`), so the Codex CLI must be installed and logged in with ChatGPT. Without it they go through OpenRouter instead, paid, and the caller says so. OpenRouter models need `OPENROUTER_API_KEY` in the environment. Only free (`:free`) models run, plus the paid ids listed in `PAID_OK` in `zerocommcartel/call.py`. Smoke tests and pilots use Claude on the subscription.
 
 `bin/zcc` runs zcc through `uv run`, which syncs the venv first. Put `bin/` on your PATH and `zcc` works from any directory.
 
@@ -70,6 +70,7 @@ bin/zcc grid consistent --conditions same samemodel --at cartel --below nash  # 
 bin/zcc replies consistent --conditions same --at nash --grep "same (AI )?model" -i  # count and quote replies
 bin/zcc synth                                  # the measures beside same's cartel and deliberate rates
 bin/zcc hashes                                 # prompt hashes and judge keys, to diff across a change
+uv run python experiments/cap1_joint_optimum.py --dry-run   # one experiment: its calls, then (no flag) its run
 ```
 
 Without `--out` (`--log` for `judge` and `table`), each command uses `logs/<criterion>/results.jsonl` and the logs of the criterion's experiments, `logs/<criterion>/<id>/results.jsonl` (EXPERIMENT_STANDARDS.md), plus the baseline rows in all the other criteria's logs; a file named with `--out` or `--log` stands alone. It leaves out a `--fresh` run's dated log, which asks the samples of the log beside it again. `run` appends to `logs/<criterion>/results.jsonl`, and skips the replies any of those logs already holds, keyed by model, prompt hash and sample. `judge` labels the replies the criterion's table counts, borrowed baseline replies included, into the cache beside that log, and skips any reply that a cache beside another log, an experiment's or another criterion's, already labels. So raising `--samples` adds samples, a rerun retries failures, and a reworded condition starts afresh. Give a smoke test its own `--out`, as above, so the criterion's log holds only runs you mean to keep.
@@ -93,6 +94,7 @@ uv run pytest
 zerocommcartel/           the sprint's code: the shared core and the zcc command line
 zerocommcartel/criteria/  one folder per criterion (capable, compliant, communal, consistent)
 experiments/              one script per experiment, which runs, judges and reports it (EXPERIMENT_STANDARDS.md)
+results/                  each experiment's write-up, the source of its artifact
 logs/<criterion>/         a criterion's replies (results.jsonl) and its judges' labels (judge-<name>.jsonl)
 logs/<criterion>/<id>/    an experiment's replies and labels (logs/capable/cap2/), which zcc counts as its criterion's
 pilot/                    frozen: the probe, the analysis and copy-premise judge, benchmarks, power analysis

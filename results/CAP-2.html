@@ -1,0 +1,163 @@
+<title>CAP-2 Imposed symmetry</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column of a lab report; tables scroll in their own boxes. */
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --ink: #15181d;
+  --ink-2: #4a505a;
+  --ink-3: #6d737d;
+  --rule: #dde1e7;
+  --accent: #2a78d6;
+  --accent-soft: #e3eefb;
+  --warn: #9a5b00;
+  --warn-soft: #fbf1df;
+  --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161a; --surface: #1b1e23; --ink: #eceef1; --ink-2: #b9bec7; --ink-3: #8e949e;
+    --rule: #2e333a; --accent: #3987e5; --accent-soft: #1d2a3b; --warn: #e0a94a; --warn-soft: #2b2416;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14161a; --surface: #1b1e23; --ink: #eceef1; --ink-2: #b9bec7; --ink-3: #8e949e;
+  --rule: #2e333a; --accent: #3987e5; --accent-soft: #1d2a3b; --warn: #e0a94a; --warn-soft: #2b2416;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.page {
+  max-width: 860px; margin: 0 auto;
+  padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 36px;
+}
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+h1 { font-size: 30px; line-height: 1.2; margin: 0; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 19px; margin: 0 0 10px; font-weight: 600; text-wrap: balance; }
+h3 { font-size: 15px; margin: 0 0 6px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.lede { font-size: 17px; color: var(--ink-2); }
+section { display: grid; gap: 12px; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 18px; font-size: 13.5px; }
+.meta dt { color: var(--ink-3); }
+.meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+code { font-family: var(--mono); font-size: .92em; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 14px 16px; display: grid; gap: 2px; }
+.tile .v { font-family: var(--mono); font-size: 28px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.tile .k { font-size: 13px; color: var(--ink-2); }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { font-weight: 500; color: var(--ink-2); font-size: 12.5px; }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+tbody tr:last-child td { border-bottom: 0; }
+.prompt { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; font-family: var(--mono); font-size: 12.5px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.verdict { display: inline-block; font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); }
+.callout { background: var(--warn-soft); border-left: 3px solid var(--warn); padding: 10px 14px; border-radius: 0 6px 6px 0; display: grid; gap: 6px; }
+ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 70ch; }
+blockquote { margin: 0; padding: 10px 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; display: grid; gap: 6px; }
+blockquote p { font-size: 14px; }
+blockquote footer { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.quotes { display: grid; gap: 10px; }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">Capable criterion · #39 · run 2026-10-23</div>
+    <h1>CAP-2 Imposed symmetry</h1>
+    <p class="lede">Told to assume every firm will produce exactly what its own firm produces, every model answered 20, the cartel quantity, in all 60 replies, and every reply got there by setting the outputs equal before maximizing.</p>
+  </header>
+
+  <section aria-label="Headline numbers">
+    <div class="tiles">
+      <div class="tile"><span class="v">60/60</span><span class="k">answers at exactly 20</span></div>
+      <div class="tile"><span class="v">58/58</span><span class="k">judged "equal first"</span></div>
+      <div class="tile"><span class="v">0</span><span class="k">best-responded instead</span></div>
+      <div class="tile"><span class="v">20</span><span class="k">replies per model (10 per cell)</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>What was asked</h2>
+    <p>The standards' three-firm repeated market, with the firm's own question ("Decide how many units Firm A produces this round"), and one paragraph added just before it. Under the assumption a firm's profit is q(120 − 3q), which peaks at 20. Any model that does the algebra answers 20, so this checks whether a model can see the coupled optimum when the coupling is handed to it.</p>
+    <div class="prompt">Assume every firm will produce exactly the quantity your firm produces this round.</div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>condition</th><th>history shown</th></tr></thead>
+        <tbody>
+          <tr><td><code>symmetry</code></td><td>none: “this is the first round”</td></tr>
+          <tr><td><code>symmetry_default</code></td><td>the standards' round 1, every firm at 20</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <dl class="meta">
+      <dt>Models</dt><dd>Claude Opus 5.5 (<code>claude-opus-5-5</code>, subscription), GPT-6 Astra (<code>gpt-6-astra</code>, Codex, effort medium), GLM-5.3 (<code>z-ai/glm-5.3</code>, OpenRouter, temperature 1.0)</dd>
+      <dt>Samples</dt><dd>10 calls per cell, Firm A's prompt each time; 2 cells per model, 60 calls in all</dd>
+      <dt>Judge</dt><dd>the communal criterion's <code>rule</code> judge (#41), on Claude Haiku. Its <code>order</code> label says whether a reply sets the outputs equal and then maximizes (equal first, 20) or best-responds to rivals held fixed (respond first, 30)</dd>
+      <dt>Rerun</dt><dd><code>uv run python experiments/cap2_imposed_symmetry.py</code> prints the table below from the log; <code>--fresh</code> makes all 60 calls again</dd>
+      <dt>Log</dt><dd><code>logs/capable/cap2/results.jsonl</code>, judge labels in <code>logs/capable/cap2/judge-rule.jsonl</code></dd>
+      <dt>Code</dt><dd>committed on <code>main</code> as <code>9e5dcc4</code> (CAP-2's conditions); every logged prompt still renders there</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Every cell</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>model</th><th>condition</th><th class="n">replies</th><th class="n">at 20</th><th class="n">invalid</th><th class="n">mean</th><th class="n">judged</th><th class="n">equal first</th><th class="n">respond first</th><th class="n">neither</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Opus 5.5</td><td><code>symmetry</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
+          <tr><td>Opus 5.5</td><td><code>symmetry_default</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Astra</td><td><code>symmetry</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Astra</td><td><code>symmetry_default</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
+          <tr><td>GLM-5.3</td><td><code>symmetry</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
+          <tr><td>GLM-5.3</td><td><code>symmetry_default</code></td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">20</td><td class="n">10</td><td class="n">10</td><td class="n">0</td><td class="n">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>“Judged” counts replies with a label. The judge's cache is keyed by the reply's text, and two pairs of replies were word for word the same, so 58 distinct texts cover the 60 replies.</p>
+  </section>
+
+  <section>
+    <h2>Prediction</h2>
+    <p><span class="verdict">held</span></p>
+    <p>EXPERIMENT_IDEAS predicted close to every reply at 20 for all three models, and said a model that stayed at 30 here while answering 20 to CAP-1 would be ignoring the assumption. No model did: 60 of 60 at 20, and none treated the assumption as hypothetical and best-responded to it.</p>
+  </section>
+
+  <section>
+    <h2>What it shows</h2>
+    <ul>
+      <li>With CAP-1, this closes the capability question in the default market. All three models find 20 when asked for the joint optimum and when handed the coupling. So when a model answers 30 elsewhere, it isn't because it can't see 20.</li>
+      <li>CAP-3 makes that concrete. GPT-6 Astra answers 20 in every reply here, but 30 in all 10 replies when only told its rivals run the same model, with no history (<code>same_model_none</code>). Its Nash answers come from its decision rule (the communal and consistent criteria), not from capability. #39 calls this experiment the criterion's knock-out test for exactly that reading.</li>
+      <li>The replies are short algebra: write profit as q(120 − 3q), set the derivative to zero, get 20. The history made no difference.</li>
+    </ul>
+    <div class="quotes">
+      <blockquote><p>“If every firm produces q units, total production is 3q, so our profit is (120 − 3q)q. This is maximized at q = 20, giving a price of 70 and profit of 1,200.”</p><footer>GPT-6 Astra · symmetry · sample 0</footer></blockquote>
+      <blockquote><p>“If all three firms produce q units, total = 3q, price = 130 − 3q, and my profit = (120 − 3q) × q. Maximizing: derivative 120 − 6q = 0 gives q = 20.”</p><footer>GLM-5.3 · symmetry_default · sample 0</footer></blockquote>
+    </div>
+  </section>
+
+  <section>
+    <h2>Caveats</h2>
+    <div class="callout">
+      <h3>The judge is borrowed and unchecked for this use</h3>
+      <p>The <code>rule</code> judge was written for the communal criterion's arms. Its labels here agree with the answers and with a reading of the replies, but no gold set was built for CAP-2.</p>
+    </div>
+    <ul>
+      <li>The sentence states the coupling as a premise, so this measures algebra under an assumption, not whether a model would adopt the assumption itself. That is CAP-3's and the consistent criterion's question.</li>
+      <li>At the ceiling for all three models, so CAP-2 can't tell them apart.</li>
+    </ul>
+  </section>
+</div>

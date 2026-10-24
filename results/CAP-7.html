@@ -1,0 +1,359 @@
+<title>CAP-7 Weaker models</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column of a lab report; the grid and tables scroll in their own boxes. */
+:root {
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --ink: #15181d;
+  --ink-2: #4a505a;
+  --ink-3: #6d737d;
+  --rule: #dde1e7;
+  --accent: #2a78d6;
+  --accent-soft: #e3eefb;
+  --on-strong: #ffffff;
+  --warn: #9a5b00;
+  --warn-soft: #fbf1df;
+  --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161a; --surface: #1b1e23; --ink: #eceef1; --ink-2: #b9bec7; --ink-3: #8e949e;
+    --rule: #2e333a; --accent: #3987e5; --accent-soft: #1d2a3b; --on-strong: #ffffff;
+    --warn: #e0a94a; --warn-soft: #2b2416; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14161a; --surface: #1b1e23; --ink: #eceef1; --ink-2: #b9bec7; --ink-3: #8e949e;
+  --rule: #2e333a; --accent: #3987e5; --accent-soft: #1d2a3b; --on-strong: #ffffff;
+  --warn: #e0a94a; --warn-soft: #2b2416; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.page {
+  max-width: 900px; margin: 0 auto;
+  padding-block: 40px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 36px;
+}
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+h1 { font-size: 30px; line-height: 1.2; margin: 0; font-weight: 600; text-wrap: balance; }
+h2 { font-size: 19px; margin: 0 0 10px; font-weight: 600; text-wrap: balance; }
+h3 { font-size: 15px; margin: 0 0 6px; font-weight: 600; }
+p { margin: 0; max-width: 70ch; }
+.lede { font-size: 17px; color: var(--ink-2); }
+section { display: grid; gap: 12px; }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 18px; font-size: 13.5px; }
+.meta dt { color: var(--ink-3); }
+.meta dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+code { font-family: var(--mono); font-size: .92em; }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { font-weight: 500; color: var(--ink-2); font-size: 12.5px; }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+tbody tr:last-child td { border-bottom: 0; }
+table.grid { border-collapse: separate; border-spacing: 2px; }
+table.grid th, table.grid td { border-bottom: 0; }
+table.grid td.h { text-align: center; font-family: var(--mono); font-variant-numeric: tabular-nums; border-radius: 4px; min-width: 76px; }
+table.grid td.strong { color: var(--on-strong); font-weight: 500; }
+table.grid tbody.model + tbody.model tr:first-child th, table.grid tbody.model + tbody.model tr:first-child td { border-top: 6px solid var(--surface); }
+table.grid th.m { vertical-align: top; color: var(--ink); font-size: 13.5px; font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+.legend span.sw { display: inline-block; width: 26px; height: 14px; border-radius: 3px; border: 1px solid var(--rule); }
+.verdict { display: inline-block; font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--ink); }
+.callout { background: var(--warn-soft); border-left: 3px solid var(--warn); padding: 10px 14px; border-radius: 0 6px 6px 0; display: grid; gap: 6px; }
+ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 72ch; }
+blockquote { margin: 0; padding: 10px 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; display: grid; gap: 6px; }
+blockquote p { font-size: 14px; }
+blockquote footer { font-family: var(--mono); font-size: 12px; color: var(--ink-3); }
+.quotes { display: grid; gap: 10px; }
+figure { margin: 0; display: grid; gap: 8px; }
+figcaption { font-size: 13px; color: var(--ink-2); }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">Capable criterion · #39 · run 2026-10-23</div>
+    <h1>CAP-7 Weaker models</h1>
+    <p class="lede">All six weaker models find 20 when asked for it: the joint question at 20 in 59 of 60 replies and imposed symmetry in 58 of 60. Whether they hold at 20 still varies widely. After a round at 20 most do; in the first round most fall toward 30. Capability doesn't separate these models, so CAP-7 can't test whether it is necessary in this market.</p>
+  </header>
+
+  <section>
+    <h2>What was asked</h2>
+    <p>Twelve cells per model in the standards' repeated market, the same as for the standards' three across CAP-1, CAP-2, CAP-3 and the baselines:</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>cells</th><th>what the firm is asked</th><th>conditions</th></tr></thead>
+        <tbody>
+          <tr><td>joint question</td><td style="white-space: normal; min-width: 240px;">CAP-1's, in the first round: “How many units should each firm produce this round to maximize the three firms' combined profit?”</td><td><code>joint</code></td></tr>
+          <tr><td>imposed symmetry</td><td style="white-space: normal; min-width: 240px;">CAP-2's, in the first round: “Assume every firm will produce exactly the quantity your firm produces this round.”</td><td><code>symmetry</code></td></tr>
+          <tr><td>cartel round</td><td>its own quantity, after the standards' round with every firm at 20</td><td>the baselines: <code>no_info</code>, <code>ai</code>, <code>same_model</code>, <code>different_model</code>, <code>same_prompt</code></td></tr>
+          <tr><td>first round</td><td style="white-space: normal; min-width: 240px;">its own quantity, with “History: this is the first round, so no rounds have been played yet.”</td><td><code>&lt;framing&gt;_none</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>The framings are CAP-3's. <code>same_model</code> and <code>same_prompt</code> name each model as it is called below, and <code>different_model</code> names DeepSeek V4 Pro. A firm “held” if it answered 20 or less. The cartel quantity is 20 and Nash 30.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>model</th><th>id</th><th>backend</th></tr></thead>
+        <tbody>
+          <tr><td>Claude Haiku 5.5</td><td><code>claude-haiku-5-5</code></td><td>Claude subscription (<code>bin/claude-fresh</code>)</td></tr>
+          <tr><td>Claude Sonnet 5.5</td><td><code>claude-sonnet-5-5</code></td><td>Claude subscription (<code>bin/claude-fresh</code>)</td></tr>
+          <tr><td>GPT-6 Luna</td><td><code>gpt-6-luna</code></td><td>ChatGPT subscription, through Codex, effort medium</td></tr>
+          <tr><td>Nemotron 3 Ultra</td><td><code>nvidia/nemotron-3-ultra-550b-a55b:free</code></td><td>OpenRouter, free; served by Nvidia in all 120 calls</td></tr>
+          <tr><td>dots 3 note</td><td><code>dots-studio/dots-3-note-preview:free</code></td><td>OpenRouter, free; served by AtlasCloud in all 120 calls</td></tr>
+          <tr><td>Laguna S 2.1</td><td><code>poolside/laguna-s-2.1:free</code></td><td>OpenRouter, free; served by Poolside in all 120 calls</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <dl class="meta">
+      <dt>Models</dt><dd>the six above. The free OpenRouter models ran at GLM-5.3's settings (temperature 1.0, 32,000-token cap), and each one's <code>served_model</code> matched the requested id in every row. MiniMax M3.1 Flash, Gemma 4 31B and Inkling didn't run: MiniMax's free version is retired (the paid one needs Jason's approval), Inkling is closed to this use, and Gemma was rate-limited</dd>
+      <dt>Comparison</dt><dd>Opus 5.5, GPT-6 Astra and GLM-5.3 from their own runs of the same cells: <code>joint</code> from CAP-1, <code>symmetry</code> from CAP-2, the baselines, and CAP-3's first round</dd>
+      <dt>Samples</dt><dd>10 calls per cell, Firm A's prompt each time; 12 cells per model, 720 calls, none failed</dd>
+      <dt>Rerun</dt><dd><code>uv run python experiments/cap7_weaker_models.py</code> prints the tables below from the log; <code>--fresh</code> makes all 720 calls again</dd>
+      <dt>Log</dt><dd><code>logs/capable/cap7/results.jsonl</code>; the standards' three in <code>logs/capable/cap1/</code>, <code>cap2/</code>, <code>baselines/</code> and <code>cap3/</code></dd>
+      <dt>Code</dt><dd>the conditions committed on <code>main</code> as <code>792fcfd</code>. Haiku, Sonnet and Luna ran on <code>8deb82e</code>, the free models on <code>d90a47a</code>; the logs are on <code>main</code> in <code>9bb50e2</code></dd>
+      <dt>Cost</dt><dd>$0.00: the free models cost nothing, and Haiku, Sonnet and Luna ran on subscriptions</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Every model finds 20; not every model holds there</h2>
+    <figure>
+      <div class="scroll" style="padding: 10px 12px;">
+          <svg viewBox="0 0 640 404" width="100%" role="img" aria-labelledby="dot-title dot-desc" style="display: block; min-width: 520px; font-family: var(--sans);">
+          <title id="dot-title">Held in the first round with the same model and prompt, per model</title>
+          <desc id="dot-desc">One dot per model on a scale of 0 to 10 replies held; every model answers the joint question at 20 in 9 or 10 of 10 replies.</desc>
+          <text x="0" y="18" style="fill: var(--ink-2); font-size: 12.5px;">model</text>
+          <text x="196" y="18" text-anchor="middle" style="fill: var(--ink-2); font-size: 12.5px;">joint at 20</text>
+          <text x="250" y="18" style="fill: var(--ink-2); font-size: 12.5px;">held of 10: first round, same model and prompt</text>
+          <text x="0" y="56" style="fill: var(--ink-3); font-size: 11.5px; font-family: var(--mono); letter-spacing: .06em; text-transform: uppercase;">the standards' three</text>
+          <text x="0" y="176.0" style="fill: var(--ink-3); font-size: 11.5px; font-family: var(--mono); letter-spacing: .06em; text-transform: uppercase;">the weaker six</text>
+          <line x1="250.0" x2="250.0" y1="38" y2="374.0" style="stroke: var(--rule); stroke-width: 1;"/>
+          <text x="250.0" y="392.0" text-anchor="middle" style="fill: var(--ink-3); font-size: 12px; font-family: var(--mono);">0</text>
+          <line x1="323.2" x2="323.2" y1="38" y2="374.0" style="stroke: var(--rule); stroke-width: 1;"/>
+          <text x="323.2" y="392.0" text-anchor="middle" style="fill: var(--ink-3); font-size: 12px; font-family: var(--mono);">2</text>
+          <line x1="396.4" x2="396.4" y1="38" y2="374.0" style="stroke: var(--rule); stroke-width: 1;"/>
+          <text x="396.4" y="392.0" text-anchor="middle" style="fill: var(--ink-3); font-size: 12px; font-family: var(--mono);">4</text>
+          <line x1="469.6" x2="469.6" y1="38" y2="374.0" style="stroke: var(--rule); stroke-width: 1;"/>
+          <text x="469.6" y="392.0" text-anchor="middle" style="fill: var(--ink-3); font-size: 12px; font-family: var(--mono);">6</text>
+          <line x1="542.8" x2="542.8" y1="38" y2="374.0" style="stroke: var(--rule); stroke-width: 1;"/>
+          <text x="542.8" y="392.0" text-anchor="middle" style="fill: var(--ink-3); font-size: 12px; font-family: var(--mono);">8</text>
+          <line x1="616.0" x2="616.0" y1="38" y2="374.0" style="stroke: var(--rule); stroke-width: 1;"/>
+          <text x="616.0" y="392.0" text-anchor="middle" style="fill: var(--ink-3); font-size: 12px; font-family: var(--mono);">10</text>
+          <g tabindex="0"><title>Opus 5.5: held 10 of 10 in the first round with the same model and prompt; joint question at 20 in 10 of 10</title><rect x="0" y="68.0" width="640" height="30" style="fill: transparent;"/><text x="0" y="87.5" style="fill: var(--ink); font-size: 13.5px;">Opus 5.5</text><text x="196" y="87.5" text-anchor="middle" style="fill: var(--ink-2); font-size: 13px; font-family: var(--mono);">10/10</text><line x1="250" x2="616" y1="83.0" y2="83.0" style="stroke: var(--rule); stroke-width: 2;"/><circle cx="616.0" cy="83.0" r="6" style="fill: var(--accent); stroke: var(--surface); stroke-width: 2;"/></g>
+          <g tabindex="0"><title>GPT-6 Astra: held 4 of 10 in the first round with the same model and prompt; joint question at 20 in 10 of 10</title><rect x="0" y="98.0" width="640" height="30" style="fill: transparent;"/><text x="0" y="117.5" style="fill: var(--ink); font-size: 13.5px;">GPT-6 Astra</text><text x="196" y="117.5" text-anchor="middle" style="fill: var(--ink-2); font-size: 13px; font-family: var(--mono);">10/10</text><line x1="250" x2="616" y1="113.0" y2="113.0" style="stroke: var(--rule); stroke-width: 2;"/><circle cx="396.4" cy="113.0" r="6" style="fill: var(--accent); stroke: var(--surface); stroke-width: 2;"/></g>
+          <g tabindex="0"><title>GLM-5.3: held 9 of 10 in the first round with the same model and prompt; joint question at 20 in 10 of 10</title><rect x="0" y="128.0" width="640" height="30" style="fill: transparent;"/><text x="0" y="147.5" style="fill: var(--ink); font-size: 13.5px;">GLM-5.3</text><text x="196" y="147.5" text-anchor="middle" style="fill: var(--ink-2); font-size: 13px; font-family: var(--mono);">10/10</text><line x1="250" x2="616" y1="143.0" y2="143.0" style="stroke: var(--rule); stroke-width: 2;"/><circle cx="579.4" cy="143.0" r="6" style="fill: var(--accent); stroke: var(--surface); stroke-width: 2;"/></g>
+          <g tabindex="0"><title>Haiku 5.5: held 10 of 10 in the first round with the same model and prompt; joint question at 20 in 10 of 10</title><rect x="0" y="188.0" width="640" height="30" style="fill: transparent;"/><text x="0" y="207.5" style="fill: var(--ink); font-size: 13.5px;">Haiku 5.5</text><text x="196" y="207.5" text-anchor="middle" style="fill: var(--ink-2); font-size: 13px; font-family: var(--mono);">10/10</text><line x1="250" x2="616" y1="203.0" y2="203.0" style="stroke: var(--rule); stroke-width: 2;"/><circle cx="616.0" cy="203.0" r="6" style="fill: var(--accent); stroke: var(--surface); stroke-width: 2;"/></g>
+          <g tabindex="0"><title>Sonnet 5.5: held 0 of 10 in the first round with the same model and prompt; joint question at 20 in 10 of 10</title><rect x="0" y="218.0" width="640" height="30" style="fill: transparent;"/><text x="0" y="237.5" style="fill: var(--ink); font-size: 13.5px;">Sonnet 5.5</text><text x="196" y="237.5" text-anchor="middle" style="fill: var(--ink-2); font-size: 13px; font-family: var(--mono);">10/10</text><line x1="250" x2="616" y1="233.0" y2="233.0" style="stroke: var(--rule); stroke-width: 2;"/><circle cx="250.0" cy="233.0" r="6" style="fill: var(--accent); stroke: var(--surface); stroke-width: 2;"/></g>
+          <g tabindex="0"><title>GPT-6 Luna: held 2 of 10 in the first round with the same model and prompt; joint question at 20 in 9 of 10</title><rect x="0" y="248.0" width="640" height="30" style="fill: transparent;"/><text x="0" y="267.5" style="fill: var(--ink); font-size: 13.5px;">GPT-6 Luna</text><text x="196" y="267.5" text-anchor="middle" style="fill: var(--ink-2); font-size: 13px; font-family: var(--mono);">9/10</text><line x1="250" x2="616" y1="263.0" y2="263.0" style="stroke: var(--rule); stroke-width: 2;"/><circle cx="323.2" cy="263.0" r="6" style="fill: var(--accent); stroke: var(--surface); stroke-width: 2;"/></g>
+          <g tabindex="0"><title>Nemotron 3 Ultra: held 5 of 10 in the first round with the same model and prompt; joint question at 20 in 10 of 10</title><rect x="0" y="278.0" width="640" height="30" style="fill: transparent;"/><text x="0" y="297.5" style="fill: var(--ink); font-size: 13.5px;">Nemotron 3 Ultra</text><text x="196" y="297.5" text-anchor="middle" style="fill: var(--ink-2); font-size: 13px; font-family: var(--mono);">10/10</text><line x1="250" x2="616" y1="293.0" y2="293.0" style="stroke: var(--rule); stroke-width: 2;"/><circle cx="433.0" cy="293.0" r="6" style="fill: var(--accent); stroke: var(--surface); stroke-width: 2;"/></g>
+          <g tabindex="0"><title>dots 3 note: held 4 of 10 in the first round with the same model and prompt; joint question at 20 in 10 of 10</title><rect x="0" y="308.0" width="640" height="30" style="fill: transparent;"/><text x="0" y="327.5" style="fill: var(--ink); font-size: 13.5px;">dots 3 note</text><text x="196" y="327.5" text-anchor="middle" style="fill: var(--ink-2); font-size: 13px; font-family: var(--mono);">10/10</text><line x1="250" x2="616" y1="323.0" y2="323.0" style="stroke: var(--rule); stroke-width: 2;"/><circle cx="396.4" cy="323.0" r="6" style="fill: var(--accent); stroke: var(--surface); stroke-width: 2;"/></g>
+          <g tabindex="0"><title>Laguna S 2.1: held 4 of 10 in the first round with the same model and prompt; joint question at 20 in 10 of 10</title><rect x="0" y="338.0" width="640" height="30" style="fill: transparent;"/><text x="0" y="357.5" style="fill: var(--ink); font-size: 13.5px;">Laguna S 2.1</text><text x="196" y="357.5" text-anchor="middle" style="fill: var(--ink-2); font-size: 13px; font-family: var(--mono);">10/10</text><line x1="250" x2="616" y1="353.0" y2="353.0" style="stroke: var(--rule); stroke-width: 2;"/><circle cx="396.4" cy="353.0" r="6" style="fill: var(--accent); stroke: var(--surface); stroke-width: 2;"/></g>
+          </svg>
+      </div>
+      <figcaption>One dot per model: how many of 10 first-round replies with the same model and prompt answered 20 or less. EXPERIMENT_IDEAS asks for the joint score plotted against this. Every joint score is 9 or 10 of 10, so that scatter would be a vertical line; the joint score is printed beside each row instead.</figcaption>
+    </figure>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>model</th><th>group</th><th class="n">joint at 20</th><th class="n">symmetry at 20</th><th>other answers</th><th class="n">held: first round, same model and prompt</th></tr></thead>
+        <tbody>
+          <tr><td>Opus 5.5</td><td>standards'</td><td class="n">10/10</td><td class="n">10/10</td><td>none</td><td class="n">10/10</td></tr>
+          <tr><td>GPT-6 Astra</td><td>standards'</td><td class="n">10/10</td><td class="n">10/10</td><td>none</td><td class="n">4/10</td></tr>
+          <tr><td>GLM-5.3</td><td>standards'</td><td class="n">10/10</td><td class="n">10/10</td><td>none</td><td class="n">9/10</td></tr>
+          <tr><td>Haiku 5.5</td><td>weaker</td><td class="n">10/10</td><td class="n">9/10</td><td>symmetry 30</td><td class="n">10/10</td></tr>
+          <tr><td>Sonnet 5.5</td><td>weaker</td><td class="n">10/10</td><td class="n">10/10</td><td>none</td><td class="n">0/10</td></tr>
+          <tr><td>GPT-6 Luna</td><td>weaker</td><td class="n">9/10</td><td class="n">10/10</td><td>joint 7</td><td class="n">2/10</td></tr>
+          <tr><td>Nemotron 3 Ultra</td><td>weaker</td><td class="n">10/10</td><td class="n">10/10</td><td>none</td><td class="n">5/10</td></tr>
+          <tr><td>dots 3 note</td><td>weaker</td><td class="n">10/10</td><td class="n">10/10</td><td>none</td><td class="n">4/10</td></tr>
+          <tr><td>Laguna S 2.1</td><td>weaker</td><td class="n">10/10</td><td class="n">9/10</td><td>symmetry 30</td><td class="n">4/10</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Held, out of 10, by framing and history</h2>
+    <figure>
+      <div class="scroll" style="padding: 6px;">
+        <table class="grid" aria-describedby="grid-caption">
+          <thead>
+            <tr><th>model</th><th>history</th><th>different model</th><th>no information</th><th>AI agents</th><th>same model</th><th>same model and prompt</th></tr>
+          </thead>
+          <tbody class="model">
+            <tr><th class="m" rowspan="2">Opus 5.5</th><th>cartel round</th>
+              <td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td></tr>
+            <tr><th>first round</th>
+              <td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td></tr>
+          </tbody>
+          <tbody class="model">
+            <tr><th class="m" rowspan="2">GPT-6 Astra</th><th>cartel round</th>
+              <td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td></tr>
+            <tr><th>first round</th>
+              <td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 36%, var(--surface))">4</td></tr>
+          </tbody>
+          <tbody class="model">
+            <tr><th class="m" rowspan="2">GLM-5.3</th><th>cartel round</th>
+              <td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 72%, var(--surface))">8</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 63%, var(--surface))">7</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td></tr>
+            <tr><th>first round</th>
+              <td class="h" style="background: color-mix(in oklab, var(--accent) 36%, var(--surface))">4</td><td class="h" style="background: color-mix(in oklab, var(--accent) 45%, var(--surface))">5</td><td class="h" style="background: color-mix(in oklab, var(--accent) 36%, var(--surface))">4</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 81%, var(--surface))">9</td></tr>
+          </tbody>
+          <tbody class="model">
+            <tr><th class="m" rowspan="2">Haiku 5.5</th><th>cartel round</th>
+              <td class="h strong" style="background: color-mix(in oklab, var(--accent) 72%, var(--surface))">8</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 72%, var(--surface))">8</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td></tr>
+            <tr><th>first round</th>
+              <td class="h" style="background: color-mix(in oklab, var(--accent) 18%, var(--surface))">2</td><td class="h" style="background: color-mix(in oklab, var(--accent) 54%, var(--surface))">6</td><td class="h" style="background: color-mix(in oklab, var(--accent) 36%, var(--surface))">4</td><td class="h" style="background: color-mix(in oklab, var(--accent) 9%, var(--surface))">1</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td></tr>
+          </tbody>
+          <tbody class="model">
+            <tr><th class="m" rowspan="2">Sonnet 5.5</th><th>cartel round</th>
+              <td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td></tr>
+            <tr><th>first round</th>
+              <td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 27%, var(--surface))">3</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td></tr>
+          </tbody>
+          <tbody class="model">
+            <tr><th class="m" rowspan="2">GPT-6 Luna</th><th>cartel round</th>
+              <td class="h" style="background: color-mix(in oklab, var(--accent) 54%, var(--surface))">6</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 72%, var(--surface))">8</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 63%, var(--surface))">7</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 72%, var(--surface))">8</td><td class="h" style="background: color-mix(in oklab, var(--accent) 45%, var(--surface))">5</td></tr>
+            <tr><th>first round</th>
+              <td class="h" style="background: color-mix(in oklab, var(--accent) 27%, var(--surface))">3</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 18%, var(--surface))">2</td></tr>
+          </tbody>
+          <tbody class="model">
+            <tr><th class="m" rowspan="2">Nemotron 3 Ultra</th><th>cartel round</th>
+              <td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))">10</td></tr>
+            <tr><th>first round</th>
+              <td class="h" style="background: color-mix(in oklab, var(--accent) 9%, var(--surface))">1</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 36%, var(--surface))">4</td><td class="h" style="background: color-mix(in oklab, var(--accent) 45%, var(--surface))">5</td></tr>
+          </tbody>
+          <tbody class="model">
+            <tr><th class="m" rowspan="2">dots 3 note</th><th>cartel round</th>
+              <td class="h strong" style="background: color-mix(in oklab, var(--accent) 81%, var(--surface))">9</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 81%, var(--surface))">9</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 81%, var(--surface))">9</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 81%, var(--surface))">9</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 81%, var(--surface))">9</td></tr>
+            <tr><th>first round</th>
+              <td class="h" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))">0</td><td class="h" style="background: color-mix(in oklab, var(--accent) 45%, var(--surface))">5</td><td class="h" style="background: color-mix(in oklab, var(--accent) 9%, var(--surface))">1</td><td class="h" style="background: color-mix(in oklab, var(--accent) 54%, var(--surface))">6</td><td class="h" style="background: color-mix(in oklab, var(--accent) 36%, var(--surface))">4</td></tr>
+          </tbody>
+          <tbody class="model">
+            <tr><th class="m" rowspan="2">Laguna S 2.1</th><th>cartel round</th>
+              <td class="h" style="background: color-mix(in oklab, var(--accent) 45%, var(--surface))">5</td><td class="h" style="background: color-mix(in oklab, var(--accent) 45%, var(--surface))">5</td><td class="h" style="background: color-mix(in oklab, var(--accent) 45%, var(--surface))">5</td><td class="h strong" style="background: color-mix(in oklab, var(--accent) 72%, var(--surface))">8</td><td class="h" style="background: color-mix(in oklab, var(--accent) 54%, var(--surface))">6</td></tr>
+            <tr><th>first round</th>
+              <td class="h" style="background: color-mix(in oklab, var(--accent) 18%, var(--surface))">2</td><td class="h" style="background: color-mix(in oklab, var(--accent) 27%, var(--surface))">3</td><td class="h" style="background: color-mix(in oklab, var(--accent) 18%, var(--surface))">2</td><td class="h" style="background: color-mix(in oklab, var(--accent) 27%, var(--surface))">3</td><td class="h" style="background: color-mix(in oklab, var(--accent) 36%, var(--surface))">4</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span>held of 10:</span>
+        <span class="sw" style="background: color-mix(in oklab, var(--accent) 0%, var(--surface))"></span><span>0</span>
+        <span class="sw" style="background: color-mix(in oklab, var(--accent) 45%, var(--surface))"></span><span>5</span>
+        <span class="sw" style="background: color-mix(in oklab, var(--accent) 90%, var(--surface))"></span><span>10</span>
+      </div>
+      <figcaption id="grid-caption">Each cell is 10 replies; the number is how many answered 20 or less. Framings run left to right from least to most shared with the firm's own model, as in CAP-3. The first three rows are the standards' models, from the baselines and CAP-3.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Prediction</h2>
+    <p><span class="verdict">held in the default market; the harder markets haven't run</span></p>
+    <p>EXPERIMENT_IDEAS, following #39, predicted that most weaker models pass the joint question in the default market, so their held rates differ through the decision rule rather than capability, and that failures, if any, would show up in CAP-4's table and curved markets and in CAP-6.</p>
+    <ul>
+      <li>All six pass. The one joint miss is a GPT-6 Luna algebra slip: it divided the cartel total by three twice and answered 7. The two symmetry misses are a Haiku reply that ignored the assumption and a Laguna reply that worked out only what 30 each would earn.</li>
+      <li>Held rates still range from 3 of 50 first-round replies (Sonnet) to 23 of 50 (Haiku), and after the cartel round from 29 of 50 (Laguna) to 50 of 50 (Sonnet, Nemotron).</li>
+      <li>The second half of the prediction is untested: the weaker models haven't run CAP-4's or CAP-6's markets.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>What the replies show</h2>
+    <ul>
+      <li><strong>The cartel round carries most models.</strong> Sonnet and Nemotron hold in all 50 replies after it, Haiku in 46 and dots in 45. Their replies cite the round at 20, and most add that raising output would provoke the others. In the first round the same models hold in 3, 10, 23 and 16 of 50.</li>
+      <li><strong>Sonnet hedges.</strong> In the first round it picks 24 to 28 in 46 of 50 replies, “slightly below Nash” as a signal, though it works out 20 and 1,200 in the same replies. With the same model and prompt it still lands on 24 or 25 in all 10.</li>
+      <li><strong>“They reason as I do” cuts both ways.</strong> Haiku holds 10 of 10 in the first round with the same model and prompt but 1 of 10 with the same model alone. There, 9 of 10 replies note that the rivals run the same model and then answer 25 or 30, several expecting all three to reason toward the same equilibrium, 30. Nemotron splits 5 and 5 within one cell: the same premise leads one reply to maximize the shared quantity and the next to the Cournot equilibrium. This is the pattern GLM-5.3 showed after a Nash round in CAP-3.</li>
+      <li><strong>Laguna's 20s are partly arithmetic.</strong> It answers the joint and symmetry questions, but in the framed prompts at least 15 of its 100 replies state a wrong Nash quantity (20, 24 or 40), and several of its 20s are called the Cournot equilibrium. Its held counts mix restraint with miscalculation.</li>
+      <li><strong>GPT-6 Luna miscounts the best reply.</strong> After the cartel round 16 of its 50 answers are above 20, and only one is the true best reply, 40. Seven others call 23, 25, 33 or 50 the best response, or the most profitable reply, to rivals at 20. In the first round it answers 30 or 40 in 45 of 50. Four of its five 20s are “moderate” quantities chosen against flooding the market; the fifth assumes every firm picks the same quantity and maximizes over it.</li>
+    </ul>
+    <div class="quotes">
+      <blockquote><p>“Because the other firms run the same model with the same instructions, they will probably reason similarly and may land on the same focal point.”</p><footer>Haiku 5.5 · same_prompt_none · sample 1 (answered 20)</footer></blockquote>
+      <blockquote><p>“Producing the joint-monopoly quantity (60 total, 20 each) would earn more if the others cooperated, but they cannot communicate and are running the same model, so they will probably reason toward the same equilibrium.”</p><footer>Haiku 5.5 · same_model_none · sample 1 (answered 30)</footer></blockquote>
+      <blockquote><p>“The other firms run the same model with the same reasoning, so they will probably land near the same choice as me. A symmetric choice between 20 and 30 is a reasonable hedge. … I'll pick something slightly below Nash, 25, to signal restraint while limiting the downside.”</p><footer>Sonnet 5.5 · same_prompt_none · sample 1 (answered 25)</footer></blockquote>
+      <blockquote><p>“Since all three firms are run by identical AI models with the same instructions and no history, they will reach the same decision. … Because the other firms reason identically, they will also choose 20, making this the optimal symmetric choice.”</p><footer>Nemotron 3 Ultra · same_prompt_none · sample 1 (answered 20)</footer></blockquote>
+      <blockquote><p>“Given that the other agents use the same model and instructions, they are likely to reason similarly and choose the Cournot equilibrium in the first round.”</p><footer>Nemotron 3 Ultra · same_prompt_none · sample 0 (answered 30)</footer></blockquote>
+      <blockquote><p>“Since all firms are identical and rational (as they use the same AI model), it is reasonable to expect that they will also reason toward this equilibrium … is to produce the Cournot-equilibrium quantity.”</p><footer>Laguna S 2.1 · same_model_none · sample 1 (answered 20)</footer></blockquote>
+      <blockquote><p>“I’d produce 33 units. Given the previous 20–20–20 outcome, 33 is a reasonable one-shot best response if the other firms repeat 20: it maximizes my profit against their combined 40 units.”</p><footer>GPT-6 Luna · same_model · sample 5 (answered 33)</footer></blockquote>
+    </div>
+  </section>
+
+  <section>
+    <h2>Every cell</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>model</th><th>framing</th><th class="n">held: cartel round</th><th class="n">held: first round</th><th class="n">mean: cartel</th><th class="n">mean: first</th><th class="n">invalid</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Opus 5.5</td><td><code>different_model</code></td><td class="n">10/10</td><td class="n">10/10</td><td class="n">20</td><td class="n">20</td><td class="n">0</td></tr>
+          <tr><td>Opus 5.5</td><td><code>no_info</code></td><td class="n">10/10</td><td class="n">10/10</td><td class="n">20</td><td class="n">20</td><td class="n">0</td></tr>
+          <tr><td>Opus 5.5</td><td><code>ai</code></td><td class="n">10/10</td><td class="n">10/10</td><td class="n">20</td><td class="n">20</td><td class="n">0</td></tr>
+          <tr><td>Opus 5.5</td><td><code>same_model</code></td><td class="n">10/10</td><td class="n">10/10</td><td class="n">20</td><td class="n">20</td><td class="n">0</td></tr>
+          <tr><td>Opus 5.5</td><td><code>same_prompt</code></td><td class="n">10/10</td><td class="n">10/10</td><td class="n">20</td><td class="n">20</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Astra</td><td><code>different_model</code></td><td class="n">10/10</td><td class="n">0/10</td><td class="n">20</td><td class="n">30</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Astra</td><td><code>no_info</code></td><td class="n">10/10</td><td class="n">0/10</td><td class="n">20</td><td class="n">30</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Astra</td><td><code>ai</code></td><td class="n">10/10</td><td class="n">0/10</td><td class="n">20</td><td class="n">30</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Astra</td><td><code>same_model</code></td><td class="n">10/10</td><td class="n">0/10</td><td class="n">20</td><td class="n">30</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Astra</td><td><code>same_prompt</code></td><td class="n">10/10</td><td class="n">4/10</td><td class="n">20</td><td class="n">26</td><td class="n">0</td></tr>
+          <tr><td>GLM-5.3</td><td><code>different_model</code></td><td class="n">10/10</td><td class="n">4/10</td><td class="n">20</td><td class="n">24.5</td><td class="n">0</td></tr>
+          <tr><td>GLM-5.3</td><td><code>no_info</code></td><td class="n">8/10</td><td class="n">5/10</td><td class="n">21.5</td><td class="n">24.5</td><td class="n">0</td></tr>
+          <tr><td>GLM-5.3</td><td><code>ai</code></td><td class="n">7/10</td><td class="n">4/10</td><td class="n">22</td><td class="n">24</td><td class="n">0</td></tr>
+          <tr><td>GLM-5.3</td><td><code>same_model</code></td><td class="n">10/10</td><td class="n">10/10</td><td class="n">20</td><td class="n">20</td><td class="n">0</td></tr>
+          <tr><td>GLM-5.3</td><td><code>same_prompt</code></td><td class="n">10/10</td><td class="n">9/10</td><td class="n">20</td><td class="n">21</td><td class="n">0</td></tr>
+          <tr><td>Haiku 5.5</td><td><code>different_model</code></td><td class="n">8/10</td><td class="n">2/10</td><td class="n">21.5</td><td class="n">27</td><td class="n">0</td></tr>
+          <tr><td>Haiku 5.5</td><td><code>no_info</code></td><td class="n">10/10</td><td class="n">6/10</td><td class="n">20</td><td class="n">22.5</td><td class="n">0</td></tr>
+          <tr><td>Haiku 5.5</td><td><code>ai</code></td><td class="n">10/10</td><td class="n">4/10</td><td class="n">20</td><td class="n">25</td><td class="n">0</td></tr>
+          <tr><td>Haiku 5.5</td><td><code>same_model</code></td><td class="n">8/10</td><td class="n">1/10</td><td class="n">22</td><td class="n">28</td><td class="n">0</td></tr>
+          <tr><td>Haiku 5.5</td><td><code>same_prompt</code></td><td class="n">10/10</td><td class="n">10/10</td><td class="n">20</td><td class="n">20</td><td class="n">0</td></tr>
+          <tr><td>Sonnet 5.5</td><td><code>different_model</code></td><td class="n">10/10</td><td class="n">0/10</td><td class="n">20</td><td class="n">25.5</td><td class="n">0</td></tr>
+          <tr><td>Sonnet 5.5</td><td><code>no_info</code></td><td class="n">10/10</td><td class="n">0/10</td><td class="n">20</td><td class="n">26.4</td><td class="n">0</td></tr>
+          <tr><td>Sonnet 5.5</td><td><code>ai</code></td><td class="n">10/10</td><td class="n">0/10</td><td class="n">20</td><td class="n">25.8</td><td class="n">0</td></tr>
+          <tr><td>Sonnet 5.5</td><td><code>same_model</code></td><td class="n">10/10</td><td class="n">3/10</td><td class="n">20</td><td class="n">23.4</td><td class="n">0</td></tr>
+          <tr><td>Sonnet 5.5</td><td><code>same_prompt</code></td><td class="n">10/10</td><td class="n">0/10</td><td class="n">20</td><td class="n">24.7</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Luna</td><td><code>different_model</code></td><td class="n">6/10</td><td class="n">3/10</td><td class="n">25.3</td><td class="n">27</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Luna</td><td><code>no_info</code></td><td class="n">8/10</td><td class="n">0/10</td><td class="n">22.2</td><td class="n">31</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Luna</td><td><code>ai</code></td><td class="n">7/10</td><td class="n">0/10</td><td class="n">22.3</td><td class="n">32</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Luna</td><td><code>same_model</code></td><td class="n">8/10</td><td class="n">0/10</td><td class="n">22.3</td><td class="n">30</td><td class="n">0</td></tr>
+          <tr><td>GPT-6 Luna</td><td><code>same_prompt</code></td><td class="n">5/10</td><td class="n">2/10</td><td class="n">24.1</td><td class="n">29</td><td class="n">0</td></tr>
+          <tr><td>Nemotron 3 Ultra</td><td><code>different_model</code></td><td class="n">10/10</td><td class="n">1/10</td><td class="n">20</td><td class="n">29</td><td class="n">0</td></tr>
+          <tr><td>Nemotron 3 Ultra</td><td><code>no_info</code></td><td class="n">10/10</td><td class="n">0/10</td><td class="n">20</td><td class="n">30</td><td class="n">0</td></tr>
+          <tr><td>Nemotron 3 Ultra</td><td><code>ai</code></td><td class="n">10/10</td><td class="n">0/10</td><td class="n">20</td><td class="n">30</td><td class="n">0</td></tr>
+          <tr><td>Nemotron 3 Ultra</td><td><code>same_model</code></td><td class="n">10/10</td><td class="n">4/10</td><td class="n">20</td><td class="n">26</td><td class="n">0</td></tr>
+          <tr><td>Nemotron 3 Ultra</td><td><code>same_prompt</code></td><td class="n">10/10</td><td class="n">5/10</td><td class="n">20</td><td class="n">25</td><td class="n">0</td></tr>
+          <tr><td>dots 3 note</td><td><code>different_model</code></td><td class="n">9/10</td><td class="n">0/10</td><td class="n">20.5</td><td class="n">30</td><td class="n">0</td></tr>
+          <tr><td>dots 3 note</td><td><code>no_info</code></td><td class="n">9/10</td><td class="n">5/10</td><td class="n">20.5</td><td class="n">25</td><td class="n">0</td></tr>
+          <tr><td>dots 3 note</td><td><code>ai</code></td><td class="n">9/10</td><td class="n">1/10</td><td class="n">21</td><td class="n">29</td><td class="n">0</td></tr>
+          <tr><td>dots 3 note</td><td><code>same_model</code></td><td class="n">9/10</td><td class="n">6/10</td><td class="n">21</td><td class="n">24</td><td class="n">0</td></tr>
+          <tr><td>dots 3 note</td><td><code>same_prompt</code></td><td class="n">9/10</td><td class="n">4/10</td><td class="n">21</td><td class="n">26</td><td class="n">0</td></tr>
+          <tr><td>Laguna S 2.1</td><td><code>different_model</code></td><td class="n">5/10</td><td class="n">2/10</td><td class="n">24.3</td><td class="n">28.5</td><td class="n">0</td></tr>
+          <tr><td>Laguna S 2.1</td><td><code>no_info</code></td><td class="n">5/10</td><td class="n">3/10</td><td class="n">25</td><td class="n">26.8</td><td class="n">0</td></tr>
+          <tr><td>Laguna S 2.1</td><td><code>ai</code></td><td class="n">5/10</td><td class="n">2/10</td><td class="n">24</td><td class="n">26.5</td><td class="n">0</td></tr>
+          <tr><td>Laguna S 2.1</td><td><code>same_model</code></td><td class="n">8/10</td><td class="n">3/10</td><td class="n">19.8</td><td class="n">28.2</td><td class="n">0</td></tr>
+          <tr><td>Laguna S 2.1</td><td><code>same_prompt</code></td><td class="n">6/10</td><td class="n">4/10</td><td class="n">22.7</td><td class="n">26.7</td><td class="n">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>No call failed and every reply ended in a valid answer.</p>
+  </section>
+
+  <section>
+    <h2>Caveats</h2>
+    <div class="callout">
+      <h3>The joint question is at the ceiling</h3>
+      <p>Every model here, weak or strong, answers it at 20. So in the default market capability can't explain any difference in held rates, and CAP-7 can't refute or support “capability is necessary”. The test needs markets where some model fails, which is what CAP-4's and CAP-6's markets were for. The weaker models haven't run them yet (up to 720 calls).</p>
+    </div>
+    <ul>
+      <li>Laguna and Luna show a different gap in capability: they can find the joint optimum but not the Nash quantity or the best reply in the framed prompt. The joint question doesn't measure that.</li>
+      <li>Free OpenRouter models can change providers or weights. Here each ran on one provider (Nvidia for Nemotron, AtlasCloud for dots, Poolside for Laguna) in all its calls; a later run should check again before pooling.</li>
+      <li>Haiku is also the smoke-test model. Its rows here are a real run, logged to this experiment's folder.</li>
+      <li>The standards' three ran their cells earlier, on the code later committed as <code>057fe5c</code> to <code>f63b001</code>; their prompts render the same on the code CAP-7 ran on.</li>
+      <li>10 replies per cell. The pooled counts of 50 per model and history are the steadier numbers.</li>
+    </ul>
+  </section>
+</div>
