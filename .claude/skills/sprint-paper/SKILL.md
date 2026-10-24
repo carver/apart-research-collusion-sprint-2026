@@ -12,6 +12,8 @@ Read [orchestration.md](orchestration.md) before launching the first workflow: i
 
 ## Stages
 
+A stage that adds an arm runs the `arm-check` skill on it before a builder writes its code.
+
 1. **Rules.** Fetch the live sprint page's Guidelines tab and the official template. The rules change during a sprint: on 2026-10-21 the AI-writing rule, the abstract length and question 1.3 all changed. Write a requirements note covering the page cap, abstract length, required appendices, AI-use rule, prior-work disclosure and template layout. Done when the note quotes the live page and gives its fetch date.
 2. **Scope** (`templates/1-scope.js`). Gather: a rubric brief, a map of the team's prior work, literature sweeps (one agent per area), an infra scout. Then: ideators with distinct lenses, a merge, an adversarial novelty check and a feasibility check per candidate, a rubric judge panel, a selection. Done when one direction is chosen, with its hypotheses, GO rules for the pilot and a fallback, written in `notes/ideas/selection.md`.
 3. **Build and pilot** (`templates/2-build-pilot.js`). Parallel builders on disjoint files, then harness, measurement and design reviewers, a fixer, the pilot, and an adversarial audit that recomputes every GO number from raw logs. Done when the audit agrees with the GO decision, or the fallback is taken and logged.
