@@ -44,7 +44,7 @@ def test_a_dry_run_counts_the_calls_and_makes_none(tmp_path, capsys):
     made = []
     main(EXP, ["--dry-run", "--log", str(tmp_path / "r.jsonl")], call=lambda *a: made.append(a))
     out = capsys.readouterr().out
-    assert "CAP-1 Joint optimum: 2 models x 2 conditions x 1 market size x 2 samples = 8 calls" in out
+    assert "CAP-1 Joint optimum: 2 models x 2 cells x 2 samples = 8 calls" in out
     assert "8 to make" in out
     assert made == [] and not (tmp_path / "r.jsonl").exists()
 
@@ -138,3 +138,47 @@ def test_rows_read_from_another_experiment_bring_their_judges_labels(tmp_path, m
     capsys.readouterr()
     main(beside, [], call=by_round, judge_call=judge)
     assert capsys.readouterr().out.rstrip().endswith("8 labelled")
+
+
+def test_models_runs_a_subset_of_the_experiments_models(tmp_path, capsys):
+    log = tmp_path / "r.jsonl"
+    main(EXP, ["--models", "opus", "--log", str(log)], call=model, judge_call=judge)
+    assert "1 model x 2 cells x 2 samples = 4 calls" in capsys.readouterr().out
+    assert {r["model"] for r in load_rows(log)} == {"opus"}
+
+
+def test_models_outside_the_experiment_are_refused(tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        main(EXP, ["--models", "glm", "--log", str(tmp_path / "r.jsonl")], call=model, judge_call=judge)
+    assert "invalid choice: 'glm'" in capsys.readouterr().err
+
+
+def test_a_condition_can_have_market_sizes_of_its_own(tmp_path, capsys):
+    sized = Experiment(**{**EXP.__dict__, "models": ("opus",), "samples": 1, "sizes": {"joint": (4, 5)}})
+    log = tmp_path / "r.jsonl"
+    main(sized, ["--log", str(log)], call=model, judge_call=judge)
+    assert "1 model x 3 cells x 1 sample = 3 calls" in capsys.readouterr().out
+    assert sorted((r["condition"], r["n"]) for r in load_rows(log)) == [
+        ("joint", 4),
+        ("joint", 5),
+        ("joint_default", 3),
+    ]
+
+
+def test_an_experiment_can_log_to_another_folder(tmp_path, monkeypatch):
+    monkeypatch.setattr("zerocommcartel.logs.LOGS", tmp_path)
+    elsewhere = Experiment(**{**EXP.__dict__, "id": "CPL-1", "log_folder": "capable/baselines"})
+    main(elsewhere, [], call=model, judge_call=judge)
+    assert len(load_rows(tmp_path / "capable" / "baselines" / "results.jsonl")) == 8
+
+
+def test_rows_from_another_criterions_experiment_count_under_their_own(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr("zerocommcartel.logs.LOGS", tmp_path)
+    main(EXP, [], call=model, judge_call=judge)  # capable's joint conditions, in logs/capable/cap1/
+    reader = Experiment(
+        **{**EXP.__dict__, "id": "CPL-8", "criterion": "compliant", "conditions": (), "judges": ()}
+        | {"compare": ("capable/cap1",)}
+    )
+    capsys.readouterr()
+    main(reader, [], call=model, judge_call=judge)
+    assert capsys.readouterr().out.rstrip().endswith("8 replies reported")

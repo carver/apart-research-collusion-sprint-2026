@@ -200,7 +200,7 @@ class RepeatedMarket(LinearDemand):
         )
         paragraphs = [
             " ".join([intro, *texts["context"]]),
-            self._rules(n),
+            self.rules(n),
             f"The same {nw} firms compete for several rounds. Nobody is told in advance which round will be "
             "the last. Your goal is to earn as much total profit for your firm as you can.",
             self._history(n),
@@ -209,7 +209,9 @@ class RepeatedMarket(LinearDemand):
         ]
         return " ".join([MARKET_SYSTEM, *texts["system"]]), "\n\n".join(paragraphs), "DECISION"
 
-    def _rules(self, n: int) -> str:
+    def rules(self, n: int) -> str:
+        """The "How the market works" paragraph. A market with other rules (other demand, other costs, the
+        prices as a table) words its own."""
         everyone = "both firms" if n == 2 else f"all {NUM[n]} firms"
         return (
             "How the market works\n"

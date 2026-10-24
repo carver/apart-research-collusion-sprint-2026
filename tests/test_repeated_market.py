@@ -130,3 +130,12 @@ def test_slot_text_can_name_the_rivals_and_the_model_asked():
     two = render(Condition({"named": "on"}, game=RepeatedMarket()), 2, named)
     assert "Firm C. The other two firms, Firm B and Firm C, are run by Claude Opus 5.5.\n\n" in three.user
     assert "Firm B. The other firm, Firm B, is run by the model.\n\n" in two.user
+
+
+def test_another_market_can_word_its_own_rules():
+    class Rules(RepeatedMarket):
+        def rules(self, n):
+            return "How the market works\n- Whatever you like."
+
+    p = render(Condition(game=Rules()), 3, SLOTS)
+    assert "Firm C.\n\nHow the market works\n- Whatever you like.\n\nThe same three firms" in p.user
