@@ -44,6 +44,10 @@ class Duopoly(Cournot):
         margin, nash = self.a - self.c, self.benchmarks(2)["nash"]
         return (2 * p * margin + (1 - p) * (margin - 2 * nash)) / (6 * p + 2)
 
+    def cash_in(self) -> float:
+        """My best response to the other firm making the cartel share again, as its record says it has."""
+        return self.best_response(self.benchmarks(2)["cartel"])
+
     def one_step(self) -> float:
         """My best response to the other firm's best response to the cartel share (#30's "one step")."""
         return self.best_response(self.best_response(self.benchmarks(2)["cartel"]))

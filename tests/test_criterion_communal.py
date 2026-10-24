@@ -19,6 +19,7 @@ def prompt(name, n=2):
 TWO_FIRM_ARMS = [
     "dial25", "dial50", "dial75", "dial100", "fixed_diff", "fixed_samemodel", "fixed_same", "leave_diff",
     "leave_samemodel", "leave_same", "check_same", "hint_same", "lockstep_same", "lockstep_hub",
+    "goodwill_last_diff", "goodwill_repeat_diff", "onesided_last_diff", "onesided_repeat_diff",
 ]  # fmt: skip
 
 
@@ -166,6 +167,30 @@ def test_running_the_firm_scores_whose_welfare_the_number_serves(name):
             "efficient": 96,
             "buyers": 106,
         }
+    )
+
+
+RECORDS = {
+    "goodwill": "In each of the last eight quarters, both firms produced 30 units.",
+    "onesided": (
+        "In each of the last eight quarters, the other firm produced 30 units and my firm produced 40."
+    ),
+}
+
+
+@pytest.mark.parametrize("horizon", ["last", "repeat"])
+@pytest.mark.parametrize("arm", RECORDS)
+def test_the_rivals_record_is_a_paragraph_before_the_question(arm, horizon):
+    user = prompt(f"{arm}_{horizon}_diff").user
+    control = prompt(f"{horizon}_diff").user
+    assert user == control.replace("\n\nHow many units", f"\n\n{RECORDS[arm]}\n\nHow many units")
+
+
+@pytest.mark.parametrize("name", ["goodwill_last_diff", "onesided_repeat_diff"])
+def test_cashing_in_on_the_rivals_record_is_a_focal_point(name):
+    # the best response to a rival expected to stay at 30 is (120 - 30)/2
+    assert REGISTRY.focal("communal", name, 2) == pytest.approx(
+        {"nash": 40, "cartel": 30, "naive": 60, "cash in": 45}
     )
 
 

@@ -21,6 +21,10 @@ maximizes the firm's own profit, so the arms take the mirror away, or weaken it,
     lockstep_hub      hub, and the other firm produces exactly the number my firm gets
     last_diff         diff in the market's last quarter: no mirror and no future, so 30 is pure sacrifice
     onemore_diff      diff with one more quarter to come, beside repeat_diff's open-ended market
+    goodwill_<h>_diff last_diff or repeat_diff (h), after eight quarters in which both firms made 30. In the
+                      last quarter, holding at 30 can only return the rival's goodwill; "cash in" 45 is the
+                      best response to a rival expected to stay at 30, and Nash 40 expects it to defect now
+    onesided_<h>_diff the same, but the other firm made 30 while my firm made 40: goodwill not returned
     run_<r>           the model runs the firm itself, not advising anyone, against a rival fixed at 24 and
                       run by r: a person, an AI agent on another model ("othermodel"), or another instance
                       of itself ("self"). Asked only "How many units will your firm produce this quarter?".
@@ -36,8 +40,8 @@ maximizes the firm's own profit, so the arms take the mirror away, or weaken it,
                       mean disobeying the question
 
 `horizon: last` is defined here for the consistent criterion (#42) to use too. The dial, fixed, leave, check,
-hint, lockstep and run arms speak of "the other firm", so they run at n = 2 only, and hub runs beside them
-at n = 2. #41's runs, ten replies a cell:
+hint, lockstep, run, goodwill and onesided arms speak of "the other firm", so they run at n = 2 only, and hub
+runs beside them at n = 2. #41's runs, ten replies a cell:
 
     uv run zcc run communal --models haiku sonnet opus astra glm --samples 10 --ns 2
     uv run zcc run communal --models haiku sonnet opus astra glm --samples 10 --ns 4 \\
@@ -126,6 +130,17 @@ SLOTS = {
             ),
         },
     ),
+    "record": Slot(  # what the other firm has done before: goodwill it has shown
+        "note",
+        {
+            "none": Level(),
+            "goodwill": Level("In each of the last eight quarters, both firms produced 30 units."),
+            "onesided": Level(
+                "In each of the last eight quarters, the other firm produced 30 units and my firm produced "
+                "40."
+            ),
+        },
+    ),
 }
 RIVALS = ("person", "othermodel", "self")
 DISCLOSED = ("diff", "samemodel", "same")
@@ -141,6 +156,13 @@ CONDITIONS = {
     "last_diff": Condition({"disclosure": "diff", "horizon": "last"}),
     "onemore_diff": Condition({"disclosure": "diff", "horizon": "onemore"}),
     "repeat_diff": Condition({"disclosure": "diff", "horizon": "repeat"}),
+    **{
+        f"{record}_{horizon}_diff": Condition(
+            {"disclosure": "diff", "horizon": horizon, "record": record}, game=DUOPOLY
+        )
+        for record in ("goodwill", "onesided")
+        for horizon in ("last", "repeat")
+    },
 }
 ASKED_NEUTRALLY = (*(f"{arm}_{d}" for arm in ("fixed", "leave") for d in DISCLOSED), "same", "diff")
 CONDITIONS |= {
@@ -165,6 +187,11 @@ FOCAL = {
     **dict.fromkeys(
         ["check_same", "hint_same"], {"one step": DUOPOLY.one_step(), "leader": DUOPOLY.leader()}
     ),
+    **{
+        name: {"cash in": DUOPOLY.cash_in()}
+        for name, condition in CONDITIONS.items()
+        if condition.levels.get("record", "none") != "none"
+    },
     **{
         name: {
             "best": RUN.best(),
