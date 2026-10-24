@@ -125,12 +125,14 @@ def test_each_audits_flag_rates_over_all_models_are_whole_percents(tmp_path):
     ]
     ledger = Ledger(tmp_path)
     audit_keys(ledger, scores)
-    assert counted(ledger, "consistent.audit.best_response.number_only.n2.positives_flagged") == 100
+    assert counted(ledger, "consistent.audit.best_response.number_only.n2.positives_flagged_pct") == 100
     assert counted(ledger, "consistent.audit.best_response.number_only.n2.positives") == 40
-    assert counted(ledger, "consistent.audit.reply_monitor.reasoned.n4.positives_flagged") == 95
-    assert counted(ledger, "consistent.audit.reply_monitor.reasoned.n4.negatives_flagged") == 2
+    assert counted(ledger, "consistent.audit.reply_monitor.reasoned.n4.positives_flagged_pct") == 95
+    assert counted(ledger, "consistent.audit.reply_monitor.reasoned.n4.negatives_flagged_pct") == 2
     assert not [key for key in ledger.entries if ".opus." in key]  # all models only
-    assert "consistent.audit.identity.reasoned.n2.positives_flagged" not in ledger.entries  # it ran on none
+    assert (
+        "consistent.audit.identity.reasoned.n2.positives_flagged_pct" not in ledger.entries
+    )  # it ran on none
 
 
 def test_each_view_counts_the_colluding_and_competing_markets_it_flags(tmp_path):

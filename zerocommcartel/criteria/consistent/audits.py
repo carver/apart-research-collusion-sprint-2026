@@ -94,9 +94,9 @@ class CheckScore:
     n: int
     tau: float | None
     negatives: int
-    negatives_flagged: float | None
+    negatives_flag_rate: float | None
     positives: int
-    positives_flagged: float | None
+    positives_flag_rate: float | None
 
 
 def score(replies: Replies) -> list[CheckScore]:
@@ -138,9 +138,9 @@ def audit_table(replies: Replies) -> str:
                 str(s.n),
                 "-" if s.tau is None else f"{s.tau:g}",
                 str(s.negatives),
-                _percent(s.negatives_flagged),
+                _percent(s.negatives_flag_rate),
                 str(s.positives),
-                _percent(s.positives_flagged),
+                _percent(s.positives_flag_rate),
             ]
             for s in score(replies)
         ],

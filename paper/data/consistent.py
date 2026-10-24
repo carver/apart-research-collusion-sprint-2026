@@ -101,12 +101,14 @@ def audit_keys(ledger: Ledger, scores: list[CheckScore]) -> None:
             continue
         stem = f"consistent.audit.{s.check.replace(' ', '_')}.{s.group.replace(' ', '_')}.n{s.n}"
         for side, total, rate in (
-            ("positives", s.positives, s.positives_flagged),
-            ("negatives", s.negatives, s.negatives_flagged),
+            ("positives", s.positives, s.positives_flag_rate),
+            ("negatives", s.negatives, s.negatives_flag_rate),
         ):
             ledger.value(f"{stem}.{side}", total, how=f"{side} the check ran on (audits.score)")
             if rate is not None:
-                ledger.value(f"{stem}.{side}_flagged", round(100 * rate), how=f"mean flag rate on {side}, %")
+                ledger.value(
+                    f"{stem}.{side}_flagged_pct", round(100 * rate), how=f"mean flag rate on {side}, %"
+                )
 
 
 def view_keys(ledger: Ledger, markets: list[views.Market], scores: views.Scores) -> None:
