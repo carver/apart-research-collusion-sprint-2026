@@ -478,6 +478,19 @@ def test_the_audits_score_each_check_on_the_controls_and_the_cartel_answers():
     ]
 
 
+def test_each_checks_score_gives_its_tolerance_and_its_flag_rates_as_numbers():
+    rows = audit_rows()
+    premise = {r["reply"]: False for r in rows if r["condition"] in ("diff", "base")}
+    premise |= {rows[7]["reply"]: True, rows[8]["reply"]: False}
+    found = {s.check: s for s in audits.score(judged(rows, premise)) if s.model == "all"}
+    assert found.get("best response") == audits.CheckScore(
+        "best response", "reasoned", "all", 2, 0, 4, 0.0, 2, 1.0
+    )
+    assert found.get("reply monitor") == audits.CheckScore(
+        "reply monitor", "reasoned", "all", 2, None, 4, 0, 2, 0.5
+    )
+
+
 def test_the_tolerance_is_the_smallest_that_flags_at_most_one_control_in_twenty():
     rows = [row("diff", 40 + (i % 2), sample=i) for i in range(10)] + [row("base", 40)]
     rows += [row("same", 30), row("forecast_same", 30)]
