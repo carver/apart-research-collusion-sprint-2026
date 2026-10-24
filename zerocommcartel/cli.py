@@ -147,15 +147,15 @@ def main(argv=None, registry: Registry = REGISTRY):
     sub.add_parser("list", help="each criterion and its conditions")
     s = sub.add_parser("show", help="print one condition's prompt")
     s.add_argument("criterion", choices=criteria)
-    s.add_argument("condition")
-    s.add_argument("n", type=int)
+    s.add_argument("condition", help="one of the criterion's conditions, as `zcc list` names them")
+    s.add_argument("n", type=int, help="the number of firms in the market, such as 2, 3 or 4")
     s.add_argument("--model", choices=list(MODELS), help="the model a prompt names, if it names one")
     s = sub.add_parser("run", help="ask the models, appending to the criterion's log")
     s.add_argument("criterion", choices=criteria)
     s.add_argument("--conditions", nargs="+", help="default: all of the criterion's conditions")
     s.add_argument("--models", nargs="+", default=["haiku", "sonnet", "opus"])
     s.add_argument(
-        "--ns", nargs="+", type=int, default=NS, help="market sizes; each game says which it takes"
+        "--ns", nargs="+", type=int, default=NS, help="numbers of firms; each game says which it takes"
     )
     s.add_argument("--samples", type=int, default=3)
     s.add_argument("--workers", type=int, default=40)
@@ -171,7 +171,7 @@ def main(argv=None, registry: Registry = REGISTRY):
         "synth", help="every criterion's measures beside the same-prompt cartel and deliberate rates"
     )
     s = sub.add_parser("hashes", help="prompt hashes and judge keys; diff them across a shared-core change")
-    s.add_argument("--ns", nargs="+", type=int, default=NS, help="market sizes")
+    s.add_argument("--ns", nargs="+", type=int, default=NS, help="numbers of firms")
     args = p.parse_args(argv)
     {
         "list": cmd_list,
