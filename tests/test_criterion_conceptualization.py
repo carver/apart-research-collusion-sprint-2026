@@ -194,7 +194,9 @@ def test_each_reply_is_asked_once_with_its_arms_system_prompt(tmp_path):
         for row in ROWS
     )
     assert readback.load(cache) == {
-        readback.key(row["model"], prompts[row["model"]], row["reply"]): readback.Readback(30, 40)
+        readback.key(row["model"], prompts[row["model"]], row["sample"], row["reply"]): readback.Readback(
+            30, 40
+        )
         for row in ROWS
     }
     assert readback.ask(ROWS, REGISTRY, "conceptualization", cache, call) == (0, [], 2)
@@ -221,15 +223,16 @@ def test_a_failed_call_is_reported_and_asked_again(tmp_path):
     )
 
 
-def test_the_key_changes_with_the_model_the_prompt_and_the_reply():
+def test_the_key_changes_with_the_model_the_prompt_the_sample_and_the_reply():
     prompt, other = arm("mind_none_open_none"), arm("mind_same_open_none")
     keys = {
-        readback.key("haiku", prompt, "QUANTITY: 30"),
-        readback.key("sonnet", prompt, "QUANTITY: 30"),
-        readback.key("haiku", other, "QUANTITY: 30"),
-        readback.key("haiku", prompt, "QUANTITY: 40"),
+        readback.key("haiku", prompt, 0, "QUANTITY: 30"),
+        readback.key("sonnet", prompt, 0, "QUANTITY: 30"),
+        readback.key("haiku", other, 0, "QUANTITY: 30"),
+        readback.key("haiku", prompt, 1, "QUANTITY: 30"),
+        readback.key("haiku", prompt, 0, "QUANTITY: 40"),
     }
-    assert len(keys) == 4
+    assert len(keys) == 5
 
 
 # The report: a ladder per background
@@ -290,9 +293,49 @@ def test_the_match_grid_counts_replies_whose_readback_expects_their_own_answer()
     ]
     prompt = arm("mind_same_open_none")
     readbacks = {
-        readback.key("haiku", prompt, "mirror: 30"): readback.Readback(30, 70),
-        readback.key("haiku", prompt, "nash: 40"): readback.Readback(30, 60),
+        readback.key("haiku", prompt, 0, "mirror: 30"): readback.Readback(30, 70),
+        readback.key("haiku", prompt, 1, "nash: 40"): readback.Readback(30, 60),
     }
     grid = report.matches(rows, "haiku", readbacks, REGISTRY)
     assert grid_line(grid, "repeats")[0] == "1/2"
     assert grid_line(grid, "repeats")[1] == "-"
+
+
+def test_two_samples_with_the_same_reply_are_each_asked(tmp_path):
+    rows = [{**ROWS[0], "sample": s} for s in (0, 1)]
+    calls = []
+
+    def call(model, system, user):
+        calls.append(model)
+        return "OTHER: 30\nPRICE: 40", {}
+
+    assert readback.ask(rows, REGISTRY, "conceptualization", tmp_path / "readback.jsonl", call) == (2, [], 0)
+    assert len(calls) == 2
+
+
+def test_a_readback_without_an_other_line_is_a_failure(tmp_path):
+    cache = tmp_path / "readback.jsonl"
+    asked, failed, cached = readback.ask(
+        ROWS[:1], REGISTRY, "conceptualization", cache, lambda *a: ("I can't say.", {})
+    )
+    assert (asked, cached, len(failed)) == (0, 0, 1)
+    assert readback.load(cache) == {}
+
+
+def rung_sentence(rung):
+    clause = RUNGS[rung]
+    return ASKS if clause is None else " ".join(part for part in (ASKS, clause, KNOW) if part)
+
+
+def horizon_sentence(horizon, record):
+    return {"unsaid": None, "single": ONLY if record == "none" else FINAL, "open": OPEN}[horizon]
+
+
+@pytest.mark.parametrize("rung", RUNGS)
+@pytest.mark.parametrize("horizon", HORIZONS)
+@pytest.mark.parametrize("record", RECORDS)
+def test_every_condition_renders_its_rung_its_horizon_and_its_record(rung, horizon, record):
+    paragraphs = user(f"mind_{rung}_{horizon}_{record}").split("\n\n")
+    tail = " ".join(s for s in (rung_sentence(rung), horizon_sentence(horizon, record)) if s)
+    assert paragraphs[2].endswith("every firm knows all of the above. " + tail)
+    assert paragraphs[-2] == RECORD_TEXT.get(record, paragraphs[2])

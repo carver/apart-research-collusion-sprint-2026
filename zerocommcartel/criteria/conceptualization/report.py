@@ -79,7 +79,8 @@ def matches(rows: list[dict], model: str, readbacks: dict[str, readback.Readback
         expected = [
             (row["value"], got.other)
             for row in found
-            if (got := readbacks.get(readback.key(model, prompt, row["reply"]))) and got.other is not None
+            if (got := readbacks.get(readback.key(model, prompt, row["sample"], row["reply"])))
+            and got.other is not None
         ]
         if not expected:
             return "-"

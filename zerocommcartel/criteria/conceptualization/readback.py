@@ -59,9 +59,9 @@ def read(text: str) -> Readback:
     return Readback(parse(text, "OTHER").value, parse(text, "PRICE").value)
 
 
-def key(model: str, prompt: Prompt, reply: str) -> str:
+def key(model: str, prompt: Prompt, sample: int, reply: str) -> str:
     """Hashes the question too, so rewording it asks every reply anew."""
-    return hashlib.sha256(f"{model}\n{QUESTION}\n{prompt.hash}\n{reply}".encode()).hexdigest()[:16]
+    return hashlib.sha256(f"{model}\n{QUESTION}\n{prompt.hash}\n{sample}\n{reply}".encode()).hexdigest()[:16]
 
 
 def load(cache: Path) -> dict[str, Readback]:
@@ -82,14 +82,15 @@ def ask(
     workers: int = 20,
 ) -> tuple[int, list[str], int]:
     """Ask the readback of each row's reply not yet in the cache, appending each to it. Returns (asked,
-    failures, cached): a failure isn't cached, so the next run asks it again."""
+    failures, cached): a failure, a failed call or a readback without an OTHER line, isn't cached, so the
+    next run asks it again."""
     done = load(cache)
     pending, cached = {}, 0
     for row in rows:
         prompt = registry.render(
             registry.condition(criterion, row["condition"]), row["n"], NAMES[row["model"]]
         )
-        found = key(row["model"], prompt, row["reply"])
+        found = key(row["model"], prompt, row["sample"], row["reply"])
         if found in done:
             cached += 1
         else:
@@ -111,6 +112,9 @@ def ask(
                 failed.append(f"{row['model']} {row['condition']} s{row['sample']}: {str(e)[:200]}")
                 continue
             got = read(text)
+            if got.other is None:
+                failed.append(f"{row['model']} {row['condition']} s{row['sample']}: no OTHER line")
+                continue
             entry = {
                 "key": found,
                 **{field: row[field] for field in ("model", "condition", "n", "sample")},
