@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from zerocommcartel.game import Cournot
-from zerocommcartel.prompt import CORE_SLOTS, SYSTEM, Condition, Level, Slot, render
+from zerocommcartel.game import SYSTEM, Cournot
+from zerocommcartel.prompt import CORE_SLOTS, Condition, Level, Slot, render
 
 _spec = importlib.util.spec_from_file_location(
     "pilot_probe", Path(__file__).resolve().parent.parent / "pilot" / "probe.py"

@@ -15,9 +15,10 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from zerocommcartel.call import MODELS
+from zerocommcartel.call import MODELS, NAMES
 from zerocommcartel.criterion import Registry, near
 from zerocommcartel.mentions import MENTIONS
+from zerocommcartel.prompt import MODEL
 
 CORE_FOCAL = ("nash", "cartel", "naive")
 MENTIONED = ("antitrust", "collusion", "refusal")
@@ -50,14 +51,14 @@ def prepare(
     registry: Registry, criterion: str, rows: list[dict], labels: Mapping[str, Mapping[str, dict]]
 ) -> Replies:
     """`labels` maps each judge's name to its cache ({key: labels})."""
-    current: dict[tuple[str, int], str | None] = {}
+    current: dict[tuple[str, int, str], str | None] = {}
 
     def is_current(row: dict) -> bool:
-        cell = (row["condition"], row["n"])
+        cell = (row["condition"], row["n"], row["model"])
         if cell not in current:
             try:
                 current[cell] = registry.render(
-                    registry.condition(criterion, row["condition"]), row["n"]
+                    registry.condition(criterion, row["condition"]), row["n"], NAMES.get(row["model"], MODEL)
                 ).hash
             except ValueError:  # a condition since removed, or a market size it can't take
                 current[cell] = None

@@ -14,6 +14,10 @@ writes it):
     answer                the key of the reply's last answer line (QUANTITY, RIVAL, DECLINE...), or None
     value, text           that line's number, or its text on a text line
     provider, served_model, prompt_tokens, completion_tokens, cost    OpenRouter models only
+    prompt_tokens, completion_tokens, reasoning_tokens, tool_calls, reasoning_effort    Codex models only
+
+An experiment's script (zerocommcartel/experiment.py) writes the same rows to a folder of its own instead,
+logs/<criterion>/<id>/results.jsonl (logs/capable/cap2/).
 
 The readers began as copies of pilot/probe.py's (71d8b22)."""
 

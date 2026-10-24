@@ -1,12 +1,16 @@
 """Model callers: Claude through bin/claude-fresh (the Claude subscription), OpenAI's models through the Codex
-CLI (the ChatGPT subscription), the rest through OpenRouter over HTTP.
+CLI (the ChatGPT subscription), the rest through OpenRouter over HTTP. Where Codex isn't installed and logged
+in with ChatGPT, OpenAI's models go through OpenRouter instead, paid; `route` says where a call goes.
 
 Copied verbatim from pilot/probe.py at 71d8b22 (pre-sprint code); later commits show the changes."""
 
+import functools
 import json
 import os
 import random
+import shutil
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -18,9 +22,9 @@ ROOT = Path(__file__).resolve().parent.parent
 CLAUDE_FRESH = ROOT / "bin" / "claude-fresh"
 
 MODELS = {  # key: (backend, id)
-    "haiku": ("claude", "haiku"),
-    "sonnet": ("claude", "sonnet"),
-    "opus": ("claude", "opus"),
+    "haiku": ("claude", "claude-haiku-5-5"),
+    "sonnet": ("claude", "claude-sonnet-5-5"),
+    "opus": ("claude", "claude-opus-5-5"),
     "nemotron": ("openrouter", "nvidia/nemotron-3-ultra-550b-a55b:free"),
     "minimax": ("openrouter", "minimax/minimax-m3.1-flash:free"),
     "gemma": ("openrouter", "google/gemma-4-31b-it:free"),
@@ -30,6 +34,23 @@ MODELS = {  # key: (backend, id)
     "luna": ("codex", "gpt-6-luna"),
     "astra": ("codex", "gpt-6-astra"),
     "glm": ("openrouter", "z-ai/glm-5.3"),
+}
+
+
+# The name a firm is told when its prompt names the model it asks (EXPERIMENT_STANDARDS.md, "Models")
+NAMES = {
+    "haiku": "Claude Haiku 5.5",
+    "sonnet": "Claude Sonnet 5.5",
+    "opus": "Claude Opus 5.5",
+    "nemotron": "Nemotron 3 Ultra",
+    "minimax": "MiniMax M3.1 Flash",
+    "gemma": "Gemma 4 31B",
+    "inkling": "Inkling",
+    "dots": "dots 3 note",
+    "laguna": "Laguna S 2.1",
+    "luna": "GPT-6 Luna",
+    "astra": "GPT-6 Astra",
+    "glm": "GLM-5.3",
 }
 
 
@@ -84,8 +105,22 @@ RPM = 18
 
 
 PAID_OK = {
+    "openai/gpt-6-luna",  # paid panels Jason approved, 2026-10-20; now only where Codex isn't ready
+    "openai/gpt-6-astra",
     "z-ai/glm-5.3",  # approved 2026-10-23, for the communal criterion (#41)
 }
+
+
+def openrouter_body(model_id: str, system: str, prompt: str) -> dict:
+    """The request: temperature 1.0, and room for hidden reasoning before the answer line
+    (EXPERIMENT_STANDARDS.md, "Models")."""
+    return {
+        "model": model_id,
+        "temperature": 1.0,
+        "max_tokens": 32000,
+        "usage": {"include": True},
+        "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
+    }
 
 
 def call_openrouter(model_id: str, system: str, prompt: str) -> tuple[str, dict]:
@@ -94,14 +129,7 @@ def call_openrouter(model_id: str, system: str, prompt: str) -> tuple[str, dict]
     with _or_lock:
         limiter = _limiters.setdefault(model_id, RateLimiter(RPM))
         slots = _or_slots.setdefault(model_id, threading.Semaphore(8))
-    body = json.dumps(
-        {
-            "model": model_id,
-            "max_tokens": 8000,
-            "usage": {"include": True},
-            "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}],
-        }
-    ).encode()
+    body = json.dumps(openrouter_body(model_id, system, prompt)).encode()
     last = ""
     for attempt in range(7):
         limiter.wait()
@@ -261,9 +289,43 @@ def call_codex(model_id: str, system: str, prompt: str) -> tuple[str, dict]:
     raise CallFailed(f"codex {model_id}: {last}")
 
 
+# Where an OpenAI model goes when Codex isn't ready: its OpenRouter id, paid (PAID_OK)
+OPENROUTER_IDS = {"gpt-6-astra": "openai/gpt-6-astra", "gpt-6-luna": "openai/gpt-6-luna"}
+
+
+@functools.cache
+def codex_ready() -> bool:
+    """Whether the Codex CLI is installed and logged in with ChatGPT, so its calls bill the subscription.
+    Asked once per process; when it isn't, says so on stderr, since OpenAI's models then cost money on
+    OpenRouter."""
+    ready = False
+    if shutil.which("codex"):
+        try:
+            r = subprocess.run(["codex", "login", "status"], capture_output=True, text=True, timeout=60)
+            ready = r.returncode == 0 and "ChatGPT" in r.stdout + r.stderr
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    if not ready:
+        print(
+            "zcc: Codex isn't installed and logged in with ChatGPT, so OpenAI's models go through OpenRouter "
+            "(paid)",
+            file=sys.stderr,
+        )
+    return ready
+
+
+def route(model: str) -> tuple[str, str]:
+    """The backend and id a call to `model` (a key of MODELS) goes to: Codex on the ChatGPT subscription when
+    it's ready, else the model's OpenRouter id."""
+    backend, model_id = MODELS[model]
+    if backend == "codex" and not codex_ready():
+        return "openrouter", OPENROUTER_IDS[model_id]
+    return backend, model_id
+
+
 def complete(model: str, system: str, user: str) -> tuple[str, dict]:
     """One reply from `model` (a key of MODELS), with the OpenRouter usage and provider when it has them."""
-    backend, model_id = MODELS[model]
+    backend, model_id = route(model)
     if backend == "claude":
         return call_claude(model_id, system, user), {}
     if backend == "codex":

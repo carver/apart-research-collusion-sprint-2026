@@ -14,7 +14,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 
 from zerocommcartel.judge import CORE_JUDGES, Judge
-from zerocommcartel.prompt import ANCHORS, CORE_SLOTS, Condition, Level, Prompt, Slot, render
+from zerocommcartel.prompt import ANCHORS, CORE_SLOTS, MODEL, Condition, Level, Prompt, Slot, render
 
 BASELINE = {
     "base": Condition(),
@@ -97,8 +97,8 @@ class Registry:
             )
         return conditions[name]
 
-    def render(self, condition: Condition, n: int) -> Prompt:
-        return render(condition, n, self.slots)
+    def render(self, condition: Condition, n: int, model_name: str = MODEL) -> Prompt:
+        return render(condition, n, self.slots, model_name)
 
     def focal(self, criterion: str, name: str, n: int) -> dict[str, float]:
         """The answers worth counting for a criterion's condition: the game's benchmarks, then the

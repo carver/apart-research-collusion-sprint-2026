@@ -8,7 +8,7 @@ import pytest
 from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.criterion import Criterion, build
 from zerocommcartel.logs import load_rows
-from zerocommcartel.prompt import Condition
+from zerocommcartel.prompt import Condition, Level, Slot
 from zerocommcartel.run import done_keys, plan, run
 
 
@@ -36,7 +36,7 @@ def test_a_row_per_call_with_its_cell_and_its_answer(tmp_path):
     (row,) = load_rows(out)
     assert row | {"t": 0, "seconds": 0} == row | {
         "model": "haiku",
-        "model_id": "haiku",
+        "model_id": "claude-haiku-5-5",
         "criterion": "consistent",
         "condition": "same",
         "levels": {"disclosure": "same"},
@@ -125,3 +125,20 @@ def test_a_question_the_market_size_cant_take_is_refused_before_any_call():
     registry = build([Criterion("consistent", "?", conditions={"fc": Condition(ask="forecast")})])
     with pytest.raises(ValueError, match="n = 1"):
         plan(registry, "consistent", ["base", "fc"], ["haiku"], [2, 1], 1)
+
+
+def test_a_prompt_that_names_the_model_is_rendered_for_each_model(tmp_path):
+    named = Slot("context", {"none": Level(), "on": Level("Rivals ask {model}.")})
+    named_condition = {"m": Condition({"named": "on"})}
+    reg = build([Criterion("consistent", "?", slots={"named": named}, conditions=named_condition)])
+    call = answer()
+    run(plan(reg, "consistent", ["m"], ["haiku", "opus"], [2], 1), tmp_path / "r.jsonl", call)
+    asked = {model: user for model, _, user in call.calls}
+    assert "Rivals ask Claude Haiku 5.5." in asked["haiku"] and "Rivals ask Claude Opus 5.5." in asked["opus"]
+
+
+def test_a_row_records_the_id_its_call_was_routed_to(tmp_path, monkeypatch):
+    monkeypatch.setattr("zerocommcartel.call.codex_ready", lambda: False)
+    out = tmp_path / "r.jsonl"
+    run(plan(REGISTRY, "consistent", ["same"], ["astra"], [2], 1), out, answer())
+    assert [r["model_id"] for r in load_rows(out)] == ["openai/gpt-6-astra"]

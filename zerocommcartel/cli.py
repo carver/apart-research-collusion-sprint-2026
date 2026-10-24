@@ -19,9 +19,11 @@ import sys
 from pathlib import Path
 
 from zerocommcartel import logs
+from zerocommcartel.call import MODELS, NAMES
 from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.criterion import Registry
 from zerocommcartel.judge import label, load_labels
+from zerocommcartel.prompt import MODEL
 from zerocommcartel.run import done_keys, plan, run
 from zerocommcartel.table import Replies, prepare, synth, table
 
@@ -48,7 +50,8 @@ def chosen_log(criterion: str, given: str | None) -> Path:
 
 def cmd_show(registry: Registry, args):
     try:
-        p = registry.render(registry.condition(args.criterion, args.condition), args.n)
+        name = NAMES[args.model] if args.model else MODEL
+        p = registry.render(registry.condition(args.criterion, args.condition), args.n, name)
     except ValueError as e:
         sys.exit(str(e))
     print(f"[system] {p.system}\n\n{p.user}")
@@ -122,6 +125,7 @@ def main(argv=None, registry: Registry = REGISTRY):
     s.add_argument("criterion", choices=criteria)
     s.add_argument("condition")
     s.add_argument("n", type=int)
+    s.add_argument("--model", choices=list(MODELS), help="the model a prompt names, if it names one")
     s = sub.add_parser("run", help="ask the models, appending to the criterion's log")
     s.add_argument("criterion", choices=criteria)
     s.add_argument("--conditions", nargs="+", help="default: all of the criterion's conditions")

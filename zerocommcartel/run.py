@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from zerocommcartel.answer import parse
-from zerocommcartel.call import MODELS, complete
+from zerocommcartel.call import MODELS, NAMES, complete, route
 from zerocommcartel.criterion import Registry
 from zerocommcartel.logs import end_last_line
 from zerocommcartel.prompt import Condition, Prompt
@@ -55,12 +55,16 @@ def plan(
     for model in models:
         if model not in MODELS:
             raise ValueError(f"unknown model {model!r}; models: {', '.join(MODELS)}")
-    prompts = {(name, n): registry.render(conditions[name], n) for name in names for n in ns}
+    prompts = {
+        (name, n, model): registry.render(conditions[name], n, NAMES[model])
+        for model in models
+        for name in names
+        for n in ns
+    }
     tasks = [
         Task(criterion, name, conditions[name], n, model, sample, prompt)
         for sample in range(samples)
-        for model in models
-        for (name, n), prompt in prompts.items()
+        for (name, n, model), prompt in prompts.items()
     ]
     return [t for t in tasks if t.key not in done]
 
@@ -71,7 +75,7 @@ def ask_once(task: Task, call: Callable) -> dict:
     p, condition = task.prompt, task.condition
     row = {
         "model": task.model,
-        "model_id": MODELS[task.model][1],
+        "model_id": route(task.model)[1],
         "criterion": task.criterion,
         "condition": task.name,
         "levels": condition.levels,

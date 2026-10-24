@@ -5,7 +5,7 @@ import pytest
 from zerocommcartel.criterion import Criterion, Measure, build, share_at
 from zerocommcartel.game import Cournot
 from zerocommcartel.judge import COPY
-from zerocommcartel.prompt import Condition
+from zerocommcartel.prompt import Condition, Level, Slot
 from zerocommcartel.table import prepare, synth, table
 
 REG = build(
@@ -213,3 +213,19 @@ def test_synth_joins_each_criterion_measure_with_collusion_on_same_pooled_across
 def test_an_answer_within_half_a_unit_is_at_the_focal_point(value, at):
     rows = [row("communal", "same", value)]
     assert cell(show("communal", rows), condition="same")["cartel"] == ("1" if at else "0")
+
+
+def test_replies_to_a_prompt_that_names_the_model_stay_current():
+    named = Slot("context", {"none": Level(), "on": Level("Rivals ask {model}.")})
+    named_condition = {"m": Condition({"named": "on"})}
+    reg = build([Criterion("capable", "?", slots={"named": named}, conditions=named_condition)])
+    condition = reg.conditions("capable")["m"]
+    names = (("haiku", "Claude Haiku 5.5"), ("opus", "Claude Opus 5.5"))
+    hashes = {m: reg.render(condition, 2, name).hash for m, name in names}
+    rows = [
+        {"model": m, "criterion": "capable", "condition": "m", "n": 2, "sample": 0, "answer": "QUANTITY",
+         "prompt_hash": h, "reply": "QUANTITY: 30", "value": 30.0, "error": None}
+        for m, h in hashes.items()
+    ]  # fmt: skip
+    replies = prepare(reg, "capable", rows, {})
+    assert (hashes["haiku"] != hashes["opus"], len(replies.rows), replies.stale) == (True, 2, 0)
