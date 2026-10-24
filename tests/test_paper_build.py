@@ -120,10 +120,10 @@ def server():
         def log_message(self, *args):
             pass
 
-    httpd = http.server.HTTPServer(("127.0.0.1", 0), Handler)
-    threading.Thread(target=httpd.serve_forever, daemon=True).start()
-    yield f"http://127.0.0.1:{httpd.server_port}"
-    httpd.shutdown()
+    with http.server.HTTPServer(("127.0.0.1", 0), Handler) as httpd:
+        threading.Thread(target=httpd.serve_forever, daemon=True).start()
+        yield f"http://127.0.0.1:{httpd.server_port}"
+        httpd.shutdown()
 
 
 @pytest.fixture(scope="module")
