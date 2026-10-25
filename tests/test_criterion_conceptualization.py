@@ -340,11 +340,29 @@ def test_the_sixties_line_splits_leaders_from_firms_that_ignore_the_rival():
     readbacks = {
         readback.key("haiku", prompt, 0, "sixty 0"): readback.Readback(30, 40),
         readback.key("haiku", prompt, 1, "sixty 1"): readback.Readback(30, 40),
-        readback.key("haiku", prompt, 2, "sixty 2"): readback.Readback(0, 70),
+        readback.key("haiku", prompt, 2, "sixty 2"): readback.Readback(60, 10),
     }
     assert report.sixties(rows, "haiku", readbacks, REGISTRY) == (
-        "answers at 60: 2 leading (other firm at 30, $40), 1 ignoring the other firm ($70), 0 other, 1 unread"
+        "answers at 60: 2 leading (other firm at 30, $40), 0 ignoring the other firm (0, $70), "
+        "1 putting the other firm at 60 too ($10), 0 other, 1 unread"
     )
+
+
+@pytest.mark.parametrize(
+    "got, kind",
+    [
+        (readback.Readback(30, 40), "leading"),  # a leader: the other firm follows at 30
+        (readback.Readback(0, 70), "ignoring"),  # the price with no other firm
+        (readback.Readback(60, 70), "other"),  # a price that doesn't fit the other firm's output
+        (readback.Readback(60, 10), "both"),  # the other firm at 60 too
+        (readback.Readback(40, 50), "other"),  # Nash's other firm and price
+        (readback.Readback(60, None), "other"),  # at 60 too, with no price to confirm it
+        (readback.Readback(None, 40), "unread"),  # no OTHER line
+        (None, "unread"),  # no readback
+    ],
+)
+def test_a_readback_says_what_an_answer_at_60_meant(got, kind):
+    assert readback.sixty_kind(got) == kind
 
 
 def test_the_slope_grid_reads_the_two_forecasts_of_each_cell():

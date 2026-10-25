@@ -36,8 +36,8 @@ from zerocommcartel import cli, logs
 from zerocommcartel.answer import parse
 from zerocommcartel.call import MODELS, NAMES, complete
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.conceptualization import CRITERION, EXTRA_ARMS, OWN
-from zerocommcartel.criterion import Registry
+from zerocommcartel.criteria.conceptualization import CRITERION, DUOPOLY, EXTRA_ARMS, OWN
+from zerocommcartel.criterion import Registry, near
 from zerocommcartel.prompt import MODEL, Prompt
 
 QUESTION = (
@@ -88,6 +88,24 @@ def lookup(readbacks: dict[str, Readback], registry: Registry, criterion: str, r
     """A row's readback in `readbacks` (`load`'s), if it has one."""
     prompt = prompt_of(registry, criterion, row)
     return readbacks.get(key(row["model"], prompt, row["sample"], row["reply"]))
+
+
+SIXTY_KINDS = ("leading", "ignoring", "both", "other", "unread")
+
+
+def sixty_kind(got: Readback | None) -> str:
+    """What an answer at 60 meant, by its readback. Each reading is a whole pair, the other firm's output and
+    the price it makes with my 60: leading a rival that follows (30, $40), ignoring the rival (0, $70), or
+    the other firm at 60 too ($10, where 60 earns nothing; GLM-5.3's replies get there by miscomputing Nash).
+    A readback whose price doesn't fit its OTHER line is other; no readback, or one without an OTHER line, is
+    unread."""
+    if got is None or got.other is None:
+        return "unread"
+    sixty = DUOPOLY.benchmarks(2)["naive"]
+    for kind, other in {"leading": DUOPOLY.best_response(sixty), "ignoring": 0.0, "both": sixty}.items():
+        if near(got.other, other) and got.price is not None and near(got.price, DUOPOLY.a - sixty - other):
+            return kind
+    return "other"
 
 
 def ask(

@@ -131,27 +131,17 @@ def sixties(rows: list[dict], model: str, readbacks: dict[str, readback.Readback
     """The model's own-number answers at 60, which both a leader (the other firm follows at 30, price $40)
     and a firm that ignores the other firm (price $70) give, split by their readbacks."""
     sixty = DUOPOLY.benchmarks(2)["naive"]
-    follower = DUOPOLY.best_response(sixty)
-    leading_price, ignoring_price = DUOPOLY.a - sixty - follower, DUOPOLY.a - sixty
-    kinds = {"leading": 0, "ignoring": 0, "other": 0, "unread": 0}
+    kinds: dict[str, int] = dict.fromkeys(readback.SIXTY_KINDS, 0)
     for row in rows:
         if row["model"] != model or row["condition"] not in OWN or row["value"] is None:
             continue
-        if not near(row["value"], sixty):
-            continue
-        got = readback.lookup(readbacks, registry, CRITERION.name, row)
-        price = got.price if got else None
-        if got is None or got.other is None:
-            kinds["unread"] += 1
-        elif near(got.other, follower) and price is not None and near(price, leading_price):
-            kinds["leading"] += 1
-        elif price is not None and near(price, ignoring_price):
-            kinds["ignoring"] += 1
-        else:
-            kinds["other"] += 1
+        if near(row["value"], sixty):
+            kinds[readback.sixty_kind(readback.lookup(readbacks, registry, CRITERION.name, row))] += 1
     return (
         f"answers at 60: {kinds['leading']} leading (other firm at 30, $40), "
-        f"{kinds['ignoring']} ignoring the other firm ($70), {kinds['other']} other, {kinds['unread']} unread"
+        f"{kinds['ignoring']} ignoring the other firm (0, $70), "
+        f"{kinds['both']} putting the other firm at 60 too ($10), {kinds['other']} other, "
+        f"{kinds['unread']} unread"
     )
 
 
