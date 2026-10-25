@@ -1,0 +1,7 @@
+#!/bin/sh
+# zcc without `uv run`, from any directory: bin/zcc list conc, or zcc list conc with this file, or a link to
+# it, on PATH. Relative paths, such as --out ./smoke.jsonl, resolve from where it's run.
+# It runs the package rather than the venv's zcc script: where the venv lacks that script, uv would find
+# this file on PATH instead and call itself without end.
+script=$(readlink -f "$0") || { echo "bin/zcc: needs readlink -f (macOS 12.3 or later)" >&2; exit 1; }
+exec uv run --quiet --project "$(dirname "$script")/.." python -m zerocommcartel "$@"

@@ -2,7 +2,9 @@
 
 import argparse
 import json
+import os
 import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -84,6 +86,18 @@ def test_each_command_takes_a_criterion_prefix(monkeypatch, command):
     monkeypatch.setitem(cli.COMMANDS, argv[0], record)
     main(argv)
     assert seen == ["consistent"]
+
+
+def test_bin_zcc_runs_zcc_from_another_directory_through_a_link(tmp_path):
+    link = tmp_path / "zcc"
+    link.symlink_to(Path(__file__).resolve().parent.parent / "bin" / "zcc")
+    # UV_NO_SYNC: the pre-commit hook runs the tests in a temporary copy of the repo with the repo's venv,
+    # which a sync would point at that copy, deleted once the hook ends
+    env = {**os.environ, "UV_NO_SYNC": "1"}
+    done = subprocess.run(
+        [link, "list", "conc"], cwd=tmp_path, env=env, capture_output=True, text=True, timeout=60
+    )
+    assert headings(done.stdout) == ["conceptualization"], done.stderr
 
 
 def test_run_logs_each_call_to_the_out_file(tmp_path, claude):
