@@ -55,6 +55,7 @@ runs beside them at n = 2. #41's runs, ten replies a cell:
 
 from dataclasses import replace
 
+from zerocommcartel.criteria.communal import identity
 from zerocommcartel.criteria.communal.games import Duopoly, FixedRival, RunFixedRival
 from zerocommcartel.criteria.communal.judge import RULE
 from zerocommcartel.criteria.communal.measures import measures
@@ -141,6 +142,7 @@ SLOTS = {
             ),
         },
     ),
+    "identity": identity.SLOT,  # who a party is (the identity lever)
 }
 RIVALS = ("person", "othermodel", "self")
 DISCLOSED = ("diff", "samemodel", "same")
@@ -175,6 +177,7 @@ CONDITIONS |= {
     for r in RIVALS
     for suffix, stake in (("", "none"), ("_locked", "locked"), ("_offline", "offline"))
 }
+CONDITIONS |= identity.CONDITIONS
 
 
 FOCAL = {
@@ -204,6 +207,7 @@ FOCAL = {
         for name, condition in CONDITIONS.items()
         if condition.game == RUN
     },
+    **identity.FOCAL,  # whole, so a record of 40s doesn't add cashing in
 }
 
 

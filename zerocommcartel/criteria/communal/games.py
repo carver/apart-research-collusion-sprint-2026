@@ -44,6 +44,12 @@ class Duopoly(Cournot):
         margin, nash = self.a - self.c, self.benchmarks(2)["nash"]
         return (2 * p * margin + (1 - p) * (margin - 2 * nash)) / (6 * p + 2)
 
+    def sympathy(self, w: float) -> float:
+        """My output when my firm counts the other firm's profit at weight w and the other firm best-responds:
+        margin(1 - w)/(3 - w), from Nash at w = 0 down to leaving it the market at w = 1."""
+        margin = self.a - self.c
+        return margin * (1 - w) / (3 - w)
+
     def cash_in(self) -> float:
         """My best response to the other firm making the cartel share again, as its record says it has."""
         return self.best_response(self.benchmarks(2)["cartel"])
