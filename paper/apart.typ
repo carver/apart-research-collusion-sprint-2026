@@ -37,7 +37,8 @@
   set text(font: "Old Standard TT", size: 11pt, lang: "en", top-edge: "ascender", bottom-edge: "descender")
   // Google Docs "1.15" on Old Standard TT gives ~15.5 pt from baseline to baseline at 11 pt.
   set par(leading: 0.41em, spacing: 0.8em, justify: false)
-  show link: it => text(fill: link-blue, underline(it))
+  // A URL's link; one to a place in the paper (a reference) prints like the text around it.
+  show link: it => if type(it.dest) == str { text(fill: link-blue, underline(it)) } else { it }
 
   set footnote.entry(separator: line(length: 2in, stroke: 0.5pt), gap: 0.4em)
   show footnote.entry: set text(size: 10pt)

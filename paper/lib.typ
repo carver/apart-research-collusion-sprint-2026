@@ -31,16 +31,38 @@
   }
 }
 
-#let apart(..args, body) = template.apart(
-  draft: draft,
-  stamp: sys.inputs.at("stamp", default: ""),
-  commit: sys.inputs.at("commit", default: ""),
-  ..args,
-  {
-    show figure.caption: mark-misplaced
-    body
-  },
-)
+// A reference to a heading. The template numbers only sections ("1.", "A."), so a subsection, or an
+// unnumbered section like Code and Data, prints its title (or the reference's supplement, `@x[the
+// scope]`), linked; a section prints its number without the trailing period ("Section 4"), so a
+// sentence can end with it. Other references, page references and function supplements stay Typst's.
+#let heading-ref(it) = {
+  let target = it.element
+  if target == none or target.func() != heading or it.form != "normal" or type(it.supplement) == function {
+    return it
+  }
+  let number = if target.numbering != none {
+    numbering(target.numbering, ..counter(heading).at(target.location()))
+  }
+  if number in (none, "") {
+    return link(target.location(), if it.supplement in (auto, none) { target.body } else { it.supplement })
+  }
+  let supplement = if it.supplement == auto { target.supplement } else { it.supplement }
+  let number = number.trim(".", at: end)
+  link(target.location(), if supplement == none { number } else { [#supplement~#number] })
+}
+
+// The rules apply to the whole template, the abstract included.
+#let apart(..args, body) = {
+  show figure.caption: mark-misplaced
+  show ref: heading-ref
+  template.apart(
+    draft: draft,
+    stamp: sys.inputs.at("stamp", default: ""),
+    commit: sys.inputs.at("commit", default: ""),
+    ..args,
+    body,
+  )
+}
 #let ledger = json("build/numbers.json")
 
 

@@ -4,12 +4,14 @@ resolve, writes the submission. No test reads the repo's logs."""
 
 import http.server
 import json
+import re
 import shutil
 import subprocess
 import threading
 from pathlib import Path
 
 import pytest
+from pypdf import PdfReader
 
 from paper.build import FINAL_NAME, BuildError, Problem, build, markdown
 from paper.checks import probe_url
@@ -87,6 +89,26 @@ MIDPAGE = CLEAN.replace(
     "#unnumbered[Code and Data]",
     "= Background\nMore.\n#figure(rect(width: 100%, height: 2cm), caption: [Low.]) <fig-low>\nSee @fig-low.\n"
     "#unnumbered[Code and Data]",
+)
+
+
+# CLEAN with a reference to each kind of heading: a section, a subsection (which has no number), a section
+# with a supplement, an appendix section, a subsection with a supplement and an unnumbered section, each
+# ending a sentence, beside a figure's reference; and one in the abstract.
+REFERENCES = (
+    CLEAN.replace(
+        "Prior work @calvano2020.\n",
+        "Prior work @calvano2020.\n== Scope <sec-scope>\n"
+        "One: @sec-intro. Two: @sec-scope. Three: @sec-intro[Part]. Four: @app-lim. Five: @fig-demo.\n"
+        "Six: @sec-scope[the scope]. Seven: @code.\n",
+    )
+    .replace("= Introduction\n", "= Introduction <sec-intro>\n")
+    .replace("#unnumbered[Code and Data]", "#unnumbered[Code and Data] <code>")
+    .replace(
+        "= Limitations and Dual-Use / Ethical Considerations\n",
+        "= Limitations and Dual-Use / Ethical Considerations <app-lim>\n",
+    )
+    .replace("abstract: [#n(", "abstract: [Abstract cites @sec-intro. #n(")
 )
 
 
@@ -352,3 +374,16 @@ def test_a_figure_under_a_section_that_starts_partway_down_a_page_is_where_it_be
     report = build(paper_dir, {"demo": demo_sources(log)["demo"]})
 
     assert [problem for problem in report.problems if problem.check == "placement"] == []
+
+
+def test_a_reference_to_a_section_or_subsection_prints_its_number_or_its_title(tmp_path, server):
+    paper_dir = write_paper(tmp_path / "paper", REFERENCES, server)
+    log = write_log(tmp_path / "logs" / "demo.jsonl")
+
+    report = build(paper_dir, {"demo": demo_sources(log)["demo"]})
+
+    text = " ".join(" ".join(page.extract_text() for page in PdfReader(report.pdf).pages).split())
+    assert "One: Section 1. Two: Scope. Three: Part 1. Four: Section A. Five:" in text
+    assert re.search(r"Five: Figure \d\. ", text)  # a figure's reference as it was
+    assert "Six: the scope. Seven: Code and Data." in text
+    assert "Abstract cites Section 1." in text

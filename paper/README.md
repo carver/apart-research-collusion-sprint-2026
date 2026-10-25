@@ -31,6 +31,8 @@ Write one sentence per line, so diffs and merges go sentence by sentence. Never 
 
 `build/numbers.md` lists every key with its value, how it was computed and the logs it came from, then each table's rows.
 
+Point to a section with `@label` (`= Methods <sec-methods>`): it prints "Section 3", with no period of its own, so a sentence can end with it. Only sections have numbers, so `@label` on a subsection, or on an unnumbered section like Code and Data, prints its title, and `@label[the scope]` prints those words; either links to the heading (`heading-ref` in `lib.typ`).
+
 Before a sentence cites an experiment's result, read that experiment's entries in `flaws.md`: a flaw that touches the number belongs in the sentence or in the limitations.
 
 An interval belongs to one cell: replies to one model and one prompt, so one condition and market size. A count pooled across cells, like README's three models over two market sizes, has no interval, and `#ci` on it shows a red marker. Its replies come from different distributions, so a Wilson interval over them would be too narrow.

@@ -21,6 +21,7 @@ module-root = ""
 
 [dependency-groups]
 dev = [
+    "pypdf==6.19.0",  # tests read a built PDF's text
     "pyright[nodejs]==1.1.414",  # [nodejs]: Node comes locked from PyPI, not downloaded at run time
     "pytest==9.1.1",
     "reuse==6.2.0",
