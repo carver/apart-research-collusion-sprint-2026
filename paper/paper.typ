@@ -71,6 +71,21 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
   ],
 ) <fig-conceptualization>
 
+#todo[The extra chance's prose (@fig-extra): which models exploit a copy that thinks less, and where; flaws.md, "Conceptualization", "The extra chance", first.]
+
+#figure(
+  placement: auto,
+  data-figure("conceptualization-extra-figure", width: 100%),
+  caption: [
+    The extra chance: when my firm's request ends with a paragraph its copy's request lacks, does the model keep the mirror or exploit the copy?
+    Each model's answers on the copy's own prompt (this same AI model with this same prompt) and on three arms that add the paragraph: only my firm gets "this extra chance to make the best choice", the asymmetry stated without it, and both firms get it (a placebo).
+    Blue: at the cartel share.
+    Red: exploiting the copy, a best response to the other firm's output the reply's readback expected, when that is below Nash.
+    Gray: Nash or other.
+    A panel per background with no record (#n("conceptualization.extra.caption.backgrounds")), #n("conceptualization.extra.replies") replies a bar.
+  ],
+) <fig-extra>
+
 == Who the firms and the buyers are
 // The identity lever (#41), from paper/data/idl1.py.
 #todo[The lever's prose: which identities move which model, and how far (@fig-idl1), worded model by model; flaws.md, Communal, "The identity lever", first.]
