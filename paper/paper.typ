@@ -29,28 +29,7 @@ Pricing algorithms can learn to collude without communicating @calvano2020.
 #todo[Enough to replicate: models, prompts, markets, samples, judges, measures.]
 
 = Results
-// The v0 example, from the pre-sprint pilot's log through paper/data/pilot.py: counts, one
-// cell's interval, a claim, a table and a figure. Rewrite or move it once the sprint's results are in.
-Before the sprint, a pilot asked Claude Haiku, Sonnet and Opus how much a firm should produce in a Cournot market of two or four firms (preexisting work; Code and Data).
-When the prompt says that every firm gets its number by asking "this same AI model with this same prompt", #n("pilot.same.cartel") replies land on the cartel share, against #n("pilot.base.cartel") when it says nothing about rivals' advisors (@tab-pilot).
-#claim("the same-prompt sentence raises the cartel share", ("pilot.same.cartel", "pilot.base.cartel"), (same, base) => same > base)
-Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@fig-pilot).
-
-#figure(
-  data-table("pilot-table"),
-  caption: [
-    Claude's answers at the cartel share in the pre-sprint pilot, by what the firm's prompt adds about its rivals' advisors.
-    Each cell counts replies within half a unit of the cartel share (60/n) out of replies, pooled over two and four firms; the last column pools the three models.
-    Pooled counts carry no interval.
-  ],
-) <tab-pilot>
-
-#figure(
-  data-figure("pilot-figure", width: 100%),
-  caption: [
-    The replies of @tab-pilot, one dot per model and market size, with the 95% Wilson interval over that cell's #n("pilot.cells.fewest") to #n("pilot.cells.most") replies.
-  ],
-) <fig-pilot>
+The pre-sprint pilot that set up these criteria is in the appendix (@tab-pilot, @fig-pilot).
 
 #todo[Variance, seeds, baselines and the positive control.]
 
@@ -133,6 +112,30 @@ Of #n("idl1.tests") comparisons, #n("idl1.pass") pass (@fig-idl1).
 
 = Limitations and Dual-Use / Ethical Considerations
 #todo[What the result does and doesn't establish, and any way the setup or findings could make real collusion easier to carry out or harder to detect, including making a model look compliant in evaluations.]
+
+= The pre-sprint pilot <app-pilot>
+// From the pre-sprint pilot's log through paper/data/pilot.py: counts, one cell's interval, a claim, a table
+// and a figure. Moved out of Results to save page budget.
+Before the sprint, a pilot asked Claude Haiku, Sonnet and Opus how much a firm should produce in a Cournot market of two or four firms (preexisting work; Code and Data).
+When the prompt says that every firm gets its number by asking "this same AI model with this same prompt", #n("pilot.same.cartel") replies land on the cartel share, against #n("pilot.base.cartel") when it says nothing about rivals' advisors (@tab-pilot).
+#claim("the same-prompt sentence raises the cartel share", ("pilot.same.cartel", "pilot.base.cartel"), (same, base) => same > base)
+Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@fig-pilot).
+
+#figure(
+  data-table("pilot-table"),
+  caption: [
+    Claude's answers at the cartel share in the pre-sprint pilot, by what the firm's prompt adds about its rivals' advisors.
+    Each cell counts replies within half a unit of the cartel share (60/n) out of replies, pooled over two and four firms; the last column pools the three models.
+    Pooled counts carry no interval.
+  ],
+) <tab-pilot>
+
+#figure(
+  data-figure("pilot-figure", width: 100%),
+  caption: [
+    The replies of @tab-pilot, one dot per model and market size, with the 95% Wilson interval over that cell's #n("pilot.cells.fewest") to #n("pilot.cells.most") replies.
+  ],
+) <fig-pilot>
 
 = Prompts
 The pilot's prompt when every firm asks the same model with the same prompt, for two firms:
