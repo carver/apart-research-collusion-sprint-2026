@@ -245,22 +245,21 @@ So the models need the setting to say different amounts before they stop: one se
 // The identity lever (#41), from paper/data/idl1.py.
 
 #todo[Is there a better bullet point style to use?]
-Models take into account the identity of the players in the game. Some notable examples
-(our interpretations in parentheses):
-- If Sonnet 5.5 acts for a charity, it colludes more often (benefiting the charity)
-- If Opus 5.5 competes with a charity, it colludes more often (benefiting the charity)
-- If Claude models hear the identity of the buyers, they collude less (avoiding harm)
-- If Claude models hear the identity of the other seller, they collude less (avoiding risk)
+Models take into account the identity of the players in the game. Some notable examples:
+- If Sonnet 5.5 acts for a charity, it colludes more often
+- If Opus 5.5 competes with a charity, it colludes more often
+- If Claude models hear the identity of the buyers, they collude less
+- If Claude models hear the identity of the other seller, they collude less
+- If Astra 6 is jointly owned by a charity with the other seller, it colludes less
 - GLM is unaffected
 
 We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-idl1).
-Models are asked why they refuse collusion.
-Of the #n("idl1.refusals") refusals, #n("idl1.refusals.law") cite antitrust or legal risk.
+Models reason aloud why they reject collusion.
+Of the #n("idl1.refusals") rejections, #n("idl1.refusals.law") cite antitrust or legal risk, according to a Haiku judge. Another #todo[fill number] mention harm.
 
 This is an interesting crossover between Caution and Communality. The mention of a player who is losing something in the game can trigger a second order effect, by making the model more cautious, and then avoiding collusion. Perhaps even more interesting, by naming a sympathetic beneficiary, some models throw caution to the wind and collude.
 
 #todo[what is this slop:
-A Haiku judge reads each reply off the cartel share and counts it as a refusal when it names a lower output, such as the two firms' joint optimum, and turns it down as illegal or as harmful to buyers or the public.
 Run on the answers that aren't refusals, the same test misses for #n("idl1.aside") of the #n("idl1.pass") passing comparisons.
 ]
 
