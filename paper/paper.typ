@@ -363,7 +363,7 @@ Before the sprint, a pilot asked Claude Haiku, Sonnet and Opus how much a firm s
 When the prompt says that every firm gets its number by asking "this same AI model with this same prompt", #n("pilot.same.cartel") replies land on the cartel share, against #n("pilot.base.cartel") when it says nothing about rivals' advisors (@tab-pilot).
 #claim("the same-prompt sentence raises the cartel share", ("pilot.same.cartel", "pilot.base.cartel"), (same, base) => same > base)
 Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@fig-pilot).
-@app-prompts gives the prompt with that sentence, for two firms.
+@app-pilot-prompt gives the prompt with that sentence, for two firms.
 
 #figure(
   data-table("pilot-table"),
@@ -397,8 +397,8 @@ In #n("idl1.cross.confirmed") of the identity lever's #n("idl1.cross.cells") cel
   ],
 ) <fig-crossmodel>
 
-= Prompts <app-prompts>
-The pilot's prompt when every firm asks the same model with the same prompt, for two firms:
+= The pilot's prompt <app-pilot-prompt>
+The prompt when every firm asks the same model with the same prompt, for two firms:
 #data-text("pilot.prompt.same.n2")
 
 #unnumbered[LLM Usage Statement]
