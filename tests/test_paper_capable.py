@@ -5,7 +5,13 @@ import re
 
 import pytest
 
-from paper.data.capable import at_cartel, fill_capability, fill_history_horizon, fill_wordings
+from paper.data.capable import (
+    at_cartel,
+    at_cartel_or_nash,
+    fill_capability,
+    fill_history_horizon,
+    fill_wordings,
+)
 from paper.ledger import Ledger
 
 
@@ -52,6 +58,52 @@ def test_capability_counts_each_models_two_questions_and_draws_a_square_image(tm
     svg = (tmp_path / "cap9-figure.svg").read_text()
     size = re.search(r'<svg[^>]* width="([\d.]+)pt" height="([\d.]+)pt"', svg)
     assert size and size[1] == size[2]
+
+
+@pytest.mark.parametrize(
+    "value, hit",
+    [(20.0, True), (30.0, True), (25.0, False), (29.5, False), (30.5, False), (None, False)],
+)
+def test_cartel_or_nash_is_an_answer_exactly_at_either(value, hit):
+    assert at_cartel_or_nash(row(value=value)) is hit
+
+
+def test_capability_pools_the_stronger_models_own_answers_and_the_weaker_models_joint_ones(tmp_path):
+    rows = [
+        row("opus", "quarter_cartel_long_joint", 20.0),
+        row("opus", "quarter_cartel_long", 20.0, 0),
+        row("opus", "quarter_cartel_long", 30.0, 1),
+        row("glm", "quarter_cartel_long_joint", 20.0),
+        row("glm", "quarter_cartel_long", 24.0),
+        row("commandr", "quarter_cartel_long_joint", 20.0, 0),
+        row("commandr", "quarter_cartel_long_joint", 25.0, 1),
+        row("commandr", "quarter_cartel_long", 20.0),
+        row("llama8b", "quarter_cartel_long_joint", None, 0),  # no answer line: neither
+        row("llama8b", "quarter_cartel_long_joint", 30.0, 1),
+        row("llama8b", "quarter_cartel_long", 40.0),
+    ]
+    ledger = Ledger(tmp_path)
+    fill_capability(ledger, rows)
+    pooled = {key: (e["k"], e["n"]) for key, e in ledger.entries.items() if e["kind"] == "pooled"}
+    assert pooled == {"cap9.strong.own.cartel-or-nash": (2, 3), "cap9.weak.joint.other": (2, 4)}
+
+
+def test_history_horizon_pools_the_answers_at_cartel_or_nash_across_the_grid(tmp_path):
+    rows = [
+        row(model, f"quarter_{history}_{horizon}", value, sample)
+        for model in ("opus", "glm")
+        for history in ("cartel", "first")
+        for horizon in ("long", "none", "last")
+        for sample, value in enumerate((20.0, 30.0, 45.0))
+    ]
+    rows += [
+        row("commandr", "quarter_cartel_long", 20.0),  # a model the figure doesn't draw
+        row("opus", "quarter_cartel_long_joint", 20.0),  # a question it doesn't ask
+    ]
+    ledger = Ledger(tmp_path)
+    fill_history_horizon(ledger, rows)
+    entry = ledger.entries["cap8.cartel-or-nash"]
+    assert (entry["kind"], entry["k"], entry["n"]) == ("pooled", 24, 36)
 
 
 def test_history_horizon_counts_each_models_six_cells(tmp_path):

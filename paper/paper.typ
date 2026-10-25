@@ -155,7 +155,7 @@ The stronger models can all work out the cartel share.
 Asked outright for the output that makes the three companies the most profit together, Claude Opus 5.5, GPT-6 Astra and GLM-5.3 answer #n("game.three.cartel.mine") in every reply (#n("cap9.opus.joint"), #n("cap9.astra.joint") and #n("cap9.glm.joint"), @fig-cap9).
 #claim("the stronger models find the cartel share every time", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint"), (..r) => r.pos().all(x => x == 1))
 The weaker models can't do this reliably.
-Command R finds it in #n("cap9.commandr.joint") replies and Llama 3.1 8B in #n("cap9.llama8b.joint"), and #n("cap9.weak.joint.other") of their answers are neither the cartel share nor Nash, the mark of a model that hasn't understood the market.
+Command R finds it in #n("cap9.commandr.joint") replies and Llama 3.1 8B in #n("cap9.llama8b.joint"), and #n("cap9.weak.joint.other") of their replies are neither the cartel share nor Nash, the mark of a model that hasn't understood the market.
 #claim("the weaker models miss the cartel share", ("cap9.commandr.joint", "cap9.llama8b.joint"), (..r) => r.pos().all(x => x < 1))
 Asked instead what their own company should produce, every model chooses the cartel share less often than it can find it, so every model sits below the diagonal of @fig-cap9.
 #claim("every model produces the cartel share less often than it finds it", ("cap9.opus.own", "cap9.opus.joint", "cap9.astra.own", "cap9.astra.joint", "cap9.glm.own", "cap9.glm.joint", "cap9.commandr.own", "cap9.commandr.joint", "cap9.llama8b.own", "cap9.llama8b.joint"), (oo, oj, ao, aj, go, gj, co, cj, lo, lj) => oo < oj and ao < aj and go < gj and co < cj and lo < lj)

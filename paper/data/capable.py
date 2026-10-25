@@ -25,6 +25,7 @@ MODELS = {
     "llama8b": "Llama 3.1 8B",
 }
 CAPABLE = ("opus", "astra", "glm")  # the models CAP-8 and CAP-10 ran
+WEAKER = ("commandr", "llama8b")  # CAP-9's weaker models; the paper's stronger ones are CAPABLE
 # dataviz's categorical slots 3, 7, 4, 5 and 6: Opus and GLM-5.3 as in the other figures
 COLORS = {
     "opus": "#1baf7a",
@@ -48,10 +49,21 @@ WORDINGS = {  # CAP-10's arms, each after a round at 20 with an open future
     "plain_own": "standard game text",
 }
 HOW = "answers exactly at the cartel quantity (20) / replies"
+EITHER = "answers exactly at the cartel quantity (20) or Nash (30) / replies"
+NEITHER = "replies neither at the cartel quantity (20) nor at Nash (30), or with no answer / replies"
 
 
 def at_cartel(row: dict) -> bool:
     return row["value"] == row["focal"]["cartel"]
+
+
+def at_cartel_or_nash(row: dict) -> bool:
+    """An answer exactly at the cartel quantity or at Nash. A reply with no answer is neither."""
+    return row["value"] in (row["focal"]["cartel"], row["focal"]["nash"])
+
+
+def neither(row: dict) -> bool:
+    return not at_cartel_or_nash(row)
 
 
 def logged(folder: str) -> list[dict]:
@@ -221,18 +233,29 @@ def fill_capability(ledger: Ledger, rows: list[dict]) -> None:
             ledger.rate(f"cap9.{model}.{ask}", cells[(condition, model)], at_cartel, how=HOW)
         dots.append({"model": model} | {ask: ledger.entries[f"cap9.{model}.{ask}"] for ask in CAP9})
     ledger.figure("cap9-figure", draw_capability, dots, how=f"{HOW}; one dot per model", size=(3.6, 3.6))
+    if own := [r for r in rows if r["condition"] == CAP9["own"] and r["model"] in CAPABLE]:
+        how = f"{EITHER}; the stronger models' own decisions, pooled"
+        ledger.pooled("cap9.strong.own.cartel-or-nash", own, at_cartel_or_nash, how=how)
+    if joint := [r for r in rows if r["condition"] == CAP9["joint"] and r["model"] in WEAKER]:
+        how = f"{NEITHER}; the weaker models' joint question, pooled"
+        ledger.pooled("cap9.weak.joint.other", joint, neither, how=how)
 
 
 def fill_history_horizon(ledger: Ledger, rows: list[dict]) -> None:
     """CAP-8's six cells, a rate per model and cell, and the figure."""
     cells = by_cell(rows)
-    shares = {}
+    shares, drawn = {}, []
     for model in present(CAPABLE, cells):
         for history in HISTORIES:
             for horizon in HORIZONS:
                 key = f"cap8.{model}.{history}.{horizon}"
-                ledger.rate(key, cells[(f"quarter_{history}_{horizon}", model)], at_cartel, how=HOW)
+                cell = cells[(f"quarter_{history}_{horizon}", model)]
+                ledger.rate(key, cell, at_cartel, how=HOW)
                 shares[(model, history, horizon)] = ledger.entries[key]
+                drawn += cell
+    ledger.pooled(
+        "cap8.cartel-or-nash", drawn, at_cartel_or_nash, how=f"{EITHER}; the figure's cells, pooled"
+    )
     ledger.figure(
         "cap8-figure", draw_history_horizon, shares, how=f"{HOW}; a bar per model and cell", size=(6.5, 3.6)
     )
