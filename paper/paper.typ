@@ -273,6 +273,22 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
   ],
 ) <fig-pilot>
 
+= Model differences within notable communal experiments <app-crossmodel>
+// Where the models answer the identity lever's prompts differently (#41), from paper/data/crossmodel.py (source "idl1-cross").
+In #n("idl1.cross.confirmed") of the identity lever's #n("idl1.cross.cells") cells, the models' answers at the cartel share differ, with refusals counted and with them set aside (@fig-crossmodel).
+
+#figure(
+  data-figure("idl1-cross-figure", width: 100%),
+  caption: [
+    The identity lever's cells where the models answer differently.
+    Each dot is a model's share at the cartel share among its fresh answers that aren't refusals, out of #n("idl1.cross.fresh") fresh replies a model, with the 95% Wilson interval; a hollow marker is the same model when nothing is said, and a model with no answer left is named instead.
+    A cell is drawn when, on its first #n("idl1.cross.first-n") replies a model, the models differ in the share of replies at the cartel share and in that share among the answers that aren't refusals (Fisher–Freeman–Halton exact tests, Benjamini–Hochberg across #n("idl1.cross.cells") cells, q < #n("idl1.cross.q")), #n("idl1.cross.first") cells, and differ in both again on fresh replies alone, #n("idl1.cross.confirmed") of them.
+    A point on under #n("idl1.cross.thin") answers is faded; the counts are at the right, the start's in parentheses.
+    A share among the answers that aren't refusals reads low when a model's refusals come from answers that would have been at the cartel share.
+    #n("idl1.cross.caption.none")
+  ],
+) <fig-crossmodel>
+
 = Prompts <app-prompts>
 The pilot's prompt when every firm asks the same model with the same prompt, for two firms:
 #data-text("pilot.prompt.same.n2")
