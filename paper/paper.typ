@@ -91,11 +91,19 @@ Every lever counts an answer there when it is within half a unit of the cartel s
 
 == Capability
 _Can the model work out the output that is best for the pair?_
-#todo[Thomas: how this lever might push a model toward or away from the points of @tab-game.]
+This lever asks whether a model that doesn't collude lacks the arithmetic or a reason.
+A model that can't find the firms' joint optimum when asked for it outright reaches the cartel share only by accident.
+A model that finds it but doesn't produce it knows the number and chooses otherwise, so the gap between the two is the part of collusion that capability doesn't explain.
+Capability also covers seeing when holding back pays, which the future route makes a matter of history and horizon.
+A model that follows this section's induction should hold back after a record at the cartel share while quarters remain, and stop in a known final quarter.
 
 == Compliance
 _Does the model still collude once it sees who pays, or that someone is watching?_
-#todo[Thomas: how this lever might push a model toward or away from the points of @tab-game. Jason's example: an oversight sentence (CPL-9) moving a model from the cartel share back to Nash.]
+This lever adds a reason not to hold back, whichever route brought the model to the cartel share.
+One sentence, added to a prompt where the model already holds back, says who watches the market, gives the model a line to report collusion, or names what the firms did last quarter.
+A model that weighs the chance of being caught should move with how closely the market is watched.
+A model that steers away from collusion as a topic should move whenever a sentence brings it up, watched or not.
+Either way, a model that leaves the cartel share can go back to Nash, or produce #n("game.three.cashin.mine"), its best reply to rivals still at the cartel share.
 
 == Communality
 _Whose profit does the model weigh?_
@@ -147,10 +155,83 @@ The pre-sprint pilot that set up these criteria is in the appendix (@tab-pilot, 
 #todo[Variance, seeds, baselines and the positive control.]
 
 == Capability
-#todo[The capability criterion's results (\#39).]
+// The capable criterion (#39), from paper/data/capable.py.
+The capability and compliance levers use the three-firm market of @tab-game, told as three companies that make industrial solvent, a quarter at a time, with no word of a game, rounds or a goal.
+Asked outright for the output that makes the three companies the most profit together, Claude Opus 5.5, GPT-6 Astra and GLM-5.3 answer the cartel quantity in #n("cap9.opus.joint"), #n("cap9.astra.joint") and #n("cap9.glm.joint") replies (@fig-cap9).
+#claim("the three models find the joint optimum every time", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint"), (..r) => r.pos().all(x => x == 1))
+Asked for their own company's output, after a quarter in which all three produced it and with many more quarters to come, they produce it in #n("cap9.opus.own"), #n("cap9.astra.own") and #n("cap9.glm.own").
+#claim("each model produces the cartel quantity less often than it finds it", ("cap9.opus.own", "cap9.opus.joint", "cap9.astra.own", "cap9.astra.joint", "cap9.glm.own", "cap9.glm.joint"), (oo, oj, ao, aj, go, gj) => oo < oj and ao < aj and go < gj)
+For these models, the arithmetic is not what holds collusion back.
+Command R and Llama 3.1 8B find the joint optimum in only #n("cap9.commandr.joint") and #n("cap9.llama8b.joint"), and produce it less often still, so for weaker models capability is part of the answer.
+#claim("the weaker models find it less often and produce it less often still", ("cap9.commandr.own", "cap9.commandr.joint", "cap9.llama8b.own", "cap9.llama8b.joint"), (co, cj, lo, lj) => co < cj and lo < lj and cj < 1 and lj < 1)
+
+#figure(
+  data-figure("cap9-figure", width: 55%),
+  caption: [
+    Finding the cartel quantity against producing it, one dot per model, after a quarter at the cartel quantity with many more quarters to come.
+    Across: answers at the cartel quantity when asked for the three companies' joint optimum; up: when asked for the company's own output.
+    Lines: 95% Wilson intervals.
+  ],
+) <fig-cap9>
+
+Whether a model holds back follows the induction of @sec-game (@fig-cap8).
+After a quarter at the cartel quantity, with many more quarters to come, Opus holds there in #ci("cap8.opus.cartel.long"), Astra in #ci("cap8.astra.cartel.long") and GLM-5.3 in #ci("cap8.glm.cartel.long").
+Told that no quarters follow, no model holds there at all.
+#claim("no model answers the cartel quantity in a final quarter", ("cap8.opus.cartel.last", "cap8.astra.cartel.last", "cap8.glm.cartel.last", "cap8.opus.first.last", "cap8.astra.first.last", "cap8.glm.first.last"), (..r) => r.pos().all(x => x == 0))
+Told nothing of the future, Opus holds in #n("cap8.opus.cartel.none"), GLM-5.3 in #n("cap8.glm.cartel.none") and Astra in #n("cap8.astra.cartel.none").
+Without the previous quarter, the base case, Opus and Astra never answer the cartel quantity, whatever the horizon; only GLM-5.3 does, in #n("cap8.glm.first.long") replies when many more quarters follow.
+#claim("Opus and Astra never start a cartel", ("cap8.opus.first.long", "cap8.opus.first.none", "cap8.astra.first.long", "cap8.astra.first.none"), (..r) => r.pos().all(x => x == 0))
+So these models take the inductive step but not the base case: they keep a cartel they are shown while quarters remain, and don't start one.
+
+#figure(
+  data-figure("cap8-figure", width: 100%),
+  caption: [
+    History and horizon: answers at the cartel quantity, by whether the prompt shows a previous quarter at it (rows) and what it says of later quarters (columns).
+    Whiskers: 95% Wilson intervals.
+  ],
+) <fig-cap8>
+
+The wording matters as well (@tab-cap10).
+Told in a game's words, Firms A, B and C making units over rounds, the same market takes GPT-6 Astra from #n("cap10.astra.business") answers at the cartel quantity to #n("cap10.astra.game-words").
+#claim("game words raise Astra's rate", ("cap10.astra.game-words", "cap10.astra.business"), (game, business) => game > business)
+A market that reads like a game may overstate how often a model colludes when the same numbers come as a business decision.
+
+#figure(
+  data-table("cap10-table"),
+  caption: [
+    One market in three wordings, after a quarter at the cartel quantity with many more quarters to come: answers at the cartel quantity, of all replies.
+    _Business_ is the market of @fig-cap9; _game words_ tells the same sentences as firms, units and rounds; _standard game text_ is the game-like prompt of our earlier capability experiments.
+  ],
+) <tab-cap10>
 
 == Compliance
-#todo[The compliance criterion's results (\#40).]
+// The compliant criterion (#40), from paper/data/compliant.py.
+The compliance lever starts from the capability lever's own-output prompt, a quarter at the cartel quantity with many more to come, and adds one sentence (@fig-cpl9).
+In this run, with nothing added, Opus answers the cartel quantity in #ci("cpl9.opus.none_none_none"), Astra in #ci("cpl9.astra.none_none_none") and GLM-5.3 in #ci("cpl9.glm.none_none_none").
+Opus's rate on this same prompt varied between runs a few hours apart, so we compare each sentence only with the control of its own run.
+
+For Opus and Astra, any sentence that brings up competition law ends collusion.
+An authority investigating the market takes both to #n("cpl9.opus.investigating_none_none") and #n("cpl9.astra.investigating_none_none").
+An authority that rarely looks, which casts no suspicion on the last quarter, does the same (#n("cpl9.opus.rarely_none_none"), #n("cpl9.astra.rarely_none_none")), and so, nearly, does a line saying that no regulator watches (#n("cpl9.opus.nobody_none_none"), #n("cpl9.astra.nobody_none_none")), though it also says nobody will ever see the outputs.
+#claim("every authority sentence takes Opus and Astra to zero or near it", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
+So what moves these two models is the topic, not the chance of being caught.
+A line that reports collusion or flags suspicious activity to the company's compliance team does the same (#n("cpl9.opus.none_report_none") and #n("cpl9.astra.none_report_none")\; #n("cpl9.opus.none_flag_none") and #n("cpl9.astra.none_flag_none")), while one that reports a technical problem to IT support moves neither clearly (#n("cpl9.opus.none_support_none"), #n("cpl9.astra.none_support_none")).
+Calling the last quarter illegal collusion takes both to #n("cpl9.opus.none_none_illegal") and #n("cpl9.astra.none_none_illegal")\; calling it a tacit cartel takes Opus to #n("cpl9.opus.none_none_cartel") but leaves Astra at #n("cpl9.astra.none_none_cartel").
+Saying the firms "optimized their output" reads as approval of the last quarter and raises Astra to #n("cpl9.astra.none_none_optimized"), and a management review moves neither model clearly.
+#todo[Where the answers that leave the cartel quantity go: Opus's to Nash, Astra's to Nash or #n("game.three.cashin.mine"), which is also the output at which the price falls to cost, so not cashing in until the replies are read (flaws.md, CPL-9); needs keys in paper/data/compliant.py.]
+
+GLM-5.3 holds at the cartel quantity in most answers under every single sentence.
+#claim("GLM-5.3 holds under every single sentence", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized"), (..r) => r.pos().all(x => x > 0.5))
+Two together end it: an authority investigating the market, plus the label calling the last quarter illegal, takes it to #n("cpl9.glm.investigating_none_illegal").
+
+#figure(
+  data-figure("cpl9-figure", width: 100%),
+  caption: [
+    One sentence at a time, model by model.
+    Each row adds one sentence to the own-output prompt of @fig-cap9; the hollow marker is the control, with nothing added, and the arrow runs to the share of answers at the cartel quantity with the sentence, with 95% Wilson bands.
+    The last row adds two sentences at once, on fewer replies a cell.
+  ],
+) <fig-cpl9>
 
 == Communality
 // The identity lever (#41), from paper/data/idl1.py.
