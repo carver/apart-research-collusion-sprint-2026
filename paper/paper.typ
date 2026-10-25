@@ -269,6 +269,7 @@ GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback
     Gray, stacked on it: antitrust objections, answers off the cartel share and at or below Nash whose reply cites antitrust law (a keyword check).
     Such answers are #n("conceptualization.refusals.opus") of Opus's answers off the cartel share and at or below Nash, #n("conceptualization.refusals.haiku") of Haiku's, #n("conceptualization.refusals.sonnet") of Sonnet's, #n("conceptualization.refusals.astra") of GPT-6 Astra's and #n("conceptualization.refusals.glm") of GLM-5.3's.
     #n("conceptualization.caption.named")
+    The prompts are in @app-mind-prompts.
   ],
 ) <fig-conceptualization>
 
@@ -317,6 +318,20 @@ A comparison that moved by #n("idl1.screen") replies or more but missed signific
 
 #todo[Each lever's arms in full, and the two-firm market's prompt.]
 #todo[Thomas: the three-firm market's details.]
+
+= Conceptualization prompts <app-mind-prompts>
+Below is the neutral prompt, as the command on its first line prints it.
+#data-text("conceptualization.prompt.neutral")
+
+Each bar of @fig-conceptualization adds its rung's sentences, then its row's, where the neutral prompt's market paragraph ends (@tab-mind-prompts).
+A condition is named `mind_<rung>_<horizon>_none`, so same prompt in the repeated game is `mind_same_open_none`.
+
+#figure(
+  data-table("conceptualization-prompts-table", columns: (auto, auto, 1fr), align: left),
+  caption: [
+    What each rung on the x-axis of @fig-conceptualization, then each of its rows, adds to the neutral prompt, verbatim, with the condition that gives the command its prompt.
+  ],
+) <tab-mind-prompts>
 
 = The extra chance <app-extra>
 // Moved out of Results to save page budget.

@@ -1,5 +1,5 @@
-"""The conceptualization criterion (#42): its two figures and a sentence on the answers at 60, from the rows
-`zcc table conceptualization` counts.
+"""The conceptualization criterion (#42): its two figures, a sentence on the answers at 60 and the prompts
+appendix, from the rows `zcc table conceptualization` counts.
 
 The lever figure (`conceptualization-figure`, `<fig-conceptualization>`) follows each model along the lever,
 the rungs from a rival that asks this same model with this same prompt to a person, under its title
@@ -9,6 +9,10 @@ on it in gray. A refusal is an answer off the cartel share, at or below Nash, wh
 (`zerocommcartel.mentions.MENTIONS["antitrust"]`): a keyword check, read by hand on samples (flaws.md,
 "Conceptualization"). Each model's refusals, of its answers off the cartel share, are keys too, so the caption
 can word them model by model.
+
+The prompts appendix (`<app-mind-prompts>`) gives the neutral prompt in full, as `zcc show` prints it under
+the command, and a table of what each of the lever figure's rungs and rows adds to it, diffed from the
+rendered prompts, with the condition that gives that prompt.
 
 The extra-chance figure (`conceptualization-extra-figure`, `<fig-extra>`) sets the extra-chance arms beside
 the copy's own prompt: a 100% bar per model and arm, split into answers at the cartel share, answers
@@ -22,9 +26,10 @@ ignoring the rival, the other firm at 60 too, or other.
 
 To change the lever figure, change `STYLE` (the rungs on x, how the neutral rung is marked); the extra-chance
 figure, `EXTRA_STYLE` (the arms and the panels); both, `MODELS`. Then rebuild the paper. The captions, their
-numbers included, and the sentence on the answers at 60 follow the styles.
+numbers included, the sentence on the answers at 60 and the prompts appendix follow the styles.
 Issue #45 has recipes."""
 
+import os
 import re
 from collections import defaultdict
 from collections.abc import Callable
@@ -45,6 +50,7 @@ from zerocommcartel.criteria.conceptualization import (
     HORIZONS,
     OWN,
     RUNGS,
+    condition,
     extra_name,
     name,
     readback,
@@ -59,6 +65,7 @@ from zerocommcartel.criteria.conceptualization.readback import (
 )
 from zerocommcartel.criterion import near
 from zerocommcartel.mentions import MENTIONS
+from zerocommcartel.prompt import Prompt
 
 MODELS = {"haiku": "Haiku", "sonnet": "Sonnet", "opus": "Opus", "astra": "GPT-6 Astra", "glm": "GLM-5.3"}
 INK = "#0b0b0b"  # titles and labels wear text ink, not a series colour (dataviz)
@@ -551,6 +558,92 @@ def conceptualization_extra(ledger: Ledger) -> None:
     read = reader("the extra-chance figure reads exploits through the readbacks")
     rows = cli.replies(REGISTRY, "conceptualization", None, list(BAR_OF), list(MODELS)).rows
     fill_extra(ledger, rows, read)
+
+
+# The prompts appendix: the neutral prompt in full, and what each rung and horizon of the lever figure adds to
+# it. `cli.replies` keeps only replies to a condition's current wording, so these are the prompts the figure
+# counts.
+
+NAME_SLOT = "[the model’s own name]"  # what a rung that names the asked model reads in the appendix
+NOTHING = "(nothing)"
+FIRMS = 2  # the lever's market size
+NEUTRAL = ("none", "unsaid")  # the neutral prompt's rung and horizon
+
+
+def rendered(rung: str, horizon: str) -> Prompt:
+    return REGISTRY.render(condition(rung, horizon, "none"), FIRMS, NAME_SLOT)
+
+
+class Addition(NamedTuple):
+    at: int | None  # where in the neutral prompt; None when nothing is added
+    words: str
+
+
+def insertion(base: str, text: str) -> Addition:
+    """Where `text` adds to `base`, and what it adds: whole sentences, from a space to a full stop. Characters
+    the addition shares with what follows it make its place ambiguous, so a split that cuts a sentence moves
+    left. Raises ValueError unless `text` is `base` with whole sentences inserted at one place."""
+    if text == base:
+        return Addition(None, "")
+    size = len(text) - len(base)
+    for at in range(len(os.path.commonprefix([base, text])), -1, -1):
+        words = text[at : at + size]
+        if text != base[:at] + words + base[at:]:
+            break
+        if words[:1].isspace() and words.rstrip().endswith((".", "!", "?")):
+            return Addition(at, words)
+    raise ValueError(f"not the neutral prompt with whole sentences inserted at one place: {text!r}")
+
+
+def check_bar(neutral: Prompt, bar: Prompt, rung: Addition, horizon: Addition) -> None:
+    """Raises ValueError unless a bar's prompt is the neutral prompt with its rung's sentences, then its
+    horizon's, where the market paragraph ends: what the appendix says."""
+    at = rung.at if rung.at is not None else horizon.at
+    expected = neutral.user
+    if at is not None:
+        expected = neutral.user[:at] + rung.words + horizon.words + neutral.user[at:]
+    paragraph_end = at is None or neutral.user[at:].startswith("\n\n")
+    if bar.system != neutral.system or bar.user != expected or not paragraph_end:
+        raise ValueError(
+            f"not the neutral prompt with its rung's and horizon's sentences at its end: {bar.user!r}"
+        )
+
+
+def fill_prompts(ledger: Ledger, style: Style = STYLE) -> None:
+    """The neutral prompt, as `zcc show` prints it, and per rung of the style and per horizon the condition
+    that gives its prompt and the sentences it adds to the neutral one. Raises ValueError when a bar's prompt
+    isn't what the appendix says (`check_bar`)."""
+    neutral = rendered(*NEUTRAL)
+    rungs = {rung: insertion(neutral.user, rendered(rung, NEUTRAL[1]).user) for rung in style.rungs}
+    horizons = {horizon: insertion(neutral.user, rendered(NEUTRAL[0], horizon).user) for horizon in ORDER}
+    for rung, rung_addition in rungs.items():
+        for horizon, horizon_addition in horizons.items():
+            check_bar(neutral, rendered(rung, horizon), rung_addition, horizon_addition)
+    show = f"$ bin/zcc show conceptualization {name(*NEUTRAL, 'none')} {FIRMS}"
+    ledger.text(
+        "conceptualization.prompt.neutral",
+        f"{show}\n[system] {neutral.system}\n\n{neutral.user}",
+        how="the command, then the neutral prompt as it prints it (cli.cmd_show's layout)",
+    )
+    lines = [
+        [RUNG_LABELS[rung], name(rung, NEUTRAL[1], "none"), added.words.strip() or NOTHING]
+        for rung, added in rungs.items()
+    ]
+    lines += [
+        [HORIZON_LABELS[horizon], name(NEUTRAL[0], horizon, "none"), added.words.strip() or NOTHING]
+        for horizon, added in horizons.items()
+    ]
+    ledger.table(
+        "conceptualization-prompts-table",
+        ["in the figure", "condition", "what it adds to the neutral prompt"],
+        lines,
+        how="each rung's and horizon's rendered prompt, against the neutral prompt; the rungs from STYLE",
+    )
+
+
+@source("conceptualization-prompts")
+def conceptualization_prompts(ledger: Ledger) -> None:
+    fill_prompts(ledger)
 
 
 def fill_coverage(ledger: Ledger, rows: list[dict]) -> None:
