@@ -58,7 +58,10 @@ Of #n("idl1.tests") comparisons, #n("idl1.pass") pass (@fig-idl1).
 
 == Concept of mind
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
-#todo[The lever's prose: where each model sits on the neutral rung and how far each rung moves it (@fig-conceptualization), worded model by model; flaws.md, "Conceptualization", first.]
+#todo[The lever's prose: where each model sits on the neutral rung and how far each rung moves it (@fig-conceptualization), worded model by model; flaws.md, "Conceptualization", first.
+GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback"): not a mirror belief.]
+
+#n("conceptualization.sixties")
 
 #figure(
   data-figure("conceptualization-figure", width: 100%),
