@@ -28,6 +28,7 @@ from zerocommcartel.judge import load_labels
 COLORS = PILOT_COLORS | {"glm": "#eda100", "astra": "#e87ba4"}  # dataviz's categorical slots 4 and 5
 MARKERS = {"haiku": "o", "sonnet": "s", "opus": "D", "glm": "^", "astra": "v"}
 THIN = 5  # a point on fewer answers than this is faded
+TALLEST = 7.5  # inches: the figure and its caption still fit one page
 HOW = "IDL-1's cells confirmed on fresh replies, from logs/communal/idl1/ (communal.crossmodel.verdicts)"
 
 
@@ -148,7 +149,8 @@ def fill(ledger: Ledger, rows: list[dict], labels: dict[str, dict]) -> None:
         }
         drawn.append(Row(label(v.cell), v.splits, starts))
     points = len(found[0].splits) * len(drawn) if found else 0
-    ledger.figure("idl1-cross-figure", draw, FigureData(drawn), how=HOW, size=(6.5, 0.15 * points + 0.9))
+    height = min(0.15 * points + 0.9, TALLEST)
+    ledger.figure("idl1-cross-figure", draw, FigureData(drawn), how=HOW, size=(6.5, height))
     ledger.value(
         "idl1.cross.caption.none",
         "" if drawn else "No cell holds on its fresh replies.",
