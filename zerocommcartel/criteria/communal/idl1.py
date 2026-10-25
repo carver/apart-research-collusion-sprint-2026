@@ -20,14 +20,14 @@ from pathlib import Path
 from zerocommcartel import cli, logs
 from zerocommcartel.call import MODELS, complete
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.communal.identity import CELLS, CITES, CONTROLS, DUOPOLY, FIRM_ARMS, FIXED
+from zerocommcartel.criteria.communal.games import FixedRival
+from zerocommcartel.criteria.communal.identity import CELLS, CITES, CONTROLS, DUOPOLY, FIRM_ARMS
 from zerocommcartel.criteria.conceptualization import readback
 from zerocommcartel.criterion import Registry
 from zerocommcartel.table import Replies, at_focal, fmt, markdown, model_rank
 
 FOLDER = "communal/idl1"  # IDL-1's folder in logs/, from its id
-WEIGHED = ("single", "fixed", "run")  # where holding back can't pay for itself
-DUOPOLY_CELLS = tuple(name for name, (start, _, _) in CELLS.items() if start not in ("fixed", "run"))
+DUOPOLY_CELLS = tuple(name for name, cell in CELLS.items() if not isinstance(cell.game, FixedRival))
 FUTURE = re.compile(
     r"future|next quarter|later quarters|coming quarters|long[- ]run|repeat|retaliat|punish|trigger|"
     r"tit[- ]for[- ]tat|reputation",
@@ -38,7 +38,7 @@ HEADER = ["model", "cell", "replies", "invalid", "mean", "Nash", "cartel", "othe
           "Δ mean", "Δ w", "cites identity", "cites future"]  # fmt: skip
 
 
-def weight(answer: float, rival: float, margin: float = 120) -> float | None:
+def weight(answer: float, rival: float, margin: float = DUOPOLY.a - DUOPOLY.c) -> float | None:
     """The weight w on the other firm's profit that makes `answer` my firm's best response to the other firm
     at `rival`: the first-order condition margin - 2q - r - wr = 0. It takes the rival's output as given, so
     it means sympathy only where holding back can't pay for itself (against the fixed rival, or with no
@@ -51,21 +51,24 @@ def weight(answer: float, rival: float, margin: float = 120) -> float | None:
 
 def weights(name: str, rows: list[dict], readbacks: dict, registry: Registry) -> list[float] | None:
     """The weights of a cell's replies, or None where the cell isn't weighed: a bare cell or a firm identity
-    where holding back can't pay for itself. A buyer's weight would read as spite toward the other firm."""
-    start, identity, _ = CELLS[name]
-    if start not in WEIGHED or identity not in (None, *FIRM_ARMS):
+    where holding back can't pay for itself, against the fixed rival (its output is the game's) or in the
+    single quarter (the readback's). A buyer's weight would read as spite toward the other firm."""
+    cell = CELLS[name]
+    game = cell.game
+    if cell.identity not in (None, *FIRM_ARMS) or not (
+        isinstance(game, FixedRival) or cell.start == "single"
+    ):
         return None
-    margin = DUOPOLY.a - DUOPOLY.c  # every identity cell's market
     found = []
     for row in rows:
         if row["value"] is None:
             continue
-        if start == "single":
+        if isinstance(game, FixedRival):
+            rival = game.rival
+        else:
             back = readback.lookup(readbacks, registry, "communal", row)
             rival = back.other if back else None
-        else:
-            rival = FIXED.rival  # the run-the-firm market's rival is the fixed one's
-        if rival is not None and (w := weight(row["value"], rival, margin)) is not None:
+        if rival is not None and (w := weight(row["value"], rival, game.a - game.c)) is not None:
             found.append(w)
     return found
 
@@ -73,9 +76,9 @@ def weights(name: str, rows: list[dict], readbacks: dict, registry: Registry) ->
 def control_of(name: str) -> str | None:
     """The cell an identity is read against: its control arm from the same start point, on the plain
     question."""
-    start, identity, ask = CELLS[name]
-    control = f"id_{start}_{CONTROLS.get(identity or '')}"
-    return control if ask == "plain" and control in CELLS else None
+    cell = CELLS[name]
+    control = f"id_{cell.start}_{CONTROLS.get(cell.identity or '')}"
+    return control if cell.ask == "plain" and control in CELLS else None
 
 
 def cites_future(reply: str | None) -> bool:
@@ -95,26 +98,26 @@ def report(replies: Replies, readbacks: dict | None = None, registry: Registry =
     for row in replies.rows:
         if row["condition"] in CELLS:
             cells.setdefault((row["model"], row["condition"]), []).append(row)
-    means, medians, expected = {}, {}, {}
+    means: dict[tuple[str, str], float] = {}
+    weighed: dict[tuple[str, str], list[float]] = {}
+    expected: dict[tuple[str, str], list[float]] = {}  # the other firm's output, as the readbacks expected it
     for key, rows in cells.items():
         if values := [r["value"] for r in rows if r["value"] is not None]:
             means[key] = statistics.mean(values)
         if found := weights(key[1], rows, readbacks, registry):
-            medians[key] = (statistics.median(found), len(found))
-        backs = [
-            b.other
-            for r in rows
-            if (b := readback.lookup(readbacks, registry, "communal", r)) and b.other is not None
-        ]
-        if backs:
-            expected[key] = (statistics.median(backs), len(backs))
+            weighed[key] = found
+        backs = [readback.lookup(readbacks, registry, "communal", r) for r in rows]
+        if others := [b.other for b in backs if b and b.other is not None]:
+            expected[key] = others
+    medians = {key: statistics.median(found) for key, found in weighed.items()}
 
-    def gap(found: dict, key: tuple[str, str], control: str | None, form: str) -> str:
-        theirs = (key[0], control)
-        if not control or key not in found or theirs not in found:
+    def median_of(found: dict[tuple[str, str], list[float]], key: tuple[str, str], form: str) -> str:
+        return f"{statistics.median(found[key]):{form}} ({len(found[key])})" if key in found else "-"
+
+    def gap(found: dict[tuple[str, str], float], key: tuple[str, str], control: str | None, form: str) -> str:
+        if control is None or key not in found or (key[0], control) not in found:
             return "-"
-        mine, other = (found[k][0] if isinstance(found[k], tuple) else found[k] for k in (key, theirs))
-        return format(mine - other, form)
+        return format(found[key] - found[(key[0], control)], form)
 
     order = {name: i for i, name in enumerate(CELLS)}
     lines = []
@@ -123,7 +126,7 @@ def report(replies: Replies, readbacks: dict | None = None, registry: Registry =
         rows = cells[key]
         others = [focal for focal in rows[0]["focal"] if focal not in ("nash", "cartel")]
         control = control_of(name)
-        pattern = CITES.get(CELLS[name][1] or "")
+        pattern = CITES.get(CELLS[name].identity or "")
         lines.append(
             [
                 model,
@@ -134,9 +137,9 @@ def report(replies: Replies, readbacks: dict | None = None, registry: Registry =
                 str(sum(at_focal(r, "nash") for r in rows)),
                 str(sum(at_focal(r, "cartel") for r in rows)),
                 ", ".join(f"{focal} {sum(at_focal(r, focal) for r in rows)}" for focal in others),
-                f"{expected[key][0]:g} ({expected[key][1]})" if key in expected else "-",
-                f"{medians[key][0]:.2f} ({medians[key][1]})" if key in medians else "-",
-                CELLS[control][1] if control else "-",
+                median_of(expected, key, "g"),
+                median_of(weighed, key, ".2f"),
+                CELLS[control].identity if control else "-",
                 gap(means, key, control, "+.1f"),
                 gap(medians, key, control, "+.2f"),
                 str(sum(bool(re.search(pattern, r["reply"] or "", re.IGNORECASE)) for r in rows))

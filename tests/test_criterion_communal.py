@@ -1,12 +1,15 @@
 """The communal criterion (#41): its arms' prompts and focal points, its judge, its measures and its report.
 No test calls a model."""
 
+import importlib.util
 import json
 
 import pytest
 
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.communal import report
+from zerocommcartel.criteria.communal import idl1, report
+from zerocommcartel.criteria.communal.identity import CONDITIONS as IDENTITY
+from zerocommcartel.criteria.conceptualization import readback
 from zerocommcartel.criterion import Measure
 from zerocommcartel.judge import COPY, load_labels
 from zerocommcartel.table import prepare
@@ -580,8 +583,6 @@ def test_an_identity_arm_ends_the_market_paragraph_with_its_one_sentence(start, 
 
 
 def test_each_arm_runs_from_the_start_points_where_its_push_has_room():
-    from zerocommcartel.criteria.communal.identity import CONDITIONS
-
     expected = {
         *(f"id_{start}_{arm}" for arm in FIRM_ARMS for start in NASH_SIDE),
         *(f"id_{start}_rival_charity_own" for start in NASH_SIDE),
@@ -590,15 +591,14 @@ def test_each_arm_runs_from_the_start_points_where_its_push_has_room():
         *(f"id_{start}_base{ask}" for start in (*START_CELLS, "fixed") for ask in ("", "_own")),
         "id_run_base", "id_run_rival_charity", "id_run_buyers_hospitals",
     }  # fmt: skip
-    assert set(CONDITIONS) == expected
-    assert len(CONDITIONS) == 82
+    assert set(IDENTITY) == expected
+    assert len(IDENTITY) == 82
 
 
 def test_the_identity_arms_ask_the_plain_question_and_the_charity_rival_the_profit_one_too():
-    from zerocommcartel.criteria.communal.identity import CONDITIONS
 
-    assert CONDITIONS
-    for name, condition in CONDITIONS.items():
+    assert IDENTITY
+    for name, condition in IDENTITY.items():
         assert condition.ask == ("own" if name.endswith("_own") else "plain"), name
 
 
@@ -614,10 +614,9 @@ def test_the_run_the_firm_cells_have_the_model_run_its_firm_against_the_rival_at
 
 
 def test_no_identity_prompt_calls_the_market_a_simulation():
-    from zerocommcartel.criteria.communal.identity import CONDITIONS
 
-    assert CONDITIONS
-    rendered = [prompt(name) for name in CONDITIONS]
+    assert IDENTITY
+    rendered = [prompt(name) for name in IDENTITY]
     assert not [p for p in rendered if "simulat" in f"{p.system} {p.user}".lower()]
 
 
@@ -649,13 +648,11 @@ def test_the_identity_cells_count_the_answers_their_readings_give():
     [(40, 40, 0), (30, 45, 1 / 3), (24, 48, 1 / 2), (0, 60, 1), (48, 24, 0), (36, 24, 1), (42, 24, 1 / 2)],
 )  # the readings table's pairs (flaws.md, "The identity lever"), checked there by grid search
 def test_the_weight_on_the_other_firm_is_the_one_that_makes_the_answer_a_best_response(answer, rival, weight):
-    from zerocommcartel.criteria.communal import idl1
 
     assert idl1.weight(answer, rival) == pytest.approx(weight)
 
 
 def test_no_weight_makes_an_answer_the_best_response_to_a_rival_that_makes_nothing():
-    from zerocommcartel.criteria.communal import idl1
 
     assert idl1.weight(60, 0) is None
 
@@ -672,8 +669,6 @@ def idl1_line(table, model, condition):
 
 
 def test_the_report_weighs_only_where_holding_back_cant_pay_for_itself():
-    from zerocommcartel.criteria.communal import idl1
-    from zerocommcartel.criteria.conceptualization import readback
 
     replies = {  # (condition, sample): (reply, the other firm's output its readback expected)
         ("id_single_rival_charity", 0): ("Nash.\nQUANTITY: 40", 40),
@@ -720,10 +715,6 @@ def test_the_report_weighs_only_where_holding_back_cant_pay_for_itself():
 
 
 def test_the_experiment_runs_every_identity_cell_into_the_folder_its_report_reads():
-    import importlib.util
-
-    from zerocommcartel.criteria.communal import idl1
-    from zerocommcartel.criteria.communal.identity import CONDITIONS
 
     spec = importlib.util.spec_from_file_location("idl1_script", "experiments/idl1_identity_lever.py")
     assert spec and spec.loader
@@ -731,13 +722,11 @@ def test_the_experiment_runs_every_identity_cell_into_the_folder_its_report_read
     spec.loader.exec_module(script)
     experiment = script.EXPERIMENT
     assert (experiment.folder, experiment.criterion, experiment.ns) == (idl1.FOLDER, "communal", (2,))
-    assert experiment.conditions == tuple(CONDITIONS)
+    assert experiment.conditions == tuple(IDENTITY)
     assert (experiment.cells, experiment.samples, experiment.calls) == (82, 10, 82 * 10 * 5)
 
 
 def test_the_readback_asks_the_duopoly_replies_only(tmp_path):
-    from zerocommcartel.criteria.communal import idl1
-    from zerocommcartel.criteria.conceptualization import readback
 
     log = tmp_path / "results.jsonl"
     with log.open("w") as f:

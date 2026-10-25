@@ -23,8 +23,7 @@ EXPERIMENT = Experiment(
     samples=10,
     judges=(),
     report=idl1.report,
-)
-assert EXPERIMENT.folder == idl1.FOLDER, "the report and the readback read the experiment's own folder"
+)  # its folder, communal/idl1, is the one idl1.report and the readback read (a test checks)
 
 if __name__ == "__main__":
     main(EXPERIMENT)
