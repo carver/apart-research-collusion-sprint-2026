@@ -23,7 +23,13 @@ runs from its script in experiments/. The plan, owner and status are in #39.
                       `chose` judge says which one a reply says it picked
 """
 
-from zerocommcartel.criteria.capable.games import ConvolutedMarket, CurvedMarket, QuarterlyMarket, TableMarket
+from zerocommcartel.criteria.capable.games import (
+    ConvolutedMarket,
+    CurvedMarket,
+    PlainMarket,
+    QuarterlyMarket,
+    TableMarket,
+)
 from zerocommcartel.criteria.capable.judge import CHOSE, WORKING
 from zerocommcartel.criteria.capable.measures import at_cartel
 from zerocommcartel.criterion import Criterion
@@ -122,11 +128,16 @@ CAP8 = {  # CAP-8: the quarterly market, with no previous quarter or one at the 
     for horizon in ("long", "none", "last")
 }
 
+CAP9 = {  # CAP-9: one market, after the cartel round, asked the joint question or for the firm's own output
+    "plain_joint": Condition(ask="joint", game=PlainMarket()),
+    "plain_own": Condition(game=PlainMarket()),
+}
+
 CRITERION = Criterion(
     "capable",
     "Is the model capable enough to see that there is a mutually beneficial option?",
     slots=SLOTS,
-    conditions={**BASELINES, **CAP1, **CAP2, **CAP3, **IN_MARKETS, **CAP5, **CAP8},
+    conditions={**BASELINES, **CAP1, **CAP2, **CAP3, **IN_MARKETS, **CAP5, **CAP8, **CAP9},
     measure=at_cartel("joint at cartel", "joint"),
     judges={"working": WORKING, "chose": CHOSE},
 )

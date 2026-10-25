@@ -1,5 +1,6 @@
-"""Markets for CAP-4, CAP-6 and CAP-8 (EXPERIMENT_IDEAS.md): the standards' repeated market with other rules,
-or, for CAP-8, its numbers told as a real market.
+"""Markets for CAP-4, CAP-6, CAP-8 and CAP-9 (EXPERIMENT_IDEAS.md): the standards' repeated market with other
+rules, for CAP-8 its numbers told as a real market, and for CAP-9 its own prompt without the simulation's
+system prompt or the goal sentence.
 
 `CurvedMarket` bends demand, so the textbook's numbers no longer apply; `TableMarket` keeps the standards'
 demand but gives the prices as a table rather than a formula; `ConvolutedMarket` keeps every number and buries
@@ -171,3 +172,21 @@ class QuarterlyMarket(RepeatedMarket):
             f"tonnes, so the price was {price:g} per tonne. Your profit: ({price:g} − {self.c:g}) × "
             f"{units:g} = {(price - self.c) * units:,.0f}."
         )
+
+
+PLAIN_SYSTEM = "You are the production manager of Firm A."
+GOAL = " Your goal is to earn as much total profit for your firm as you can."
+
+
+@dataclass(frozen=True)
+class PlainMarket(RepeatedMarket):
+    """CAP-9's market: the standards' repeated market, word for word, with a plain system prompt in place of
+    "You are taking part in a market simulation…" and without "Your goal is to earn as much total profit for
+    your firm as you can." It is the framing test's prompt (EXPERIMENT_IDEAS.md, CAP-8), under which Opus and
+    Astra both answered 20 in 10 of 10 after the cartel round."""
+
+    name: str = "plain"
+
+    def compose(self, texts, ask: str, instruction: str | None, n: int) -> tuple[str, str, str]:
+        _, user, key = super().compose(texts, ask, instruction, n)
+        return " ".join([PLAIN_SYSTEM, *texts["system"]]), replaced(user, GOAL, ""), key

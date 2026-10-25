@@ -250,6 +250,37 @@ def horizons(replies: Replies) -> str:
     )
 
 
+CAPABILITY_HEADER = [
+    "model", "joint at cartel", "own at cartel", "own at Nash", "own at best reply", "own other",
+    "own no answer",
+]  # fmt: skip
+
+
+def capability(replies: Replies) -> str:
+    """CAP-9, per model: the joint question's answers at the cartel quantity, then the firm's own answers at
+    it, at Nash, at the best reply to rivals at the cartel quantity, anything else, and none."""
+    lines = []
+    for (model,), rows in grouped(replies, lambda r: (r["model"],)).items():
+        joint = [r for r in rows if r["ask"] == "joint"]
+        own = [r for r in rows if r["ask"] == "own"]
+        first, params = own[0], own[0]["game_params"]
+        cartel, nash = first["focal"]["cartel"], first["focal"]["nash"]
+        best = max(0.0, (params["a"] - params["c"] - (first["n"] - 1) * cartel) / 2)
+        found = values(own)
+        lines.append(
+            [
+                model,
+                share(joint, at),
+                f"{sum(v == cartel for v in found)}/{len(own)}",
+                str(sum(v == nash for v in found)),
+                str(sum(v == best for v in found)),
+                str(sum(v not in (cartel, nash, best) for v in found)),
+                str(len(own) - len(found)),
+            ]
+        )
+    return markdown(CAPABILITY_HEADER, lines) + failed_note(replies)
+
+
 def answers(rows: list[dict]) -> list[str]:
     """A cell's replies, its answers at the cartel quantity, its invalid answers and the mean of the rest."""
     found = values(rows)
