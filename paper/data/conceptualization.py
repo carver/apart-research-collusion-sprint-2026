@@ -1,6 +1,6 @@
-"""The conceptualization criterion (#42): its figure, from the rows `zcc table conceptualization` counts.
+"""The conceptualization criterion (#42): its two figures, from the rows `zcc table conceptualization` counts.
 
-The figure follows each model along the lever, the rungs from a rival that asks this same model with this
+Figure 2 follows each model along the lever, the rungs from a rival that asks this same model with this
 same prompt to one that won't cooperate, in the three backgrounds with no record of past play (a line per
 horizon). Top row: the share of answers at the cartel share, with a shaded 95% Wilson band. Bottom row, a
 reading of the model's mind rather than a data report: the same lines raised as if every antitrust refusal had
@@ -9,8 +9,13 @@ been a cartel answer. A refusal is an answer off the cartel share, at or below N
 "Conceptualization"). Each model's refusals, of its answers off the cartel share, are keys too, so the caption
 can word the reading model by model.
 
-To change the figure, change `STYLE` (the rungs on x, how the neutral rung is marked, whether the bottom row
-draws the raw line faintly behind) or `MODELS`, and rebuild the paper."""
+Figure 3 sets the extra-chance arms beside the copy's own prompt: a 100% bar per model and arm, split into
+answers at the cartel share, answers exploiting the copy (a best response to the other firm's output the
+reply's readback expected, when that is below Nash) and the rest.
+
+To change Figure 2, change `STYLE` (the rungs on x, how the neutral rung is marked, whether the bottom row
+draws the raw line faintly behind); Figure 3, `EXTRA_STYLE` (the arms and the panels); both, `MODELS`. Then
+rebuild the paper. The captions' phrases about the layout follow the styles. Issue #45 has recipes."""
 
 import math
 import re
@@ -27,7 +32,8 @@ from paper.data import source
 from paper.ledger import Ledger, wilson
 from zerocommcartel import cli
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.conceptualization import DUOPOLY, HORIZONS, RUNGS, name, readback
+from zerocommcartel.criteria.conceptualization import DUOPOLY, HORIZONS, RUNGS, extra_name, name, readback
+from zerocommcartel.criteria.conceptualization.readback import Readback
 from zerocommcartel.criterion import near
 from zerocommcartel.mentions import MENTIONS
 
@@ -176,9 +182,7 @@ def draw(ax: Any, data: FigureData) -> None:
             panel.yaxis.set_major_formatter(PercentFormatter(1.0))
             panel.grid(axis="y", color=GRID, linewidth=0.6)
             panel.set_axisbelow(True)
-            panel.tick_params(axis="both", length=0, labelsize=6.5)
-            for side in ("top", "right", "left"):
-                panel.spines[side].set_visible(False)
+            plain(panel)
         top.set_title(MODELS[model], fontsize=8.5, color=INK)
         bottom.set_xticks(
             xs, labels=[RUNG_LABELS[r] for r in style.rungs], rotation=60, ha="right", fontsize=6
@@ -219,8 +223,7 @@ def fill(ledger: Ledger, rows: list[dict], style: Style = STYLE) -> None:
     ledger.value(
         "conceptualization.caption.ghost", caption_ghost(style), how="the faint raw line, from STYLE"
     )
-    fewest, most = min(c.n for c in found.values()), max(c.n for c in found.values())
-    replies = str(most) if fewest == most else f"{fewest} to {most}"
+    replies = replies_text([c.n for c in found.values()])
     ledger.value("conceptualization.cells.replies", replies, how="parsed answers a cell in the figure")
     for model in MODELS:
         off = [r for r in rows if r["model"] == model and r["condition"] in NO_RECORD and could_refuse(r)]
@@ -233,18 +236,22 @@ def fill(ledger: Ledger, rows: list[dict], style: Style = STYLE) -> None:
 # Figure 3: the extra chance. My firm's request ends with a paragraph the copy's lacks; does the model keep
 # the mirror, or best-respond to the copy it predicts?
 
-EXTRA_ARMS = {  # arm: (its label, its condition in a background with no record)
-    "base": ("copy’s prompt", lambda h: name("same", h, "none")),
-    "same": ("extra chance", lambda h: f"mind_extra_same_{h}_none"),
-    "asym": ("asymmetry only", lambda h: f"mind_extra_asym_{h}_none"),
-    "both": ("both get it", lambda h: f"mind_extra_both_{h}_none"),
-}
+BARS = {"base": "copy’s prompt", "same": "extra chance", "asym": "asymmetry only", "both": "both get it"}
+
+
+def bar_condition(arm: str, horizon: str) -> str:
+    """The condition behind a bar: the copy's own prompt (`same`'s arm) or an extra-chance arm."""
+    return name("same", horizon, "none") if arm == "base" else extra_name(arm, horizon, "none")
+
+
+BAR_OF = {bar_condition(arm, h): (arm, h) for arm in BARS for h in HORIZONS}  # condition -> (arm, horizon)
 AT_CARTEL, EXPLOIT, OTHER = "#2a78d6", "#e34948", "#e4e3df"  # dataviz blue, red and a neutral gray
+Reader = Callable[[dict], Readback | None]  # a reply's readback, if it has one
 
 
 @dataclass(frozen=True)
 class ExtraStyle:
-    arms: tuple[str, ...] = tuple(EXTRA_ARMS)  # the bars in each model's group, in order
+    arms: tuple[str, ...] = tuple(BARS)  # the bars in each model's group, in order
     backgrounds: tuple[str, ...] = HORIZONS  # the panels: horizons with no record
 
 
@@ -263,7 +270,7 @@ class ExtraData:
     style: ExtraStyle = EXTRA_STYLE
 
 
-def exploits(row: dict, got: Any) -> bool:
+def exploits(row: dict, got: Readback | None) -> bool:
     """An answer off the cartel share that best-responds to the other firm's output its readback expected,
     when that is below Nash: a copy predicted to collude, exploited."""
     nash = DUOPOLY.benchmarks(2)["nash"]
@@ -272,12 +279,11 @@ def exploits(row: dict, got: Any) -> bool:
     return near(row["value"], DUOPOLY.best_response(got.other))
 
 
-def extra_splits(rows: list[dict], read: Callable[[dict], Any]) -> dict[tuple[str, str, str], Split]:
-    arm_of = {cond(h): (arm, h) for arm, (_, cond) in EXTRA_ARMS.items() for h in HORIZONS}
+def extra_splits(rows: list[dict], read: Reader) -> dict[tuple[str, str, str], Split]:
     cells: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
     for row in rows:
-        if row["condition"] in arm_of and row["model"] in MODELS and row["value"] is not None:
-            cells[(row["model"], *arm_of[row["condition"]])].append(row)
+        if row["condition"] in BAR_OF and row["model"] in MODELS and row["value"] is not None:
+            cells[(row["model"], *BAR_OF[row["condition"]])].append(row)
     return {
         cell: Split(sum(map(at_cartel, found)), sum(exploits(r, read(r)) for r in found), len(found))
         for cell, found in cells.items()
@@ -293,7 +299,7 @@ def draw_extra(ax: Any, data: ExtraData) -> None:
     ys, labels, y = [], [], 0.0
     for model in models:
         for i, arm in enumerate(style.arms):
-            label = EXTRA_ARMS[arm][0]
+            label = BARS[arm]
             labels.append(f"{MODELS[model]} · {label}" if i == 0 else label)
             ys.append(y)
             y += 1
@@ -310,9 +316,7 @@ def draw_extra(ax: Any, data: ExtraData) -> None:
         panel.set_title(HORIZON_LABELS[horizon], fontsize=8, color=INK)
         panel.set_xlim(0, 1)
         panel.xaxis.set_major_formatter(PercentFormatter(1.0))
-        panel.tick_params(axis="both", length=0, labelsize=6.5)
-        for side in ("top", "right", "left"):
-            panel.spines[side].set_visible(False)
+        plain(panel)
     axes[0].set_yticks(ys, labels=labels, fontsize=6.3)
     axes[0].invert_yaxis()
     handles = [
@@ -342,9 +346,7 @@ def caption_arms(style: ExtraStyle) -> str:
     return named_list([ARM_PHRASES[arm] for arm in style.arms])
 
 
-def fill_extra(
-    ledger: Ledger, rows: list[dict], read: Callable[[dict], Any], style: ExtraStyle = EXTRA_STYLE
-) -> None:
+def fill_extra(ledger: Ledger, rows: list[dict], read: Reader, style: ExtraStyle = EXTRA_STYLE) -> None:
     splits = extra_splits(rows, read)
     size = (6.5, 0.24 * len(MODELS) * len(style.arms) + 1.0)
     how = (
@@ -353,8 +355,7 @@ def fill_extra(
     )
     ledger.figure("conceptualization-extra-figure", draw_extra, ExtraData(splits, style), how=how, size=size)
     shown = [s.n for (_, arm, h), s in splits.items() if arm in style.arms and h in style.backgrounds]
-    fewest, most = min(shown), max(shown)
-    replies = str(most) if fewest == most else f"{fewest} to {most}"
+    replies = replies_text(shown)
     ledger.value(
         "conceptualization.extra.replies", replies, how="parsed answers a bar in the extra-chance figure"
     )
@@ -367,11 +368,31 @@ def fill_extra(
     )
 
 
+def replies_text(sizes: list[int]) -> str:
+    """The replies a cell for a caption: one number, or "8 to 10" when cells differ."""
+    fewest, most = min(sizes), max(sizes)
+    return str(most) if fewest == most else f"{fewest} to {most}"
+
+
+def plain(panel: Any) -> None:
+    panel.tick_params(axis="both", length=0, labelsize=6.5)
+    for side in ("top", "right", "left"):
+        panel.spines[side].set_visible(False)
+
+
 @source("conceptualization")
 def conceptualization(ledger: Ledger) -> None:
     rows = cli.replies(REGISTRY, "conceptualization", None, list(NO_RECORD), list(MODELS)).rows
     fill(ledger, rows)
-    conditions = [cond(h) for _, cond in EXTRA_ARMS.values() for h in HORIZONS]
-    extra_rows = cli.replies(REGISTRY, "conceptualization", None, conditions, list(MODELS)).rows
-    reads = readback.load(readback.cache_path(cli.sources(REGISTRY, "conceptualization", None).log))
-    fill_extra(ledger, extra_rows, lambda row: readback.lookup(reads, REGISTRY, "conceptualization", row))
+
+
+@source("conceptualization-extra")
+def conceptualization_extra(ledger: Ledger) -> None:
+    """A source of its own, so a failure here can't drop Figure 2's keys. Without the readback cache every
+    exploit would read as "other", so a missing cache stops the source instead."""
+    cache = readback.cache_path(cli.sources(REGISTRY, "conceptualization", None).log)
+    if not cache.exists():
+        raise FileNotFoundError(f"{cache}: the extra-chance figure reads exploits through the readbacks")
+    reads = readback.load(cache)
+    rows = cli.replies(REGISTRY, "conceptualization", None, list(BAR_OF), list(MODELS)).rows
+    fill_extra(ledger, rows, lambda row: readback.lookup(reads, REGISTRY, "conceptualization", row))
