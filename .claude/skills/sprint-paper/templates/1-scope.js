@@ -27,7 +27,7 @@ OFF-LIMITS as our main direction (the user and a teammate will pursue them; we m
 Everything else the team did is fair game to build on, extend or overlap (tradingcartel experiment 01 buyers' cartel, experiment 02 MNPI compliance pause, #22 treasury agents swapping inside info, the aa-smoke accumulating-agent recruitment, the insider tip, Yun reproduction, action-channels, watched-coalitions), disclosed as prior work.
 
 COMPUTE/BUDGET: Claude models only via the subscription CLI (\`claude -p --model haiku|sonnet|opus\`, no API key, keep total concurrent claude -p calls <= ~20 on this 16-core box). OpenRouter key in env OPENROUTER_API_KEY (never print it): free models (":free" suffix) up to ~1000 requests/day and ~20 requests/minute per model. Paid models only after the direction is chosen, $10 total for the whole project. No GPU. Experiments must fit roughly 10-20 hours of wall clock tonight/tomorrow.
-Today is 2026-10-21. Use \`paper\` (paper -h) for arXiv papers: start with \`paper outline ID\`, read only needed line ranges, \`paper grep ID PATTERN\` for single facts. Cite every claim with a source (arXiv ID / URL / file path).
+Today is 2026-10-21. Use \`bin/paper\` (bin/paper -h) for arXiv papers: start with \`bin/paper outline ID\`, read only needed line ranges, \`bin/paper grep ID PATTERN\` for single facts. Cite every claim with a source (arXiv ID / URL / file path).
 `
 
 const GATHER = [
