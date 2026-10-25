@@ -68,6 +68,7 @@ extend-exclude = [
     "bin/claude-fresh",
     "bin/edit-script-gate",
     "bin/openrouter-credits",
+    "bin/paper",
     "bin/safeps",
     "bin/waitone",
 ]

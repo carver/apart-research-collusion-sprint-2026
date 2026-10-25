@@ -1,0 +1,1693 @@
+#!/usr/bin/env -S uv run --quiet --script
+# /// script
+# dependencies = ["requests"]
+# ///
+"""Fetch a paper's metadata, citations or full text from Semantic Scholar and arXiv.
+
+    paper meta ID...
+    paper cites ID [--limit N]
+    paper search QUERY... [--limit N]
+    paper sweep QUERY... [--year Y] [--min-citations N] [--fields-of-study LIST]
+                         [--max N] [--top N]
+    paper text ID
+    paper outline ID
+    paper grep ID PATTERN [-C N] [-i]
+    paper stats [--hours H]
+
+meta prints one short block per paper: title, year and venue, authors (with
+affiliations when Semantic Scholar has them), citation count, its arXiv, DOI
+and Semantic Scholar ids, and, for an arXiv paper, its latest version with
+the dates of its first and latest versions (one arXiv API request per call).
+Pass every id to one meta call: the ids missing from the cache go to Semantic
+Scholar as one batch request (up to 500 ids each), not one request apiece.
+cites lists papers citing ID (default 20), search the top matches for a
+keyword query (default 10), each with year, title, venue, first three authors
+and ids. text downloads the PDF, extracts it with `pdftotext -layout` and
+prints the path of the .txt file. A whole paper runs to 10-20k tokens, so
+start with outline: its section headings with line numbers, to read just the
+sections you need with an offset and limit. grep prints the lines matching a
+regex, with their line numbers and 2 lines of context (-C N to change, -i to
+ignore case), for finding one number or claim. Both fetch the text first, like
+text. outline spots numbered headings ("3 Method", "4.2 Results", "A
+Appendix") and the usual section names; when a layout defeats it, grep for a
+heading instead.
+
+sweep fetches every paper matching QUERY from Semantic Scholar's bulk search,
+most cited first, up to --max (default 1000), optionally only papers from
+--year (2024, 2016-2020, 2010-, -2015), with --min-citations, or in
+--fields-of-study ("Computer Science,Economics"). When there are more matches
+than --max, it fetches again newest first, so the newest papers are there
+too. It writes them all to a TSV file in the cache, reused for a day, and
+prints how many it fetched, the --top most cited (default 20), the --top
+newest the first list doesn't show, and the file's path: grep the file for
+the rest. The query is matched against title and abstract, stemmed, and every term must
+appear: + is AND, | OR, - NOT, "..." a phrase, * a prefix, ( ) groups, and
+~N after a word or phrase allows N edits or N words apart. So keep a query to
+2-3 key terms and list synonyms with |, such as
+collusion + (LLM | "language model"): a paper that says "tacit coordination"
+where the query says "collude" doesn't match. A thin or empty result, from
+sweep or search, is a reason to rephrase, not evidence that no such paper
+exists. Matches aren't ranked by relevance, so use search for the few best
+papers on a topic and sweep for everything that matches. sweep has no
+OpenAlex fallback.
+
+stats summarises requests.jsonl in the cache, a line per request paper makes
+(service, URL without its query, status, attempts, pacing wait, backoff;
+never parameters or keys), per service over the last --hours (default 24):
+how requests ended, extra attempts, backoff, pacing waits and the busiest
+minute.
+
+ID is an arXiv id (2404.00806, version suffix optional), an arxiv.org abs or
+pdf URL, a DOI (10.1145/... bare or as a doi.org URL), or a 40-character
+Semantic Scholar paperId. text takes arXiv ids and URLs, DOIs or a direct PDF
+URL: an arXiv DOI (10.48550/arXiv....) fetches from arXiv, and any other DOI
+fetches the open-access PDF OpenAlex lists, if it lists one. For a paper with
+none of these (PMLR, OpenReview), find its paperId with search.
+
+Every answer is cached in $PAPER_CACHE (default
+/home/carver/code/claudedev/cache/paper): Semantic Scholar responses as JSON,
+OpenAlex responses likewise in openalex/, arXiv versions and dates for a day
+(new versions appear), PDFs with their text. Delete the s2 folder there to
+refetch Semantic Scholar answers (metadata, citations, searches), or a
+paper's files in pdf/ to fetch its text anew. If arXiv can't be reached, meta
+prints the rest and warns.
+
+Semantic Scholar answers more requests, and 429s less, with an API key. paper
+sends one when $S2_API_KEY is set, else when the file
+/home/carver/code/claudedev/.semantic-scholar/api-key holds one; it goes only to
+Semantic Scholar, never to arXiv or a PDF host. Without a key, requests go
+anonymous.
+
+Requests are paced across every paper process that shares the cache, so
+agents running paper in parallel stay under the limits: Semantic Scholar's at
+least 1.1 seconds apart (a key allows about one a second), OpenAlex's at least
+0.15 seconds, the arXiv API's at least 3 seconds apart. Each waits its turn on
+a lock file in the cache. PDF downloads aren't paced.
+
+Rate limits (HTTP 429, including Semantic Scholar's JSON error object), 5xx
+and timeouts are retried with exponential backoff, honouring Retry-After: up
+to 6 attempts and 2 minutes of waiting. Don't sleep and retry yourself.
+
+When Semantic Scholar still fails after those retries, meta, search and cites
+answer from OpenAlex instead, for arXiv ids and DOIs (a Semantic Scholar
+paperId has no OpenAlex form), and later lookups in the same run go straight
+to OpenAlex. A `source:` line in the output says so: OpenAlex counts and
+lists far fewer citations than Semantic Scholar for arXiv papers, so rerun
+later for Semantic Scholar's numbers, and an empty OpenAlex citer list doesn't
+show that nothing cites the paper. OpenAlex requests carry
+mailto=robocarver@worldofmail.com, and an API key when $OPENALEX_API_KEY is
+set, else when /home/carver/code/claudedev/.openalex/api-key holds one; it
+goes only to OpenAlex. Without a key, every request from this network shares
+one small daily budget. A key OpenAlex refuses (not yet activated, or
+invalid) is dropped, with a warning. OpenAlex lists at most 200 papers per
+request, so --limit above 200 gets 200.
+
+Exit status: 0 success, 1 not found (or the URL is not a PDF pdftotext can
+read, or a DOI has no open-access PDF; search with no hits exits 1, and so
+do grep with no matching line and outline with no heading; cites with no
+citing papers says so and exits 0), 2 usage error, 3 the remote refused or
+failed the request after retries, or sent an unexpected answer, including
+Semantic Scholar failing while OpenAlex fails too or has no record: try
+again later.
+
+Examples:
+    paper meta 2404.00806 10.1145/3442188.3445922
+    paper cites https://arxiv.org/abs/1706.03762 --limit 50
+    paper search detect collusion multi-agent games --limit 5
+    less "$(paper text 2404.00806)"
+    paper text https://doi.org/10.1093/joclec/nhy016
+    paper outline 2404.00806
+    paper grep 2404.00806 'collusion rate|markup' -C 1
+"""
+
+import argparse
+import bisect
+import calendar
+import fcntl
+import hashlib
+import json
+import os
+import random
+import re
+import statistics
+import subprocess
+import sys
+import time
+from collections.abc import Callable, Iterator, Sequence
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass, field
+from functools import cached_property
+from pathlib import Path
+from typing import Any
+from urllib.parse import quote, unquote, urlparse, urlsplit
+from xml.etree import ElementTree
+
+OK, NOT_FOUND, USAGE, REMOTE = 0, 1, 2, 3
+S2 = "https://api.semanticscholar.org/graph/v1"
+DEFAULT_CACHE = "/home/carver/code/claudedev/cache/paper"
+KEY_ENV = "S2_API_KEY"
+KEY_FILE = Path("/home/carver/code/claudedev/.semantic-scholar/api-key")
+ARXIV_API = "https://export.arxiv.org/api/query"
+ARXIV_TTL = 24 * 3600  # seconds; arXiv dates are refetched after a day
+ATOM = "{http://www.w3.org/2005/Atom}"
+TIMEOUT = 30
+ATTEMPTS = 6
+BUDGET = 120  # seconds of sleeping between attempts, at most
+BATCH_MAX = 500  # ids per POST /paper/batch, Semantic Scholar's limit
+ISO_UTC = "%Y-%m-%dT%H:%M:%SZ"  # the request log's and the sweep details' timestamps
+SWEEP_FIELDS = "title,year,publicationDate,venue,citationCount,externalIds,authors"
+SWEEP_TTL = 24 * 3600  # seconds; a sweep's file is fetched again after a day
+PACED = {
+    "Semantic Scholar": 1.1,
+    "arXiv": 3.0,
+    "OpenAlex": 0.15,
+}  # seconds between requests
+OPENALEX = "https://api.openalex.org"
+OPENALEX_MAILTO = "robocarver@worldofmail.com"
+OPENALEX_KEY_ENV = "OPENALEX_API_KEY"
+OPENALEX_KEY_FILE = Path("/home/carver/code/claudedev/.openalex/api-key")
+OPENALEX_PAGE_MAX = 200  # OpenAlex refuses a larger per_page
+META_FIELDS = (
+    "title,year,venue,citationCount,externalIds,authors.name,authors.affiliations"
+)
+CITES_FIELDS = "title,year,venue,externalIds,authors"
+SEARCH_FIELDS = CITES_FIELDS + ",citationCount"
+
+ARXIV = re.compile(r"\d{4}\.\d{4,5}(?:v\d+)?")
+ARXIV_VERSION = re.compile(r"v\d+$")
+# A new-style (2404.00806) or old-style (quant-ph/9801069) arXiv id, without a version.
+ARXIV_ANY = r"\d{4}\.\d{4,5}|[a-z][a-z-]*(?:\.[A-Z]{2})?/\d{7}"
+ARXIV_ABS = re.compile(rf"https?://arxiv\.org/abs/({ARXIV_ANY})v(\d+)")
+ARXIV_ID = re.compile(rf"(?:{ARXIV_ANY})(?:v\d+)?")
+DOI = re.compile(r"10\.\d{4,9}/\S+")
+S2_HEX = re.compile(r"[0-9a-f]{40}")
+ARXIV_HOSTS = {"arxiv.org", "www.arxiv.org"}
+DOI_HOSTS = {"doi.org", "dx.doi.org", "www.doi.org"}
+
+Paper = dict[
+    str, Any
+]  # a Semantic Scholar paper object, or an OpenAlex work in its shape
+
+
+class UsageError(Exception):
+    pass
+
+
+class NotFound(Exception):
+    pass
+
+
+class RemoteError(Exception):
+    """The remote refused or failed the request, after retries."""
+
+
+class ExtractFailed(Exception):
+    """The download was not a PDF, or pdftotext could not read it."""
+
+
+class TransportError(Exception):
+    """The request never got an HTTP answer: a timeout or a dropped connection."""
+
+
+class GaveUp(RemoteError):
+    """A service still failed (throttled, 5xx, timeout) after every retry."""
+
+
+class Retryable(Exception):
+    """One attempt failed in a way worth retrying: a 429, a 5xx or a timeout."""
+
+    def __init__(self, problem: str, retry_after: float | None = None):
+        super().__init__(problem)
+        self.retry_after = retry_after
+
+
+# ID parsing
+
+
+@dataclass(frozen=True)
+class PaperId:
+    """A parsed ID. Each kind knows its Semantic Scholar path and its PDF."""
+
+    value: str
+
+    def s2_path(self) -> str:
+        return "/paper/" + quote(self.s2_id(), safe=":/")
+
+    def s2_id(self) -> str:
+        return self.value
+
+    def openalex_path(self) -> str | None:
+        """The OpenAlex work path for this id, or None when OpenAlex can't take it."""
+        return None
+
+    def pdf_source(self) -> tuple[str | None, str]:
+        """The PDF's URL and the cache file stem for it. The URL is None when it has to
+        be looked up (a DOI's open-access PDF, through OpenAlex)."""
+        raise UsageError(
+            f"needs an arXiv id or URL, a DOI, or a PDF URL: {self.value!r}"
+        )
+
+
+class ArxivId(PaperId):
+    def s2_id(self) -> str:
+        return "arXiv:" + ARXIV_VERSION.sub("", self.value)
+
+    def openalex_path(self) -> str | None:
+        return "/works/doi:10.48550/arXiv." + ARXIV_VERSION.sub("", self.value)
+
+    def pdf_source(self) -> tuple[str, str]:
+        return f"https://arxiv.org/pdf/{self.value}", "arxiv-" + self.value
+
+
+class Doi(PaperId):
+    def s2_id(self) -> str:
+        return "DOI:" + self.value
+
+    def openalex_path(self) -> str | None:
+        return "/works/doi:" + quote(self.value, safe=":/")
+
+    def pdf_source(self) -> tuple[str | None, str]:
+        m = ARXIV_DOI.fullmatch(self.value)
+        if m and ARXIV.fullmatch(m.group(1)):
+            return ArxivId(m.group(1)).pdf_source()
+        doi = self.value.lower()  # DOIs are case-insensitive
+        return None, cache_stem("doi", doi, doi)
+
+
+class S2PaperId(PaperId):
+    pass
+
+
+class PdfUrl(PaperId):
+    def s2_path(self) -> str:
+        raise UsageError(f"a PDF URL works only with `paper text`: {self.value!r}")
+
+    def pdf_source(self) -> tuple[str, str]:
+        name = Path(urlparse(self.value).path).stem
+        return self.value, cache_stem("url", self.value, name)
+
+
+def cache_stem(prefix: str, key: str, name: str) -> str:
+    """A flat, safe file stem for a PDF's cache: the prefix, a hash of `key`, and
+    `name` with anything unsafe in a file name replaced."""
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", name)[:60]
+    digest = hashlib.sha256(key.encode()).hexdigest()[:12]
+    return f"{prefix}-{digest}-{safe}"
+
+
+def parse_id(text: str) -> PaperId:
+    """An arXiv id, DOI, S2 paperId or PDF URL, from any form of ID we take."""
+    text = text.strip()
+    if ARXIV.fullmatch(text):
+        return ArxivId(text)
+    if DOI.fullmatch(text):
+        return Doi(text)
+    if S2_HEX.fullmatch(text.lower()):
+        return S2PaperId(text.lower())
+    url = urlsplit(text)
+    if url.scheme in ("http", "https") and url.hostname:
+        if url.hostname in ARXIV_HOSTS:
+            parts = url.path.strip("/").split("/", 1)
+            if len(parts) == 2 and parts[0] in ("abs", "pdf"):
+                candidate = parts[1].removesuffix(".pdf")
+                if ARXIV.fullmatch(candidate):
+                    return ArxivId(candidate)
+            raise UsageError(f"not an arXiv paper URL: {text!r}")
+        if url.hostname in DOI_HOSTS:
+            candidate = unquote(url.path.lstrip("/"))
+            if DOI.fullmatch(candidate):
+                return Doi(candidate)
+            raise UsageError(f"not a DOI URL: {text!r}")
+        return PdfUrl(text)
+    raise UsageError(
+        f"not a paper id: {text!r} (arXiv id or URL, DOI, S2 paperId, or a PDF URL)"
+    )
+
+
+# HTTP client
+
+
+@dataclass
+class Response:
+    status: int
+    headers: dict[str, str]
+    content: bytes
+
+
+Fetch = Callable[
+    ..., Response
+]  # (method, url, *, params=None, headers=None, json=None)
+Extract = Callable[[Path, Path], None]  # (pdf, txt) -> None
+
+
+def requests_fetch(
+    method: str,
+    url: str,
+    *,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+    json: Any = None,
+) -> Response:
+    import requests
+
+    try:
+        r = requests.request(
+            method, url, params=params, headers=headers, json=json, timeout=TIMEOUT
+        )
+    except (requests.Timeout, requests.ConnectionError) as e:
+        raise TransportError(type(e).__name__) from e
+    return Response(r.status_code, dict(r.headers), r.content)
+
+
+@dataclass(frozen=True)
+class ApiKey:
+    """An API key, and where it came from for error messages."""
+
+    value: str = field(repr=False)
+    source: str
+
+
+def read_key(env: str, path: Path) -> ApiKey | None:
+    """The key from $env, else from the file at `path`, else None."""
+    value = os.environ.get(env, "").strip()
+    if value:
+        return ApiKey(value, "$" + env)
+    try:
+        value = path.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return None
+    except UnicodeDecodeError:
+        raise UsageError(f"the API key file {path} is not UTF-8 text") from None
+    except OSError as e:
+        raise UsageError(f"can't read the API key file {path}: {e.strerror}") from None
+    return ApiKey(value, str(path)) if value else None
+
+
+def find_api_key() -> ApiKey | None:
+    """The Semantic Scholar key from $S2_API_KEY, else from KEY_FILE, else None."""
+    return read_key(KEY_ENV, KEY_FILE)
+
+
+def find_openalex_key() -> ApiKey | None:
+    """The OpenAlex key from $OPENALEX_API_KEY, else from OPENALEX_KEY_FILE, else None."""
+    return read_key(OPENALEX_KEY_ENV, OPENALEX_KEY_FILE)
+
+
+def pdftotext(pdf: Path, txt: Path) -> None:
+    try:
+        subprocess.run(
+            ["pdftotext", "-layout", str(pdf), str(txt)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError as e:
+        raise ExtractFailed(
+            "pdftotext is not installed (apt install poppler-utils)"
+        ) from e
+    except subprocess.CalledProcessError as e:
+        raise ExtractFailed(f"pdftotext failed: {e.stderr.strip()}") from e
+
+
+@dataclass(frozen=True)
+class Pacer:
+    """Keeps requests to one service at least `interval` seconds apart, across every
+    process that shares `path`. The file holds the last request's time; a caller takes
+    its lock and holds it while waiting, so callers queue up."""
+
+    path: Path
+    interval: float
+    clock: Callable[[], float] = time.time
+    sleep: Callable[[float], None] = time.sleep
+
+    def wait(self) -> float:
+        """Waits for this request's turn and returns the time it recorded for it."""
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with self.path.open("a+") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)  # released when the file closes
+            f.seek(0)
+            try:
+                last = float(f.read())
+            except ValueError:
+                last = 0.0
+            # At most one interval, so a clock set back can't stall every process.
+            delay = min(last + self.interval - self.clock(), self.interval)
+            if delay > 0:
+                self.sleep(delay)
+            now = self.clock()
+            f.seek(0)
+            f.truncate()
+            f.write(repr(now))
+        return now
+
+
+class Client:
+    """Fetches, sleeps between retries and extracts PDFs, all swappable in tests."""
+
+    def __init__(
+        self,
+        fetch: Fetch,
+        sleep: Callable[[float], None],
+        extract: Extract,
+        pace: Callable[[str], None] | None = None,
+    ):
+        self.fetch = fetch
+        self.sleep = sleep
+        self.extract = extract
+        self.cache = Path(os.environ.get("PAPER_CACHE") or DEFAULT_CACHE)
+        self.pace = pace or self.wait_turn
+        # Once Semantic Scholar has given up, later cache misses in this run skip it.
+        self.s2_gave_up: GaveUp | None = None
+        self.openalex_key_refused = False
+        self.warned_fallback = False
+        self.warned_log = False
+
+    def wait_turn(self, service: str) -> None:
+        """Waits until `service`'s interval since its last request, by any process, has passed."""
+        name = ".pace-" + service.lower().replace(" ", "-")
+        Pacer(self.cache / name, PACED[service]).wait()
+
+    @cached_property
+    def api_key(self) -> ApiKey | None:
+        """Looked up on first use, so a bad key file can't stop a PDF download."""
+        return find_api_key()
+
+    def s2(
+        self, path: str, params: dict[str, Any], require: str | None = None
+    ) -> dict[str, Any]:
+        """A Semantic Scholar response's JSON, from the cache when it's there.
+
+        The answer must be an object, holding the key `require` if given."""
+        cached = self.s2_cache_file(path, params)
+        if cached.exists():
+            return json.loads(cached.read_text(encoding="utf-8"))
+        response = self.s2_request("GET", path, params)
+        data = json_object("Semantic Scholar", response, require)
+        write_atomic(cached, json.dumps(data).encode())
+        return data
+
+    def s2_request(
+        self,
+        method: str,
+        path: str,
+        params: dict[str, Any],
+        body: dict[str, Any] | None = None,
+    ) -> Response:
+        """A Semantic Scholar request's answer when it is a 200, uncached. Once Semantic
+        Scholar has given up in this run, it isn't asked again. A 404 is NotFound, any
+        other refusal a RemoteError."""
+        if self.s2_gave_up:
+            raise self.s2_gave_up
+        headers = {"x-api-key": self.api_key.value} if self.api_key else None
+        try:
+            response = self.request(
+                "Semantic Scholar",
+                method,
+                S2 + path,
+                params=params,
+                headers=headers,
+                body=body,
+                ids=len(body["ids"]) if body else None,
+            )
+        except GaveUp as e:
+            self.s2_gave_up = e
+            raise
+        if response.status == 200:
+            return response
+        if response.status == 404:
+            raise NotFound(error_text(response))
+        problem = f"Semantic Scholar: HTTP {response.status}: {error_text(response)}"
+        if response.status in (401, 403) and self.api_key:
+            problem += f" (the API key from {self.api_key.source} may be invalid)"
+        raise RemoteError(problem)
+
+    def s2_batch(
+        self, pids: Sequence["PaperId"], fields: str
+    ) -> dict[str, Paper | None]:
+        """Semantic Scholar's paper for each of at most BATCH_MAX ids, by its s2_id,
+        from one POST; None for an id it doesn't know. Each paper is cached under the
+        key the id's single lookup uses. An answer that isn't one paper or null per id
+        is a RemoteError."""
+        ids = [pid.s2_id() for pid in pids]
+        response = self.s2_request(
+            "POST", "/paper/batch", {"fields": fields}, {"ids": ids}
+        )
+        papers = parsed_json(response)
+        if (
+            not isinstance(papers, list)
+            or len(papers) != len(ids)
+            or any(
+                p is not None and not (isinstance(p, dict) and p.get("paperId"))
+                for p in papers
+            )
+        ):
+            raise RemoteError(
+                "Semantic Scholar sent an unexpected answer to a batch: "
+                + response.content[:200].decode(errors="replace")
+            )
+        found: dict[str, Paper | None] = {}
+        for pid, paper in zip(pids, papers):
+            if paper is not None:
+                cached = self.s2_cache_file(pid.s2_path(), {"fields": fields})
+                write_atomic(cached, json.dumps(paper).encode())
+            found[pid.s2_id()] = paper
+        return found
+
+    def s2_cache_file(self, path: str, params: dict[str, Any]) -> Path:
+        """Where Semantic Scholar's answer to `path` with `params` is cached. A batch
+        caches each paper under its single lookup's key, so both find it."""
+        return self.cache_file("s2", S2 + path, params)
+
+    def cache_file(self, folder: str, url: str, params: dict[str, Any]) -> Path:
+        """Where the answer to `url` with `params` is cached, named by a hash of both."""
+        key = json.dumps([url, params], sort_keys=True)
+        return (
+            self.cache / folder / (hashlib.sha256(key.encode()).hexdigest() + ".json")
+        )
+
+    @cached_property
+    def openalex_key(self) -> ApiKey | None:
+        return find_openalex_key()
+
+    def openalex(self, path: str, params: dict[str, Any]) -> dict[str, Any]:
+        """An OpenAlex response's JSON, from the cache when it's there. The cache key
+        leaves out the mailto and the API key."""
+        url = OPENALEX + path
+        cached = self.cache_file("openalex", url, params)
+        if cached.exists():
+            return json.loads(cached.read_text(encoding="utf-8"))
+        response = self.openalex_request(url, params)
+        if response.status == 404:
+            raise NotFound(url)
+        if response.status != 200:
+            problem = error_text(response)
+            if self.openalex_key:
+                problem = problem.replace(self.openalex_key.value, "<api key>")
+            raise RemoteError(f"OpenAlex: HTTP {response.status}: {problem}")
+        data = json_object("OpenAlex", response)
+        write_atomic(cached, json.dumps(data).encode())
+        return data
+
+    def fallback(
+        self, gave_up: GaveUp, path: str, params: dict[str, Any]
+    ) -> dict[str, Any]:
+        """OpenAlex's answer, after Semantic Scholar gave up. Says so on stderr once per
+        run. OpenAlex failing too, or not knowing the paper, is a RemoteError naming
+        both."""
+        if not self.warned_fallback:
+            print(f"paper: {gave_up}; answering from OpenAlex", file=sys.stderr)
+            self.warned_fallback = True
+        try:
+            return self.openalex(path, params)
+        except NotFound:
+            raise RemoteError(
+                f"{gave_up}; OpenAlex has no record of it either"
+            ) from None
+        except RemoteError as e:
+            raise RemoteError(f"{gave_up}; OpenAlex failed too: {e}") from None
+
+    def openalex_request(self, url: str, params: dict[str, Any]) -> Response:
+        """One OpenAlex request with mailto and the key. A key OpenAlex refuses (not yet
+        activated, or invalid) is dropped, with a warning, and the request sent again
+        without it."""
+        sent = dict(params, mailto=OPENALEX_MAILTO)
+        key = None if self.openalex_key_refused else self.openalex_key
+        if key:
+            sent["api_key"] = key.value
+        response = self.request("OpenAlex", "GET", url, params=sent)
+        if key and response.status in (401, 403):
+            why = (
+                "is not activated yet"
+                if error_code(response) == "key_not_activated"
+                else f"was refused (HTTP {response.status}; it may be invalid)"
+            )
+            print(
+                f"paper: the OpenAlex key from {key.source} {why}; asking without it",
+                file=sys.stderr,
+            )
+            self.openalex_key_refused = True
+            keyless = {k: v for k, v in sent.items() if k != "api_key"}
+            response = self.request("OpenAlex", "GET", url, params=keyless)
+        return response
+
+    def arxiv_dates(self, ids: list[str]) -> dict[str, "ArxivDates"]:
+        """Version and dates per arXiv id (given without a version), from the cache when
+        under a day old, else from one arXiv API request for all the rest. An id arXiv
+        doesn't return is left out and not cached: the API sometimes answers an empty
+        feed under load."""
+        found: dict[str, ArxivDates] = {}
+        missing = []
+        for aid in dict.fromkeys(ids):
+            cached = self.cache / "arxiv" / arxiv_cache_name(aid)
+            if cached.exists() and time.time() - cached.stat().st_mtime < ARXIV_TTL:
+                found[aid] = ArxivDates(
+                    **json.loads(cached.read_text(encoding="utf-8"))
+                )
+            else:
+                missing.append(aid)
+        if not missing:
+            return found
+        response = self.request(
+            "arXiv",
+            "GET",
+            ARXIV_API,
+            params={"id_list": ",".join(missing), "max_results": len(missing)},
+        )
+        if response.status != 200:
+            raise RemoteError(f"arXiv: HTTP {response.status}: {error_text(response)}")
+        fetched = parse_arxiv_feed(response.content)
+        for aid in missing:
+            if aid in fetched:
+                body = json.dumps(asdict(fetched[aid])).encode()
+                write_atomic(self.cache / "arxiv" / arxiv_cache_name(aid), body)
+                found[aid] = fetched[aid]
+        return found
+
+    def request(
+        self,
+        service: str,
+        method: str,
+        url: str,
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        body: dict[str, Any] | None = None,
+        ids: int | None = None,
+    ) -> Response:
+        """The response, retrying 429s, 5xx and timeouts with backoff. `body` is sent as
+        JSON. Each request, however it ends, gets a line in the request log, with `ids`,
+        the number of ids a batch asks for, when given."""
+        started = time.monotonic()
+        slept = waited = 0.0
+
+        def log(status: int | str, attempts: int) -> None:
+            entry = {
+                "time": utc_now(),
+                "service": service,
+                "method": method,
+                "url": logged_url(url),
+                **({"ids": ids} if ids is not None else {}),
+                "status": status,
+                "attempts": attempts,
+                "waited": round(waited, 3),
+                "backoff": round(slept, 3),
+                "seconds": round(time.monotonic() - started, 3),
+            }
+            self.write_log(entry)
+
+        for attempt in range(1, ATTEMPTS + 1):
+            if service in PACED:
+                turn_started = time.monotonic()
+                self.pace(service)
+                waited += time.monotonic() - turn_started
+            try:
+                response = self.request_once(method, url, params, headers, body)
+            except Retryable as e:
+                failure = e
+            except Exception as e:
+                log(f"error: {type(e).__name__}", attempt)
+                raise
+            else:
+                log(response.status, attempt)
+                return response
+            if attempt == ATTEMPTS or slept >= BUDGET:
+                break
+            delay = min(backoff(attempt, failure.retry_after), BUDGET - slept)
+            self.sleep(delay)
+            slept += delay
+        log("gave up", attempt)
+        raise GaveUp(
+            f"{service} failed, gave up after {attempt} attempts"
+            f" ({slept:.0f}s of backoff): {failure}"
+        )
+
+    def write_log(self, entry: dict[str, Any]) -> None:
+        """Appends `entry` to the request log as one line. A log that can't be written
+        is warned about once per run."""
+        path = self.cache / "requests.jsonl"
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(entry) + "\n")
+        except OSError as e:
+            if not self.warned_log:
+                print(
+                    f"paper: can't write the request log {path}: {e.strerror}",
+                    file=sys.stderr,
+                )
+                self.warned_log = True
+
+    def request_once(
+        self,
+        method: str,
+        url: str,
+        params: dict[str, Any] | None,
+        headers: dict[str, str] | None,
+        body: dict[str, Any] | None = None,
+    ) -> Response:
+        """The response, or Retryable for a 429, a 5xx or a timeout.
+
+        Semantic Scholar's error object, {"message": ..., "code": "429"},
+        counts as that status whatever the HTTP status says."""
+        try:
+            response = self.fetch(
+                method, url, params=params, headers=headers, json=body
+            )
+        except TransportError as e:
+            raise Retryable(str(e) or "timeout") from e
+        code = s2_error_code(response) or response.status
+        if code == 429 or code >= 500:
+            raise Retryable(
+                f"HTTP {code}: {error_text(response)}",
+                parse_retry_after(response.headers),
+            )
+        return Response(code, response.headers, response.content)
+
+
+def backoff(attempt: int, retry_after: float | None) -> float:
+    """Seconds to wait before the next attempt: Retry-After, else exponential."""
+    if retry_after is not None:
+        return retry_after
+    return 2**attempt * random.uniform(1, 1.5)
+
+
+def s2_error_code(response: Response) -> int | None:
+    """The status in a Semantic Scholar error object, or None if it isn't one."""
+    try:
+        data = json.loads(response.content)
+    except ValueError:
+        return None
+    if (
+        isinstance(data, dict)
+        and {"message", "code"} <= set(data)
+        and str(data["code"]).isdigit()
+    ):
+        return int(data["code"])
+    return None
+
+
+def parsed_json(response: Response) -> Any:
+    """The response's content as JSON, or None when it isn't JSON."""
+    try:
+        return json.loads(response.content)
+    except ValueError:
+        return None
+
+
+def utc_now() -> str:
+    return time.strftime(ISO_UTC, time.gmtime())
+
+
+def logged_url(url: str) -> str:
+    """The URL as the request log keeps it: no query string, and no user:password@."""
+    parts = urlsplit(url)
+    port = f":{parts.port}" if parts.port else ""
+    return f"{parts.scheme}://{parts.hostname}{port}{parts.path}"
+
+
+def json_object(
+    service: str, response: Response, require: str | None = None
+) -> dict[str, Any]:
+    """The response's JSON object, holding the key `require` if given."""
+    data = parsed_json(response)
+    if not isinstance(data, dict) or (require and not data.get(require)):
+        raise RemoteError(
+            f"{service} sent an unexpected answer: "
+            + response.content[:200].decode(errors="replace")
+        )
+    return data
+
+
+def error_code(response: Response) -> str | None:
+    """The `code` field of a JSON error body, such as OpenAlex's "key_not_activated"."""
+    try:
+        data = json.loads(response.content)
+    except ValueError:
+        return None
+    return str(data.get("code")) if isinstance(data, dict) and "code" in data else None
+
+
+def parse_retry_after(headers: dict[str, str]) -> float | None:
+    for name, value in headers.items():
+        if name.lower() == "retry-after":
+            try:
+                return max(0.0, float(value))
+            except ValueError:
+                return None
+    return None
+
+
+def error_text(response: Response) -> str:
+    try:
+        data = json.loads(response.content)
+    except ValueError:
+        return response.content[:200].decode(errors="replace")
+    if isinstance(data, dict):
+        return str(data.get("message") or data.get("error") or data)
+    return str(data)[:200]
+
+
+@contextmanager
+def replaced_on_success(path: Path) -> Iterator[Path]:
+    """A temporary path to write; it replaces `path` if the block succeeds."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    yield tmp
+    tmp.replace(path)
+
+
+def write_atomic(path: Path, content: bytes) -> None:
+    with replaced_on_success(path) as tmp:
+        tmp.write_bytes(content)
+
+
+# arXiv
+
+
+@dataclass(frozen=True)
+class ArxivDates:
+    version: int
+    submitted: str  # first version, YYYY-MM-DD
+    updated: str  # latest version
+
+
+def parse_arxiv_feed(content: bytes) -> dict[str, ArxivDates]:
+    """Each entry of an arXiv API answer, by id without its version suffix."""
+    try:
+        root = ElementTree.fromstring(content)
+    except ElementTree.ParseError as e:
+        raise RemoteError(f"arXiv sent an unexpected answer: {e}") from e
+    found = {}
+    for entry in root.iter(ATOM + "entry"):
+        m = ARXIV_ABS.fullmatch((entry.findtext(ATOM + "id") or "").strip())
+        if m:
+            found[m.group(1)] = ArxivDates(
+                version=int(m.group(2)),
+                submitted=(entry.findtext(ATOM + "published") or "")[:10],
+                updated=(entry.findtext(ATOM + "updated") or "")[:10],
+            )
+    return found
+
+
+def arxiv_id_of(paper: Paper) -> str | None:
+    """The paper's arXiv id from Semantic Scholar, without a version."""
+    value = (paper.get("externalIds") or {}).get("ArXiv") or ""
+    return ARXIV_VERSION.sub("", value) if ARXIV_ID.fullmatch(value) else None
+
+
+def arxiv_cache_name(aid: str) -> str:
+    """A flat file name: old-style ids hold a slash."""
+    return aid.replace("/", "_") + ".json"
+
+
+# OpenAlex
+
+ARXIV_DOI = re.compile(r"10\.48550/arxiv\.(.+)", re.IGNORECASE)
+ARXIV_LANDING = re.compile(rf"https?://(?:www\.)?arxiv\.org/abs/({ARXIV_ANY})(?:v\d+)?")
+
+
+def openalex_paper(work: dict[str, Any]) -> Paper:
+    """An OpenAlex work in the shape the formatting functions take."""
+    doi = (work.get("doi") or "").removeprefix("https://doi.org/")
+    external = {}
+    aid = openalex_arxiv_id(work, doi)
+    if aid:
+        external["ArXiv"] = aid
+    if doi:
+        external["DOI"] = doi
+    source = (work.get("primary_location") or {}).get("source") or {}
+    return {
+        "openalexId": str(work.get("id") or "").rsplit("/", 1)[-1],
+        "title": work.get("display_name"),
+        "year": work.get("publication_year"),
+        "venue": source.get("display_name"),
+        "citationCount": work.get("cited_by_count"),
+        "externalIds": external,
+        "authors": [
+            {
+                "name": (a.get("author") or {}).get("display_name"),
+                "affiliations": [
+                    i.get("display_name") for i in a.get("institutions") or []
+                ],
+            }
+            for a in work.get("authorships") or []
+        ],
+        "source": "OpenAlex",
+    }
+
+
+def openalex_arxiv_id(work: dict[str, Any], doi: str) -> str | None:
+    """The work's arXiv id, from its arXiv DOI or an arxiv.org landing page."""
+    m = ARXIV_DOI.fullmatch(doi)
+    if m and ARXIV_ID.fullmatch(m.group(1)):
+        return m.group(1)
+    locations = [work.get("primary_location"), work.get("best_oa_location")]
+    for location in [*locations, *(work.get("locations") or [])]:
+        m = ARXIV_LANDING.fullmatch((location or {}).get("landing_page_url") or "")
+        if m:
+            return m.group(1)
+    return None
+
+
+def from_openalex(client: Client, pid: PaperId, gave_up: GaveUp) -> Paper:
+    """The paper from OpenAlex, after Semantic Scholar gave up on it."""
+    path = pid.openalex_path()
+    if path is None:
+        raise gave_up
+    return openalex_paper(client.fallback(gave_up, path, {}))
+
+
+SOURCE_NOTE = (
+    "source: OpenAlex, because Semantic Scholar gave up after its retries. OpenAlex"
+    " counts and lists far fewer citations than Semantic Scholar for arXiv papers;"
+    " rerun later for Semantic Scholar's."
+)
+SOURCE_LINE = "  " + SOURCE_NOTE
+
+
+# Formatting
+
+
+def ids_line(paper: Paper) -> str:
+    ext = paper.get("externalIds") or {}
+    parts = []
+    if ext.get("ArXiv"):
+        parts.append("arXiv:" + ext["ArXiv"])
+    if ext.get("DOI"):
+        parts.append("DOI:" + ext["DOI"])
+    if paper.get("paperId"):
+        parts.append("S2:" + paper["paperId"])
+    elif paper.get("openalexId"):
+        parts.append("OpenAlex:" + paper["openalexId"])
+    return " ".join(parts)
+
+
+def author_names(paper: Paper, limit: int | None = None) -> str:
+    authors = paper.get("authors") or []
+    shown = authors if limit is None else authors[:limit]
+    names = []
+    for author in shown:
+        affs = author.get("affiliations") or []
+        name = author.get("name")
+        names.append(f"{name} ({'; '.join(affs)})" if affs else str(name))
+    if len(authors) > len(shown):
+        names.append(f"+{len(authors) - len(shown)} more")
+    return ", ".join(names)
+
+
+def meta_block(paper: Paper, dates: ArxivDates | None = None) -> str:
+    lines = [paper.get("title") or "(untitled)"]
+    if paper.get("source") == "OpenAlex":
+        lines.append(SOURCE_LINE)
+    where = " · ".join(str(x) for x in (paper.get("year"), paper.get("venue")) if x)
+    if where:
+        lines.append("  " + where)
+    if paper.get("authors"):
+        lines.append("  authors: " + author_names(paper, limit=10))
+    lines.append(f"  citations: {paper.get('citationCount')}")
+    lines.append("  ids: " + ids_line(paper))
+    if dates:
+        lines.append(arxiv_line(dates))
+    return "\n".join(lines)
+
+
+def arxiv_line(dates: ArxivDates) -> str:
+    return f"  arXiv: v{dates.version}, submitted {dates.submitted}, updated {dates.updated}"
+
+
+def list_block(paper: Paper, show_citation_count: bool = False) -> str:
+    """A shorter block, for one paper among many."""
+    head = " · ".join(
+        str(x) for x in (paper.get("year"), paper.get("title"), paper.get("venue")) if x
+    )
+    lines = [head]
+    if paper.get("authors"):
+        lines.append("  authors: " + author_names(paper, limit=3))
+    tail = ids_line(paper)
+    if show_citation_count:
+        tail = f"{tail} · citations: {paper.get('citationCount')}"
+    lines.append("  ids: " + tail)
+    return "\n".join(lines)
+
+
+# Commands
+
+
+def meta_paper(client: Client, pid: PaperId) -> Paper:
+    """The paper's metadata from Semantic Scholar, or from OpenAlex once it gives up."""
+    try:
+        return client.s2(pid.s2_path(), {"fields": META_FIELDS}, require="paperId")
+    except GaveUp as e:
+        return from_openalex(client, pid, e)
+
+
+def prefetch_batch(client: Client, pids: list[PaperId]) -> set[str]:
+    """Fetches, in batches of BATCH_MAX, every id that misses the cache, when two or
+    more do, so the single lookups that follow find them cached. Returns the s2_ids
+    Semantic Scholar doesn't know. Once a batch fails in any way (gives up, is refused,
+    sends something unexpected), its ids and the rest are left to those lookups, which
+    fail the old way if they must; what earlier batches found is kept."""
+    misses = list(
+        {
+            pid.s2_id(): pid
+            for pid in pids
+            if not client.s2_cache_file(pid.s2_path(), {"fields": META_FIELDS}).exists()
+        }.values()
+    )
+    unknown: set[str] = set()
+    if len(misses) < 2:
+        return unknown
+    for start in range(0, len(misses), BATCH_MAX):
+        try:
+            found = client.s2_batch(misses[start : start + BATCH_MAX], META_FIELDS)
+        except (RemoteError, NotFound):
+            break
+        unknown |= {s2_id for s2_id, paper in found.items() if paper is None}
+    return unknown
+
+
+def cmd_meta(client: Client, args: argparse.Namespace) -> int:
+    pids = [parse_id(text) for text in args.ids]
+    for pid in pids:
+        pid.s2_path()  # a PDF URL is refused here, before any request
+    unknown = prefetch_batch(client, pids)
+    code = OK
+    papers = []
+    failure = None
+    for text, pid in zip(args.ids, pids):
+        try:
+            if pid.s2_id() in unknown:
+                raise NotFound(text)
+            papers.append(meta_paper(client, pid))
+        except NotFound:
+            print(f"paper: not found: {text}", file=sys.stderr)
+            code = NOT_FOUND
+        except RemoteError as e:
+            failure = e  # print what was fetched first, then report it
+            break
+    with_ids = [(p, arxiv_id_of(p)) for p in papers]
+    arxiv_ids = [aid for _, aid in with_ids if aid]
+    dates: dict[str, ArxivDates] = {}
+    if arxiv_ids:
+        try:
+            dates = client.arxiv_dates(arxiv_ids)
+        except RemoteError as e:
+            print(f"paper: arXiv dates unavailable: {e}", file=sys.stderr)
+        else:
+            for aid in arxiv_ids:
+                if aid not in dates:
+                    print(f"paper: arXiv has no entry for {aid}", file=sys.stderr)
+    for p, aid in with_ids:
+        print(meta_block(p, dates.get(aid) if aid else None))
+    if failure:
+        raise failure
+    return code
+
+
+def cmd_cites(client: Client, args: argparse.Namespace) -> int:
+    pid = parse_id(args.id)
+    path = pid.s2_path() + "/citations"
+    try:
+        data = client.s2(path, {"fields": CITES_FIELDS, "limit": args.limit})
+    except NotFound:
+        raise NotFound(args.id) from None
+    except GaveUp as e:
+        return openalex_cites(client, pid, args, e)
+    citing = [
+        row["citingPaper"]
+        for row in data.get("data") or []
+        if (row.get("citingPaper") or {}).get("paperId")
+    ]
+    if not citing:
+        print(f"no papers cite {args.id}")
+    for paper in citing:
+        print(list_block(paper))
+    return OK
+
+
+def openalex_cites(
+    client: Client, pid: PaperId, args: argparse.Namespace, gave_up: GaveUp
+) -> int:
+    """cites from OpenAlex, under a source note. An empty list isn't "no papers cite"."""
+    work = from_openalex(client, pid, gave_up)
+    data = client.fallback(
+        gave_up,
+        "/works",
+        {
+            "filter": "cites:" + work["openalexId"],
+            "per_page": min(args.limit, OPENALEX_PAGE_MAX),
+        },
+    )
+    print(SOURCE_NOTE)
+    citing = [openalex_paper(w) for w in data.get("results") or []]
+    if not citing:
+        print(f"OpenAlex lists no papers citing {args.id}; that doesn't show none do")
+    for paper in citing:
+        print(list_block(paper))
+    return OK
+
+
+def cmd_search(client: Client, args: argparse.Namespace) -> int:
+    query = " ".join(args.query)
+    note = None
+    try:
+        data = client.s2(
+            "/paper/search",
+            {"query": query, "fields": SEARCH_FIELDS, "limit": args.limit},
+        )
+        papers = data.get("data") or []
+    except GaveUp as e:
+        found = client.fallback(
+            e,
+            "/works",
+            {"search": query, "per_page": min(args.limit, OPENALEX_PAGE_MAX)},
+        )
+        papers = [openalex_paper(w) for w in found.get("results") or []]
+        note = SOURCE_NOTE
+    if not papers:
+        where = " in OpenAlex" if note else ""
+        print(f"paper: no papers match {query!r}{where}", file=sys.stderr)
+        return NOT_FOUND
+    if note:
+        print(note)
+    for paper in papers:
+        print(list_block(paper, show_citation_count=True))
+    return OK
+
+
+def cached_text(client: Client, id_text: str, command: str) -> Path:
+    """The paper's extracted text, downloaded and extracted first if not cached."""
+    try:
+        pid = parse_id(id_text)
+        url, stem = pid.pdf_source()
+    except UsageError as e:
+        raise UsageError(f"`paper {command}` {e}") from e
+    folder = client.cache / "pdf"
+    pdf, txt = folder / (stem + ".pdf"), folder / (stem + ".txt")
+    if not txt.exists():
+        if url is None:
+            url = open_access_pdf(client, pid)
+        response = client.request("PDF download", "GET", url)
+        if response.status == 404:
+            raise NotFound(url)
+        if response.status != 200:
+            raise RemoteError(f"PDF download: HTTP {response.status} for {url}")
+        if not response.content.startswith(b"%PDF"):
+            raise ExtractFailed(f"not a PDF at {url}")
+        write_atomic(pdf, response.content)
+        with replaced_on_success(txt) as partial:
+            client.extract(pdf, partial)
+    return txt
+
+
+def open_access_pdf(client: Client, pid: PaperId) -> str:
+    """The URL of an open-access PDF of the paper, found through OpenAlex."""
+    path = pid.openalex_path()
+    assert path is not None  # only a DOI's pdf_source leaves the URL to look up
+    try:
+        work = client.openalex(path, {})
+    except NotFound:
+        raise NotFound(f"{pid.value} is not in OpenAlex") from None
+    best = work.get("best_oa_location") or {}
+    locations = work.get("locations") or []
+    pdfs = [best.get("pdf_url"), *((loc or {}).get("pdf_url") for loc in locations)]
+    for url in pdfs:
+        if url:
+            return url
+    primary = work.get("primary_location") or {}
+    pages = [best.get("landing_page_url"), primary.get("landing_page_url")]
+    pages += [(loc or {}).get("landing_page_url") for loc in locations]
+    landing = next((p for p in pages if p), None) or work.get("doi") or "none listed"
+    raise NotFound(
+        f"no open-access PDF for {pid.value} in OpenAlex; its landing page: {landing}"
+    )
+
+
+def cmd_text(client: Client, args: argparse.Namespace) -> int:
+    print(cached_text(client, args.id, "text"))
+    return OK
+
+
+def text_lines(path: Path) -> list[str]:
+    """The text's lines, split on newlines only: str.splitlines() also splits on the
+    form feed pdftotext puts between pages, which would push line numbers off by one
+    per page."""
+    lines = path.read_text(errors="replace").split("\n")
+    return lines[:-1] if lines and lines[-1] == "" else lines
+
+
+# A section number (1-29, with up to two subsection levels) and its title, at a line's
+# start or after a column gap. pdftotext often pads the space after the number, and a
+# run of 3+ spaces ends the title. Larger numbers are table cells, not sections.
+SECTION_PART = r"(?:[1-9]|[12]\d)"
+NUMBERED_HEADING = re.compile(
+    rf"(?:^|\s{{3,}})({SECTION_PART}(?:\.{SECTION_PART}){{0,2}}\.?"
+    rf"|[A-H](?:\.{SECTION_PART}){{0,2}}\.?)\s+([A-Z](?:(?!\s{{3}}).)*)"
+)
+TITLE_WORDS = 12
+NAMED_HEADINGS = {
+    "abstract",
+    "introduction",
+    "background",
+    "related work",
+    "method",
+    "methods",
+    "methodology",
+    "experiments",
+    "experimental setup",
+    "results",
+    "discussion",
+    "limitations",
+    "conclusion",
+    "conclusions",
+    "references",
+    "appendix",
+    "acknowledgments",
+    "acknowledgements",
+}
+HEADING_CHARS = 80
+
+
+def heading_in(line: str) -> str | None:
+    """The section heading on a line of `pdftotext -layout` output, or None. Both
+    columns of a two-column layout count. A page's first line starts with a form feed."""
+    line = line.replace("\f", "")
+    for found in NUMBERED_HEADING.finditer(line):
+        number, title = found.group(1), found.group(2).strip()
+        if is_title(title, lettered=number[0].isalpha()):
+            return f"{number} {title}"
+    for chunk in re.split(r"\s{3,}", line.strip()):
+        name = chunk.rstrip(":").lower()
+        if name in NAMED_HEADINGS:
+            return chunk
+        appendix = re.fullmatch(r"appendix [a-z0-9]\S*(?: (.*))?", name)
+        if appendix and (
+            appendix.group(1) is None or is_title(chunk.split(None, 2)[2], False)
+        ):
+            return chunk
+    return None
+
+
+def is_title(text: str, lettered: bool) -> bool:
+    """Whether the text after a section number reads like a heading: short, mostly
+    letters, not ending mid-sentence (list items, addresses and hyphenated lines do).
+    After a letter ("A Prompts") the first word needs 3+ characters, which rules out
+    small-caps fragments such as "C ON V ERSE"."""
+    words = text.split()
+    visible = [c for c in text if not c.isspace()]
+    letters = sum(c.isalpha() for c in visible)
+    return (
+        len(text) <= HEADING_CHARS
+        and len(words) <= TITLE_WORDS
+        and letters >= 3
+        and letters >= 0.8 * len(visible)
+        and not text.endswith((".", ",", ":", ";", "-", '"', "”", "’"))
+        and not (lettered and len(words[0]) < 3)
+    )
+
+
+def cmd_outline(client: Client, args: argparse.Namespace) -> int:
+    lines = text_lines(cached_text(client, args.id, "outline"))
+    found = [(n, h) for n, line in enumerate(lines, 1) if (h := heading_in(line))]
+    if not found:
+        print(f"paper: no headings found in {args.id}; try paper grep", file=sys.stderr)
+        return NOT_FOUND
+    for n, heading in found:
+        print(f"{n:>6}  {heading}")
+    return OK
+
+
+def cmd_grep(client: Client, args: argparse.Namespace) -> int:
+    try:
+        pattern = re.compile(args.pattern, re.IGNORECASE if args.ignore_case else 0)
+    except re.error as e:
+        raise UsageError(f"bad pattern {args.pattern!r}: {e}") from e
+    lines = text_lines(cached_text(client, args.id, "grep"))
+    hits = [i for i, line in enumerate(lines) if pattern.search(line)]
+    if not hits:
+        return NOT_FOUND
+    # Each hit with its context, merged where they touch or overlap, like grep.
+    blocks: list[list[int]] = []
+    for i in hits:
+        start, end = max(0, i - args.context), min(len(lines), i + args.context + 1)
+        if blocks and start <= blocks[-1][1]:
+            blocks[-1][1] = max(blocks[-1][1], end)
+        else:
+            blocks.append([start, end])
+    hit_set = set(hits)
+    for n, (start, end) in enumerate(blocks):
+        if n and args.context:
+            print("--")
+        for i in range(start, end):
+            print(f"{i + 1}{':' if i in hit_set else '-'}{lines[i]}")
+    return OK
+
+
+def at_least(minimum: int) -> Callable[[str], int]:
+    """An argparse type: an int no smaller than `minimum`."""
+
+    def parse(text: str) -> int:
+        value = int(text)
+        if value < minimum:
+            raise argparse.ArgumentTypeError(f"must be at least {minimum}: {value}")
+        return value
+
+    return parse
+
+
+def cmd_sweep(client: Client, args: argparse.Namespace) -> int:
+    """Every paper matching a bulk query, to a TSV file reused for a day; prints the
+    count, the most cited and the newest, and the file's path. The newest come from
+    the same fetch when it got every match, else from a second, newest-first one.
+    No OpenAlex fallback."""
+    params = sweep_params(args)
+    key = json.dumps([params, args.max], sort_keys=True).encode()
+    path = client.cache / "sweep" / (hashlib.sha256(key).hexdigest()[:16] + ".tsv")
+    details = fresh_sweep(path) or fetch_sweep(client, params, args.max, path)
+    if details is None:
+        print(f"paper: no papers match {params['query']!r}", file=sys.stderr)
+        return NOT_FOUND
+    print_sweep(path, details, args.top)
+    return OK
+
+
+def sweep_params(args: argparse.Namespace) -> dict[str, Any]:
+    """The bulk search's parameters for the sweep's query and filters, without a sort."""
+    params: dict[str, Any] = {"query": " ".join(args.query), "fields": SWEEP_FIELDS}
+    if args.year:
+        params["year"] = args.year
+    if args.min_citations is not None:
+        params["minCitationCount"] = args.min_citations
+    if args.fields_of_study:
+        params["fieldsOfStudy"] = args.fields_of_study
+    return params
+
+
+def fetch_sweep(
+    client: Client, params: dict[str, Any], most: int, path: Path
+) -> dict[str, Any] | None:
+    """Fetches the sweep, writes its file and its details beside it, and returns the
+    details; None when nothing matches. The file holds the most-cited fetch first, then
+    the papers only the newest-first fetch found, when that fetch was needed."""
+    cited, total, complete = sweep_papers(
+        client, dict(params, sort="citationCount:desc"), most
+    )
+    if not cited:
+        return None
+    papers = cited
+    if not complete:
+        newest, _, _ = sweep_papers(
+            client, dict(params, sort="publicationDate:desc"), most
+        )
+        papers = list({p["paperId"]: p for p in [*cited, *newest]}.values())
+    write_atomic(path, sweep_tsv(papers).encode())
+    details = {
+        "query": params["query"],
+        "params": params,
+        "max": most,
+        "estimated_total": total,
+        "complete": complete,
+        "rows": len(papers),
+        "cited": len(cited),
+        "fetched": utc_now(),
+    }
+    write_atomic(path.with_suffix(".json"), json.dumps(details).encode())
+    return details
+
+
+def print_sweep(path: Path, details: dict[str, Any], top: int) -> None:
+    """The count, the `top` most cited, the `top` newest the first list doesn't show,
+    and the file's path."""
+    names = [name for name, _ in SWEEP_COLUMNS]
+    rows = [
+        dict(zip(names, line.split("\t")))
+        for line in path.read_text(encoding="utf-8").splitlines()[1:]
+    ]
+    total = details["estimated_total"]
+    head = f"{len(rows)} papers fetched; " + (
+        f"Semantic Scholar estimates {total} match"
+        if total is not None
+        else "Semantic Scholar's estimate of the matches is missing"
+    )
+    if not details["complete"]:
+        head += (
+            f"; the file holds the {details['max']} most cited and the"
+            f" {details['max']} newest, so raise --max for the rest"
+        )
+    print(head)
+    cited = rows[: min(top, details["cited"])]
+    rest = rows[len(cited) :]
+    newest = sorted(rest, key=lambda row: row["date"] or row["year"], reverse=True)
+    for label, listed in (
+        ("most cited:", cited),
+        ("newest, not listed above:", newest[:top]),
+    ):
+        if listed:
+            print(label)
+            for row in listed:
+                print(sweep_line(row))
+    print(f"full list: {path}")
+
+
+def sweep_papers(
+    client: Client, params: dict[str, Any], most: int
+) -> tuple[list[Paper], int | None, bool]:
+    """Up to `most` papers from the bulk search, page by page, each once, its estimated
+    total (None if it sent none), and whether that was every match (no continuation
+    token left). An answer that isn't a list of papers with ids is a RemoteError."""
+    found: dict[str, Paper] = {}
+    total, token = None, None
+    while True:
+        page = dict(params, token=token) if token else params
+        data = json_object(
+            "Semantic Scholar", client.s2_request("GET", "/paper/search/bulk", page)
+        )
+        if isinstance(data.get("total"), int):
+            total = data["total"]
+        papers = data.get("data") or []
+        if not isinstance(papers, list) or not all(
+            isinstance(p, dict) and isinstance(p.get("paperId"), str) for p in papers
+        ):
+            raise RemoteError(
+                "Semantic Scholar sent an unexpected answer to a bulk search: "
+                + json.dumps(papers)[:200]
+            )
+        for paper in papers:
+            found.setdefault(paper["paperId"], paper)
+        token = data.get("token")
+        if not token or len(found) >= most:
+            return list(found.values())[:most], total, not token and len(found) <= most
+
+
+def first_author(paper: Paper) -> str:
+    authors = paper.get("authors") or []
+    first = (authors[0].get("name") or "") if authors else ""
+    return first + " et al." if len(authors) > 1 else first
+
+
+# The sweep file's columns, and how each is read from a paper.
+SWEEP_COLUMNS: tuple[tuple[str, Callable[[Paper], Any]], ...] = (
+    ("year", lambda p: p.get("year")),
+    ("date", lambda p: p.get("publicationDate")),
+    ("citations", lambda p: p.get("citationCount")),
+    ("title", lambda p: p.get("title")),
+    ("venue", lambda p: p.get("venue")),
+    ("first author", first_author),
+    ("arXiv", lambda p: (p.get("externalIds") or {}).get("ArXiv")),
+    ("DOI", lambda p: (p.get("externalIds") or {}).get("DOI")),
+    ("S2", lambda p: p.get("paperId")),
+)
+SWEEP_HEADER = "\t".join(name for name, _ in SWEEP_COLUMNS)
+
+
+def fresh_sweep(path: Path) -> dict[str, Any] | None:
+    """The details of a sweep fetched under a day ago, or None when its file is older or
+    missing, holds a different number of rows than its details say, or its details
+    beside it are missing or unreadable."""
+    try:
+        if time.time() - path.stat().st_mtime >= SWEEP_TTL:
+            return None
+        lines = path.read_text(encoding="utf-8").splitlines()
+        details = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not (isinstance(details, dict) and lines and lines[0] == SWEEP_HEADER):
+        return None
+    counts = [details.get(name) for name in ("rows", "cited", "max")]
+    total = details.get("estimated_total")
+    sound = (
+        all(isinstance(n, int) for n in counts)
+        and isinstance(details.get("complete"), bool)
+        and (total is None or isinstance(total, int))
+        and details["rows"] == len(lines) - 1
+    )
+    return details if sound else None
+
+
+def sweep_tsv(papers: list[Paper]) -> str:
+    """The sweep's file: a header, and a row per paper in the order given."""
+    lines = [SWEEP_HEADER]
+    for paper in papers:
+        cells = (cell(paper) for _, cell in SWEEP_COLUMNS)
+        lines.append(
+            "\t".join(" ".join(("" if c is None else str(c)).split()) for c in cells)
+        )
+    return "\n".join(lines) + "\n"
+
+
+def sweep_line(row: dict[str, str]) -> str:
+    """One of the sweep file's rows, by column name, as a line to print."""
+    head = " · ".join(x for x in (row["year"], row["title"], row["venue"]) if x)
+    ids = [
+        f"arXiv:{row['arXiv']}" if row["arXiv"] else "",
+        f"DOI:{row['DOI']}" if row["DOI"] else "",
+        f"S2:{row['S2']}",
+    ]
+    return f"{head} · citations: {row['citations']} · " + " ".join(i for i in ids if i)
+
+
+def cmd_stats(client: Client, args: argparse.Namespace) -> int:
+    """A line per service summarising the request log over the last --hours."""
+    since = time.time() - args.hours * 3600
+    by_service: dict[str, list[dict[str, Any]]] = {}
+    for entry in logged_requests(client.cache / "requests.jsonl"):
+        if entry["at"] >= since:
+            by_service.setdefault(entry["service"], []).append(entry)
+    if not by_service:
+        print(f"paper: no requests logged in the last {args.hours:g} hours")
+        return OK
+    for service, entries in by_service.items():
+        print(stats_line(service, entries))
+    return OK
+
+
+def logged_requests(path: Path) -> Iterator[dict[str, Any]]:
+    """The request log's lines, each with its time as epoch seconds in "at"; lines
+    that don't parse are skipped."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return
+    for raw in text.splitlines():
+        try:
+            entry = json.loads(raw)
+            yield {
+                "service": str(entry["service"]),
+                "status": entry.get("status"),
+                "attempts": int(entry.get("attempts", 1)),
+                "backoff": float(entry.get("backoff", 0)),
+                "waited": float(entry.get("waited", 0)),
+                "at": calendar.timegm(time.strptime(entry["time"], ISO_UTC)),
+            }
+        except (ValueError, KeyError, TypeError, AttributeError):
+            continue
+
+
+def stats_line(service: str, entries: list[dict[str, Any]]) -> str:
+    statuses = [entry["status"] for entry in entries]
+    ok = sum(isinstance(s, int) and 200 <= s < 300 for s in statuses)
+    missing = statuses.count(404)
+    throttled = statuses.count(429) + statuses.count("gave up")
+    other = len(entries) - ok - missing - throttled
+    extra = sum(entry["attempts"] - 1 for entry in entries)
+    slept = sum(entry["backoff"] for entry in entries)
+    waits = sorted(entry["waited"] for entry in entries)
+    times = sorted(entry["at"] for entry in entries)
+    busiest = max(bisect.bisect_left(times, t + 60) - i for i, t in enumerate(times))
+    return (
+        f"{service}: {len(entries)} requests; {ok} ok, {missing} not found,"
+        f" {throttled} gave up or 429, {other} other; {extra} extra attempts,"
+        f" {slept:.0f}s backoff; waited: median {statistics.median(waits):.1f}s,"
+        f" max {waits[-1]:.1f}s, {sum(w > 1 for w in waits)} over 1s;"
+        f" busiest minute {busiest}"
+    )
+
+
+COMMANDS = {
+    "meta": cmd_meta,
+    "cites": cmd_cites,
+    "search": cmd_search,
+    "text": cmd_text,
+    "outline": cmd_outline,
+    "grep": cmd_grep,
+    "stats": cmd_stats,
+    "sweep": cmd_sweep,
+}
+EXIT_CODES = {UsageError: USAGE, ExtractFailed: NOT_FOUND, RemoteError: REMOTE}
+
+
+# Main
+
+
+def main(
+    argv: list[str] | None = None,
+    fetch: Fetch | None = None,
+    sleep: Callable[[float], None] = time.sleep,
+    extract: Extract | None = None,
+    pace: Callable[[str], None] | None = None,
+) -> int:
+    parser = argparse.ArgumentParser(
+        prog="paper",
+        description=__doc__.split("\n\n")[0],
+        epilog=__doc__.split("\n\n", 2)[2],
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    sub = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
+    meta = sub.add_parser("meta", help="title, authors, year, venue, citations, ids")
+    meta.add_argument("ids", nargs="+", metavar="ID")
+    cites = sub.add_parser("cites", help="papers citing ID")
+    cites.add_argument("id", metavar="ID")
+    cites.add_argument("--limit", type=int, default=20, help="how many (default 20)")
+    search = sub.add_parser("search", help="keyword search")
+    search.add_argument("query", nargs="+", metavar="QUERY")
+    search.add_argument("--limit", type=int, default=10, help="how many (default 10)")
+    sweep = sub.add_parser(
+        "sweep", help="every paper matching a query, to a file; prints the top rows"
+    )
+    sweep.add_argument("query", nargs="+", metavar="QUERY")
+    sweep.add_argument("--year", help="a year or range: 2024, 2016-2020, 2010-, -2015")
+    sweep.add_argument("--min-citations", type=int, metavar="N")
+    sweep.add_argument(
+        "--fields-of-study",
+        metavar="LIST",
+        help='comma-separated, e.g. "Computer Science,Economics"',
+    )
+    sweep.add_argument(
+        "--max", type=at_least(1), default=1000, help="papers to fetch (default 1000)"
+    )
+    sweep.add_argument(
+        "--top", type=at_least(0), default=20, help="rows in each list (default 20)"
+    )
+    stats = sub.add_parser("stats", help="a summary of the requests paper made")
+    stats.add_argument(
+        "--hours", type=float, default=24, help="how far back (default 24)"
+    )
+    id_help = "arXiv id or URL, DOI, or PDF URL"
+    text = sub.add_parser("text", help="full text: prints the cached .txt path")
+    text.add_argument("id", metavar="ID", help=id_help)
+    outline = sub.add_parser("outline", help="section headings with line numbers")
+    outline.add_argument("id", metavar="ID", help=id_help)
+    grep = sub.add_parser("grep", help="lines matching a regex, with line numbers")
+    grep.add_argument("id", metavar="ID", help=id_help)
+    grep.add_argument("pattern", metavar="PATTERN", help="a Python regex")
+    grep.add_argument(
+        "-C",
+        "--context",
+        type=at_least(0),
+        default=2,
+        help="lines of context (default 2)",
+    )
+    grep.add_argument("-i", "--ignore-case", action="store_true")
+    args = parser.parse_args(argv)
+    client = Client(fetch or requests_fetch, sleep, extract or pdftotext, pace)
+    try:
+        return COMMANDS[args.command](client, args)
+    except NotFound as e:
+        print(f"paper: not found: {e}", file=sys.stderr)
+        return NOT_FOUND
+    except (UsageError, ExtractFailed, RemoteError) as e:
+        print(f"paper: {e}", file=sys.stderr)
+        return next(code for kind, code in EXIT_CODES.items() if isinstance(e, kind))
+
+
+if __name__ == "__main__":
+    sys.exit(main())
