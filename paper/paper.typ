@@ -54,12 +54,34 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
 
 #todo[Variance, seeds, baselines and the positive control.]
 
-== How the model sees the other firm
+== Capability
+#todo[The capability criterion's results (#39).]
+
+== Compliance
+#todo[The compliance criterion's results (#40).]
+
+== Communality
+// The identity lever (#41), from paper/data/idl1.py.
+#todo[The lever's prose: which identities move which model, and how far (@fig-idl1), worded model by model; flaws.md, Communal, "The identity lever", first.]
+
+Of #n("idl1.tests") comparisons, #n("idl1.pass") pass (@fig-idl1).
+
+#figure(
+  data-figure("idl1-figure", width: 100%),
+  caption: [
+    Who the firms and the buyers are, model by model.
+    Each bar is the share of answers at the cartel share under one sentence minus the share under its reference, a same-shape control or no sentence, with Newcombe's 95% interval.
+    Only comparisons that pass are drawn: Fisher's exact test with Benjamini–Hochberg across #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell, #n("idl1.pass.first") of the bars; a comparison that moved #n("idl1.screen") replies or more and missed was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those, #n("idl1.pass.fresh") of the bars.
+    A bar marked \* ends at 0% or 100% and is #n("idl1.cap") points or shorter, so the floor or the ceiling may have cut it short.
+    #n("idl1.caption.none")
+  ],
+) <fig-idl1>
+
+== Concept of mind
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
 #todo[The lever's prose: where each model sits on the neutral rung and how far each rung moves it (@fig-conceptualization), worded model by model; flaws.md, "Conceptualization", first.]
 
 #figure(
-  placement: auto,
   data-figure("conceptualization-figure", width: 100%),
   caption: [
     The lever, model by model.
@@ -74,7 +96,6 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
 #todo[The extra chance's prose (@fig-extra): which models exploit a copy that thinks less, and where; flaws.md, "Conceptualization", "The extra chance", first.]
 
 #figure(
-  placement: auto,
   data-figure("conceptualization-extra-figure", width: 100%),
   caption: [
     The extra chance: when my firm's request ends with a paragraph its copy's request lacks, does the model keep the mirror or exploit the copy?
@@ -83,26 +104,9 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
     Red: exploiting the copy, a best response to the other firm's output the reply's readback expected, when that is below Nash.
     Gray: Nash or other.
     A panel per background with no record (#n("conceptualization.extra.caption.backgrounds")), #n("conceptualization.extra.replies") replies a bar.
+    #n("conceptualization.extra.caption.weak")
   ],
 ) <fig-extra>
-
-== Who the firms and the buyers are
-// The identity lever (#41), from paper/data/idl1.py.
-#todo[The lever's prose: which identities move which model, and how far (@fig-idl1), worded model by model; flaws.md, Communal, "The identity lever", first.]
-
-Of #n("idl1.tests") comparisons, #n("idl1.pass") pass (@fig-idl1).
-
-#figure(
-  placement: auto,
-  data-figure("idl1-figure", width: 100%),
-  caption: [
-    Who the firms and the buyers are, model by model.
-    Each bar is the share of answers at the cartel share under one sentence minus the share under its reference, a same-shape control or no sentence, with Newcombe's 95% interval.
-    Only comparisons that pass are drawn: Fisher's exact test with Benjamini–Hochberg across #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell, #n("idl1.pass.first") of the bars; a comparison that moved #n("idl1.screen") replies or more and missed was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those, #n("idl1.pass.fresh") of the bars.
-    A bar marked \* ends at 0% or 100% and is #n("idl1.cap") points or shorter, so the floor or the ceiling may have cut it short.
-    #n("idl1.caption.none")
-  ],
-) <fig-idl1>
 
 = Discussion and Limitations
 #todo[What the results mean.]
