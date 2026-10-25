@@ -60,7 +60,7 @@ def cpl7(ledger: Ledger) -> None:
 
 Read the logs through `zerocommcartel` (its readers, judges' labels and criterion measures), so the paper counts what `zcc table` and the experiment reports count. The build runs each source into its own ledger and refuses two that claim one key. It records which `.jsonl` files each source opened. A source that raises adds nothing, and its keys show as missing.
 
-Lead a key with its experiment id (`cpl7.opus.n3.cartel`). For figures, load the `dataviz` skill first. Figures come out as SVG with their text left as text, set in the paper's font.
+Lead a key with its experiment id (`cpl7.opus.n3.cartel`). A key that describes a figure, such as a number or phrase in its caption or a sentence about what it shows, counts the same rows the figure draws: give it the figure's style or selection, so a tweak to the figure moves them together. Outside `paper.typ`, name a figure by its label or by what it shows, never by its number, which a new figure or a moved section changes (`tests/test_paper_sources.py`). For figures, load the `dataviz` skill first. Figures come out as SVG with their text left as text, set in the paper's font.
 
 ## What a build checks
 
