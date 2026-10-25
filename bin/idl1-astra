@@ -1,0 +1,35 @@
+#!/bin/sh
+# IDL-1 (#41) on GPT-6 Astra through Codex: its first stage, the readbacks of those replies, the refusal
+# judge on them, then the fresh replies that IDL-1's two tests need from Astra, and the judge on those.
+# Needs uv, the Codex CLI logged in with ChatGPT (Astra's calls) and Claude Code logged in (the judge, Haiku
+# through bin/claude-fresh). It makes no other model's calls, and none on OpenRouter: it stops when Codex
+# isn't logged in, and blanks OPENROUTER_API_KEY so a call that falls back there fails instead of costing.
+#
+#   bin/idl1-astra
+#
+# Every step makes only the calls not made yet, so after a failure or a Codex usage limit run it again, as
+# often as it takes, until it ends with "Done". Then commit logs/communal/idl1/ in a commit of its own and
+# push. Don't push before: the paper's build stops on Astra replies the judge hasn't labelled.
+set -e
+cd "$(dirname "$0")/.."
+log=logs/communal/idl1/results.jsonl
+export OPENROUTER_API_KEY=  # set, so the repo's .env isn't read for it; empty, so OpenRouter refuses
+
+if ! uv run python -c "from zerocommcartel.call import codex_ready; raise SystemExit(not codex_ready())"; then
+    echo "idl1-astra: Codex isn't logged in with ChatGPT (codex login), or uv failed above; fix that first." >&2
+    exit 1
+fi
+
+uv run python experiments/idl1_identity_lever.py --models astra
+uv run python -m zerocommcartel.criteria.communal.idl1 --models astra
+uv run python -m zerocommcartel.criteria.communal.idl1 judge --models astra
+
+# stops here, with the reason, while the first stage still has failed calls
+cells=$(uv run python -m zerocommcartel.criteria.communal.fresh astra)
+if [ -n "$cells" ]; then
+    # shellcheck disable=SC2086  # one condition a word
+    bin/zcc run communal --models astra --samples 40 --ns 2 --out "$log" --conditions $cells
+    uv run python -m zerocommcartel.criteria.communal.idl1 judge --models astra
+fi
+uv run python -m zerocommcartel.criteria.communal.fresh astra --check
+echo "Done: commit logs/communal/idl1/ in a commit of its own and push."
