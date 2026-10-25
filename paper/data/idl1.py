@@ -37,10 +37,10 @@ TOWARD, AWAY = "#2a78d6", "#e34948"  # dataviz's diverging poles: toward the car
 START_LABELS = {
     "unsaid": "no repeat mentioned",
     "single": "one quarter only",
-    "opennash": "repeats, after 40s",
-    "open": "repeats",
+    "opennash": "repeated game, after 40s",
+    "open": "repeated game",
     "mirror": "same prompt",
-    "goodwill": "repeats, after 30s",
+    "goodwill": "repeated game, after 30s",
 }
 ARM_LABELS = {
     None: "nothing said",
