@@ -72,6 +72,24 @@ See @tab-demo, @fig-demo and #link("{url}/ok")[a live link].
 """
 
 
+# CLEAN with a float too tall for what's left of page 1, written at the end of the Introduction just before a
+# new section: Typst draws it at the top of page 2, past that section's heading, which stays on page 1.
+TALL = (
+    "#figure(placement: auto, rect(width: 100%, height: 20cm), caption: [Tall.]) <fig-tall>\n"
+    "See @fig-tall.\n"
+    "= Background\n"
+)
+MISPLACED = CLEAN.replace("Prior work @calvano2020.\n", "Prior work @calvano2020.\n" + TALL)
+
+
+# CLEAN with a section that starts partway down a later page and holds a figure: drawn where it's written.
+MIDPAGE = CLEAN.replace(
+    "#unnumbered[Code and Data]",
+    "= Background\nMore.\n#figure(rect(width: 100%, height: 2cm), caption: [Low.]) <fig-low>\nSee @fig-low.\n"
+    "#unnumbered[Code and Data]",
+)
+
+
 def write_paper(paper_dir: Path, text: str, url: str = "") -> Path:
     paper_dir.mkdir(parents=True, exist_ok=True)
     for name in ("apart.typ", "lib.typ"):
@@ -314,3 +332,23 @@ def test_a_final_build_refuses_a_log_that_isnt_pushed(repo):
     git(repo, "commit", "-q", "-am", "more replies")
     report = build(repo / "paper", {"demo": demo_sources(log)["demo"]}, final=True)
     assert [p.detail for p in report.problems if p.check == "unpushed"] == ["logs/demo.jsonl"]
+
+
+def test_a_figure_drawn_under_another_section_than_its_own_is_a_problem(tmp_path, server):
+    paper_dir = write_paper(tmp_path / "paper", MISPLACED, server)
+    log = write_log(tmp_path / "logs" / "demo.jsonl")
+
+    report = build(paper_dir, {"demo": demo_sources(log)["demo"]})
+
+    assert [problem for problem in report.problems if problem.check == "placement"] == [
+        Problem("placement", "fig-tall is written under Introduction but drawn under Background")
+    ]
+
+
+def test_a_figure_under_a_section_that_starts_partway_down_a_page_is_where_it_belongs(tmp_path, server):
+    paper_dir = write_paper(tmp_path / "paper", MIDPAGE, server)
+    log = write_log(tmp_path / "logs" / "demo.jsonl")
+
+    report = build(paper_dir, {"demo": demo_sources(log)["demo"]})
+
+    assert [problem for problem in report.problems if problem.check == "placement"] == []

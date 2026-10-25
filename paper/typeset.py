@@ -31,6 +31,7 @@ class Typeset:
     refs: set[str]  # the labels referenced
     headings: list[str]
     links: list[str]
+    misplaced: list[tuple[str, str, str]]  # each figure drawn under another section: name, written, drawn
 
 
 def plain(node: Any) -> str:
@@ -93,6 +94,14 @@ def typeset(paper_dir: Path, inputs: dict[str, str]) -> Typeset:
             refs={ref["target"].strip("<>") for ref in query("ref")},
             headings=[plain(heading["body"]) for heading in query("heading")],
             links=[link["dest"] for link in query("link") if isinstance(link["dest"], str)],
+            misplaced=[
+                (
+                    m["value"]["label"] or plain(m["value"]["caption"]),
+                    plain(m["value"]["written"]),
+                    plain(m["value"]["drawn"]),
+                )
+                for m in query("<misplaced>")
+            ],
         )
     except typst.TypstError as error:
         raise BuildError(error.diagnostic or error.message) from None

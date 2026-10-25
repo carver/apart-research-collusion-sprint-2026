@@ -25,8 +25,10 @@ from paper.checks import (
     body_pages,
     broken_links,
     failed_claims,
+    heading_ref_periods,
     missing_sections,
     rules,
+    swallowed_hashes,
     swallowed_semicolons,
     unclaimed_wording,
     unreferenced,
@@ -259,7 +261,8 @@ def _build(paper_dir: Path, sources: Mapping[str, Source] | None, final: bool) -
     )
     shutil.copy(numbers, built)
     paper_text = (paper_dir / "paper.typ").read_text()
-    problems += rules(page) + swallowed_semicolons(paper_text)
+    problems += rules(page) + swallowed_semicolons(paper_text) + swallowed_hashes(paper_text)
+    problems += heading_ref_periods(paper_text)
     if final:
         logs = sorted({log for entry in ledger.entries.values() for log in entry["source"]["logs"]})
         problems += broken_links(page) + unshipped(repo, logs)

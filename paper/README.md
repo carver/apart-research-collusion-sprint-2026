@@ -72,6 +72,9 @@ On every build:
 - every number, table, figure and text in the ledger
 - every claim holds
 - no call followed straight by a semicolon (`#n("key");`): Typst ends the call there and drops the `;`, so write `\;`
+- no `#` before a digit (`(#39)`): Typst prints the number without the `#`, so write `\#39`
+- no reference to a heading that ends a sentence (`@app-pilot.`): the section number already ends in a period, so it prints "Section B.."
+- every figure drawn under the section it's written in: a float that doesn't fit on its page moves on, past the next section's heading, and one placed at the top of its page can land above its own (a figure without a caption isn't checked)
 - every figure and table referenced in the text
 - the Code and Data, LLM Usage Statement, and "Limitations and Dual-Use / Ethical Considerations" sections
 - the PDF: 25 MB at most

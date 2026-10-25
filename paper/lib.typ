@@ -6,10 +6,40 @@
 #import "apart.typ": appendix, unnumbered
 
 #let draft = sys.inputs.at("draft", default: "true") != "false"
-#let apart = template.apart.with(
+
+// A caption marked when its figure is drawn under another section than the one it's written in: a
+// float that doesn't fit on its page moves on, past the next section's heading, and one placed at
+// the top of its page can land above its own (paper/checks.py, "placement"). The mark sits in the
+// caption, so it moves with the float, and a figure without a caption goes unchecked; a figure's own
+// location is where it's written, and so is the order `before` follows.
+#let mark-misplaced(caption) = {
+  caption
+  context {
+    let at = here().position()
+    let sections = heading.where(level: 1)
+    let written = query(selector(sections).before(here()))
+    let drawn = query(sections).filter(h => {
+      let p = h.location().position()
+      p.page < at.page or (p.page == at.page and p.y <= at.y)
+    })
+    if written.len() > 0 and drawn.len() > 0 and written.last().location() != drawn.last().location() {
+      let fig = query(selector(figure).before(here())).last()
+      let label = if fig.has("label") { str(fig.label) } else { none }
+      let found = (label: label, caption: fig.caption.body, written: written.last().body, drawn: drawn.last().body)
+      [#metadata(found) <misplaced>]
+    }
+  }
+}
+
+#let apart(..args, body) = template.apart(
   draft: draft,
   stamp: sys.inputs.at("stamp", default: ""),
   commit: sys.inputs.at("commit", default: ""),
+  ..args,
+  {
+    show figure.caption: mark-misplaced
+    body
+  },
 )
 #let ledger = json("build/numbers.json")
 

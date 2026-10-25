@@ -1,6 +1,7 @@
 """The sprint's rules for the report (requirements.md), checked on a typeset paper; checks of paper.typ's text
-(a semicolon Typst swallows, and wording with no #claim behind it, which only warns); and the extra checks of
-a final build: every link resolves, and the paper and its logs are committed and pushed."""
+(a semicolon or a `#` before a digit that Typst swallows, a reference to a section that ends a sentence, and
+wording with no #claim behind it, which only warns); and the extra checks of a final build: every link
+resolves, and the paper and its logs are committed and pushed."""
 
 import http.client
 import re
@@ -25,6 +26,11 @@ FIELD = re.compile(r"\.[A-Za-z_][\w-]*")  # a field or method after it: .dash, .
 CLOSING = {"(": ")", "[": "]"}
 CITES = re.compile(r"#(?:n|pct|ci)\(")
 STRING = re.compile(r'"[^"\n]*"')  # a key, or quoted words, whose words aren't the sentence's own
+RAW = re.compile(r"`[^`\n]*`")  # raw text, printed as written
+HASH_DIGITS = re.compile(r"(?<!\\)#(\d+)")
+# = Title <label>: a section's, whose number ends in a period ("1.", "A."); a subsection's doesn't
+HEADING_LABEL = re.compile(r"\s*=\s.*<([\w:.-]+)>\s*$")
+REF_PERIOD = re.compile(r"@([\w:.-]*[\w:-])(\[[^\]\n]*\])?\.")  # a reference, its supplement, a period
 WORDING = re.compile(  # words whose truth rests on the numbers beside them, not inside a hyphenated word
     r"(?<![\w-])(?:every|all|none|no one|nobody|neither|never|always|only|most|mostly|nearly|almost"
     r"|fell|falls|rose|rises|raises|raised|lowers|lowered|higher|lower|more often|less often|fewer"
@@ -128,6 +134,36 @@ def swallowed_semicolons(text: str) -> list[Problem]:
     return found
 
 
+def swallowed_hashes(text: str) -> list[Problem]:
+    """Each `#` before a digit, outside comments, strings and raw text: Typst reads `#39` as the number 39
+    and prints it without the `#`, so "(#39)" becomes "(39)" with no error."""
+    found = []
+    for number, line in enumerate(code_lines(text), 1):
+        for match in HASH_DIGITS.finditer(RAW.sub("", STRING.sub("", line))):
+            digits = match.group(1)
+            found.append(Problem("hash", f"line {number}: #{digits} renders as {digits} (write \\#{digits})"))
+    return found
+
+
+def heading_ref_periods(text: str) -> list[Problem]:
+    """Each reference to a section followed by a period, outside comments, strings and raw text: the section's
+    number already ends in one ("Section B."), so the sentence ends in two."""
+    lines = code_lines(text)
+    sections = {match.group(1) for line in lines if (match := HEADING_LABEL.match(line))}
+    found = []
+    for number, line in enumerate(lines, 1):
+        for match in REF_PERIOD.finditer(RAW.sub("", STRING.sub("", line))):
+            if match.group(1) in sections:
+                found.append(
+                    Problem(
+                        "period",
+                        f"line {number}: {match.group(0)} renders two periods, since the section number "
+                        "ends in one; don't end the sentence with it",
+                    )
+                )
+    return found
+
+
 def _claimed_later(lines: list[str], i: int) -> bool:
     """Whether a #claim follows line i in its paragraph, before the next blank line."""
     for later in lines[i + 1 :]:
@@ -161,6 +197,10 @@ def rules(page: Typeset) -> list[Problem]:
     if page.todos:
         problems.append(Problem("todo", f"{page.todos} TODO markers"))
     problems += [Problem("unreferenced", figure) for figure in unreferenced(page)]
+    problems += [
+        Problem("placement", f"{figure} is written under {written} but drawn under {drawn}")
+        for figure, written, drawn in page.misplaced
+    ]
     problems += [Problem("sections", f"no {section} section") for section in missing_sections(page)]
     headings = page.headings
     if {LIMITATIONS, "References"} <= set(headings) and headings.index(LIMITATIONS) < headings.index(
