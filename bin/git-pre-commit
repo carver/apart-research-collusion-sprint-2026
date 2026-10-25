@@ -10,15 +10,20 @@
 "$(git rev-parse --show-toplevel)/bin/pilot-lock" || exit
 
 # Format the staged Python files and stage the result first, so formatting alone never refuses
-# a commit. A file that also has unstaged changes is left alone, since staging it would take
-# those along; the ruff-format check below still flags it. Keep ruff's version in step with
-# .pre-commit-config.yaml.
+# a commit, and name each file it changed. A file that also has unstaged changes is left alone,
+# since staging it would take those along; the ruff-format check below still flags it. Keep
+# ruff's version in step with .pre-commit-config.yaml.
 files=()
 while IFS= read -r -d '' file; do
   git diff --quiet -- "$file" && files+=("$file")
 done < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.py')
 if [ ${#files[@]} -gt 0 ]; then
-  uvx -q ruff@0.16.9 format -q --force-exclude -- "${files[@]}" && git add -- "${files[@]}" || exit
+  uvx -q ruff@0.16.9 format -q --force-exclude -- "${files[@]}" || exit
+  for file in "${files[@]}"; do
+    git diff --quiet -- "$file" && continue
+    git add -- "$file" || exit
+    echo "pre-commit: ruff format changed $file; the formatted file is staged" >&2
+  done
 fi
 
 # Ruff's checks before the slow ones: a line too long for ruff format to fix shouldn't wait on the
