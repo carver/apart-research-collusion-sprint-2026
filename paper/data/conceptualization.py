@@ -17,13 +17,14 @@ exploiting the copy (a best response to the other firm's output the reply's read
 below Nash) and the rest. Where the copy's own prompt is at the cartel share in fewer than 8 of 10 replies,
 its bar is outlined.
 
-The sentence on the answers at 60 (`conceptualization.sixties`) splits each model's answers at 60 on the lever
-figure's rows by their readbacks (`readback.sixty_kind`): leading a rival that follows, ignoring the rival,
-the other firm at 60 too, or other.
+The sentence on the answers at 60 (`conceptualization.sixties`) splits each model's answers at 60 on the rungs
+the lever figure shows (`STYLE`) by their readbacks (`readback.sixty_kind`): leading a rival that follows,
+ignoring the rival, the other firm at 60 too, or other.
 
 To change the lever figure, change `STYLE` (the rungs on x, how the neutral rung is marked, whether the
 bottom row draws the raw line faintly behind); the extra-chance figure, `EXTRA_STYLE` (the arms and the
-panels); both, `MODELS`. Then rebuild the paper. The captions' phrases about the layout follow the styles.
+panels); both, `MODELS`. Then rebuild the paper. The captions' phrases about the layout, and the sentence on
+the answers at 60, follow the styles.
 Issue #45 has recipes."""
 
 import math
@@ -458,10 +459,12 @@ def clause(label: str, kinds: list[str]) -> str:
     return f"{label} 1, {only}" if len(kinds) == 1 else f"{label} {len(kinds)}, all {only}"
 
 
-def sixties_text(rows: list[dict], read: Reader) -> str:
-    """A sentence on each model's answers at 60 on the lever figure's rows, split by `sixty_kind`."""
+def sixties_text(rows: list[dict], read: Reader, style: Style = STYLE) -> str:
+    """A sentence on each model's answers at 60 on the rungs the lever figure shows (the style's), split by
+    `sixty_kind`."""
+    shown = {condition for condition, (rung, _) in NO_RECORD.items() if rung in style.rungs}
     at_sixty = [
-        r for r in rows if r["condition"] in NO_RECORD and r["value"] is not None and near(r["value"], SIXTY)
+        r for r in rows if r["condition"] in shown and r["value"] is not None and near(r["value"], SIXTY)
     ]
     clauses = [
         clause(label, [sixty_kind(read(row)) for row in at_sixty if row["model"] == model])
@@ -475,14 +478,14 @@ def sixties_text(rows: list[dict], read: Reader) -> str:
         f"${sixty_price(ignore):g}. A readback can also put the other firm at {too:g} too, a price of "
         f"${sixty_price(too):g}, at which an answer of {SIXTY:g} earns nothing (the best response to "
         f"{SIXTY:g} is {lead:g}). "
-        f"Answers at {SIXTY:g} on the lever’s rungs with no record: {'; '.join(clauses)}."
+        f"Answers at {SIXTY:g} on the rungs the lever figure shows: {'; '.join(clauses)}."
     )
 
 
-def fill_sixties(ledger: Ledger, rows: list[dict], read: Reader) -> None:
+def fill_sixties(ledger: Ledger, rows: list[dict], read: Reader, style: Style = STYLE) -> None:
     ledger.value(
         "conceptualization.sixties",
-        sixties_text(rows, read),
+        sixties_text(rows, read, style),
         how="own-number arms with no record (the lever figure's rows); answers within 0.5 of 60, split by "
         "readback.sixty_kind",
     )

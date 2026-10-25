@@ -318,3 +318,14 @@ def test_the_sixties_sentence_splits_each_models_answers_at_60_by_readback(tmp_p
     assert order == sorted(order)  # the clauses follow MODELS
     glm = "1 leading, 1 ignoring the rival, 1 putting the other firm at 60 too, 1 other and 1 unread"
     assert f"GLM-5.3 5: {glm}" in line
+
+
+def test_the_sixties_sentence_counts_only_the_rungs_the_figure_shows(tmp_path):
+    rows = [row(model="opus", rung="informed", value=60.0, sample=s) for s in range(3)]
+    rows += [row(model="opus", rung="samemodel", value=60.0, sample=3)]
+    ledger = Ledger(tmp_path)
+    shown = tuple(rung for rung in STYLE.rungs if rung != "informed")
+    fill_sixties(ledger, rows, lambda r: Readback(30, 40), Style(rungs=shown))
+    line = ledger.entries["conceptualization.sixties"]["value"]
+    assert "on the rungs the lever figure shows" in line
+    assert "Opus 1, leading" in line
