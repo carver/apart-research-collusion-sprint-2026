@@ -1,10 +1,15 @@
 # Ruff comes from its own pre-commit repo, not the project's .venv, so the hook also works
 # on the host, which shares this checkout (and its sandbox-built .venv) with the sandbox.
-# Keep rev in step with ruff in pyproject.toml.
+# Keep rev in step with ruff in pyproject.toml. A throwaway prototype, named prototype_*.py (AGENTS.md),
+# skips both hooks here and pyright (pyproject.toml), since it never reaches main; bin/git-pre-commit's
+# own format step still formats it. ruff's extend-exclude can't hold it: tests/test_toolbox_copies.py
+# keeps that list to the llm-toolbox copies.
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.9
     hooks:
       - id: ruff-format
+        exclude: (^|/)prototype_[^/]*\.py$
       - id: ruff-check
         args: [--fix]
+        exclude: (^|/)prototype_[^/]*\.py$

@@ -54,6 +54,7 @@ addopts = "-q"
 
 [tool.pyright]
 include = ["zerocommcartel", "paper"]  # not tests/ or pilot/: tests poke at plain dicts, load pilot/ by path
+exclude = ["**/prototype_*.py"]  # throwaway prototypes, which never reach main
 typeCheckingMode = "standard"
 pythonVersion = "3.12"
 

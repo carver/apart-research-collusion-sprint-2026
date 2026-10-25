@@ -24,7 +24,7 @@ The report is `paper/paper.typ`, built by `bin/build-paper`. Never type a number
 
 ## Checks
 
-Committing runs the pilot lock (`bin/pilot-lock`) and ruff, and for agents the lock check on `uv.lock`, the tests, pyright and the license check (`reuse lint`) too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows. pytest already runs quiet (`addopts = "-q"`), so another `-q` hides its pass/fail summary line.
+Committing runs the pilot lock (`bin/pilot-lock`) and ruff, and for agents the lock check on `uv.lock`, the tests, pyright and the license check (`reuse lint`) too (`bin/git-pre-commit`, `bin/agent-pre-commit`), so don't run them first: commit and read the hook's output. Link the hooks in once per clone, as `bin/git-pre-commit`'s header shows. pytest already runs quiet (`addopts = "-q"`), so another `-q` hides its pass/fail summary line. Name a throwaway prototype `prototype_*.py`: the hooks then skip ruff check and pyright for it, since it never reaches `main`.
 
 Each file takes its license from `REUSE.toml`: MIT for the code paths it lists, CC-BY-4.0 for everything else. Code in a new place (a new folder, or a new kind of file) needs its path added there. Otherwise it falls under CC-BY-4.0, and no check notices.
 
