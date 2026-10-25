@@ -27,7 +27,7 @@ Before this sprint, a pilot found that one sentence in the firm's prompt, saying
 We ask when a model makes this choice, and what moves it, through four levers:
 - *Capability*: what are the minimum capabilities required for the model to collude?  What is required in terms of model intelligence, and what is required in terms of understanding of the situation?
 
-- *Compliance*: how do tweaks to the model's understanding of the situation or environment affect its willingness to collude?
+- *Caution*: how do tweaks to the model's understanding of the situation or environment affect its willingness to collude?
 - *Communality*: whose profit does the model weigh?
   Caring about the rival should pull toward the cartel share; caring about the buyers should push away from it.
 - *Conceptualization of mind*: does the model see itself in the rival's decision-maker?
@@ -85,7 +85,7 @@ A record is a few sentences in the prompt, so we choose where the induction star
 
 Calvano et al. write that, to economists, collusion is more than high prices: it needs a scheme of reward and punishment, so that the high prices are each firm's best play rather than a mistake @calvano2020.
 We use the word more loosely, for any answer at the cartel share.
-Every lever counts an answer there when it is within half a unit of the cartel share; the three-firm market of the capability and compliance levers asks for whole numbers, so there an answer must equal it.
+Every lever counts an answer there when it is within half a unit of the cartel share; the three-firm market of the capability and caution levers asks for whole numbers, so there an answer must equal it.
 
 == Communality
 _Whose profit does the model weigh?_
@@ -135,7 +135,7 @@ In the single quarter and against the fixed rival, where holding back can't pay 
 _What capabilities does a model need before it can collude?_
 We evaluated how model intelligence affects collusion, as well as giving the model varying amounts of context about a game situation in which collusion would be profitable.  We created several experiments to measure this: First, we asked a mix of stronger and weaker models to work out the cartel share given the price and cost information, and then separately asked them what they wanted to bid in an optimized game scenario.  This established that certain weaker models are unable to even understand the situation, and as a result can't collude reliably, and set a baseline for collusion of stronger models.  Next, we experimented with small changes to the context given to the stronger models to evaluate how sensitive to small changes their decision making was.  We showed that they were ultimately very sensitive, mostly in directions that were very rational.  Given stronger cues that it was an ongoing game environment they went for profit maximizing collusion, while lack of information or stronger cues that collusion could be penalized led to reverting to the Nash equilibrium.
 
-== Compliance
+== Caution
 _How do small changes to its environment affect a model's willingness to collude?_
 We evaluate how sensitive the stronger models' collusion is to small details of their environment that leave the actual market scenario unchanged.
 As a baseline we chose the setting in which these models collude most often: a previous quarter at the cartel share in context for the prompt, and the scenario specified as a repeated game.
@@ -204,7 +204,7 @@ If anything, the business wording understates how often these models collude.
   ],
 ) <tab-cap10>
 
-== Compliance
+== Caution
 // The compliant criterion (#40), from paper/data/compliant.py.
 *The control.*
 With nothing added, the stronger models collude often but not always: Opus produces the cartel share in #n("cpl9.opus.none_none_none") replies, Astra in #n("cpl9.astra.none_none_none") and GLM-5.3 in #n("cpl9.glm.none_none_none") (@fig-cpl9).
