@@ -304,15 +304,18 @@ def draw_extra(ax: Any, data: ExtraData) -> None:
             ys.append(y)
             y += 1
         y += 0.6  # a gap between models
+    weak = set(weak_panels(data.splits, style))
     for panel, horizon in zip(axes, style.backgrounds, strict=True):
-        bars = [data.splits.get((m, arm, horizon)) for m in models for arm in style.arms]
-        for yy, split in zip(ys, bars, strict=True):
+        bars = [(m, arm, data.splits.get((m, arm, horizon))) for m in models for arm in style.arms]
+        for yy, (model, arm, split) in zip(ys, bars, strict=True):
             if not split or not split.n:
                 continue
             cartel, exploit = split.cartel / split.n, split.exploit / split.n
             panel.barh(yy, cartel, color=AT_CARTEL, height=0.75)
             panel.barh(yy, exploit, left=cartel, color=EXPLOIT, height=0.75)
             panel.barh(yy, 1 - cartel - exploit, left=cartel + exploit, color=OTHER, height=0.75)
+            if arm == "base" and (model, horizon) in weak:
+                panel.barh(yy, 1, facecolor="none", edgecolor=INK, linewidth=0.8, height=0.75)
         panel.set_title(HORIZON_LABELS[horizon], fontsize=8, color=INK)
         panel.set_xlim(0, 1)
         panel.xaxis.set_major_formatter(PercentFormatter(1.0))
@@ -346,6 +349,36 @@ def caption_arms(style: ExtraStyle) -> str:
     return named_list([ARM_PHRASES[arm] for arm in style.arms])
 
 
+WEAK_BELOW = (
+    0.8  # flaws.md: read defection where the copy's own prompt is at the cartel share in 8 of 10 or more
+)
+
+
+def weak_panels(splits: dict[tuple[str, str, str], Split], style: ExtraStyle) -> list[tuple[str, str]]:
+    """The (model, background) panels whose copy's-prompt bar is below WEAK_BELOW at the cartel share: there
+    the copy colludes too seldom for its absence of exploits to say much."""
+    return [
+        (model, horizon)
+        for model in MODELS
+        for horizon in style.backgrounds
+        if (split := splits.get((model, "base", horizon))) and split.n and split.cartel / split.n < WEAK_BELOW
+    ]
+
+
+def caption_weak(splits: dict[tuple[str, str, str], Split], style: ExtraStyle) -> str:
+    """The caption's sentence on the outlined bars, empty when no panel is weak."""
+    by_model: dict[str, list[str]] = defaultdict(list)
+    for model, horizon in weak_panels(splits, style):
+        by_model[model].append(HORIZON_LABELS[horizon])
+    if not by_model:
+        return ""
+    panels = named_list([f"{MODELS[m]} in {named_list(hs)}" for m, hs in by_model.items()])
+    return (
+        f"Outlined: the copy’s own prompt reaches the cartel share in fewer than {round(WEAK_BELOW * 10)} "
+        f"of 10 replies, where the copy colludes too seldom to read much into a lack of exploits ({panels})."
+    )
+
+
 def fill_extra(ledger: Ledger, rows: list[dict], read: Reader, style: ExtraStyle = EXTRA_STYLE) -> None:
     splits = extra_splits(rows, read)
     size = (6.5, 0.24 * len(MODELS) * len(style.arms) + 1.0)
@@ -361,6 +394,10 @@ def fill_extra(ledger: Ledger, rows: list[dict], read: Reader, style: ExtraStyle
     )
     ledger.value(
         "conceptualization.extra.caption.arms", caption_arms(style), how="the arms, from EXTRA_STYLE"
+    )
+    weak = caption_weak(splits, style)
+    ledger.value(
+        "conceptualization.extra.caption.weak", weak, how="the outlined panels, from the copy's bars"
     )
     backgrounds = named_list([HORIZON_LABELS[h] for h in style.backgrounds])
     ledger.value(

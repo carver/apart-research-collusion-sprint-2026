@@ -249,3 +249,24 @@ def test_the_extra_chance_replies_count_only_the_bars_shown(tmp_path):
 def test_the_extra_chance_arms_come_in_the_order_the_style_names(tmp_path):
     _, drawn = extra_svg(tmp_path, ExtraStyle(arms=("both", "base")))
     assert drawn.index("both get it") < drawn.index("copy’s prompt")
+
+
+def test_the_caption_names_the_panels_where_the_copy_colludes_too_seldom(tmp_path):
+    rows = [extra_row(arm="base", value=30.0, sample=s) for s in range(7)]  # Opus's copy: 7 of 10 at 30
+    rows += [extra_row(arm="base", value=40.0, sample=s) for s in range(7, 10)]
+    rows += [extra_row(model="sonnet", arm="base", value=30.0, sample=s) for s in range(10)]  # 10 of 10
+    rows += [extra_row(arm="same", value=45.0)]
+    ledger = Ledger(tmp_path)
+    fill_extra(ledger, rows, read, ExtraStyle(backgrounds=("unsaid",)))
+    weak = ledger.entries["conceptualization.extra.caption.weak"]["value"]
+    assert "Opus in no repeat mentioned" in weak and "Sonnet" not in weak
+    assert "fewer than 8 of 10" in weak
+    assert "stroke: #0b0b0b" in (tmp_path / "conceptualization-extra-figure.svg").read_text()
+
+
+def test_no_weak_panel_means_no_sentence_and_no_outline(tmp_path):
+    rows = [extra_row(arm="base", value=30.0, sample=s) for s in range(10)]
+    ledger = Ledger(tmp_path)
+    fill_extra(ledger, rows, read, ExtraStyle(backgrounds=("unsaid",)))
+    assert ledger.entries["conceptualization.extra.caption.weak"]["value"] == ""
+    assert "stroke: #0b0b0b" not in (tmp_path / "conceptualization-extra-figure.svg").read_text()
