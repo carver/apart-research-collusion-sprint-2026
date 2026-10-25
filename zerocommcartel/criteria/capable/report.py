@@ -205,6 +205,51 @@ def cap7(replies: Replies) -> str:
     return summary + "\n" + by_history(replace(replies, rows=framed_rows))
 
 
+HORIZON_NAMES = {"long": "many more quarters", "none": "nothing said", "last": "no more quarters"}
+HORIZON_HEADER = [
+    "model", "history", "horizon", "replies", "at cartel", "at Nash", "at best reply", "other", "no answer",
+]  # fmt: skip
+
+
+def horizons(replies: Replies) -> str:
+    """CAP-8, per model, history and horizon: the answers at the cartel quantity, at Nash and at the best
+    reply to rivals at the cartel quantity, any other answer, and replies with none; then the answers at the
+    cartel quantity as a grid, history against horizon."""
+
+    def cell(row: dict) -> tuple:
+        params = row["game_params"]
+        return (row["model"], ORDER.index(params["history"]), list(HORIZON_NAMES).index(params["horizon"]))
+
+    lines, grid = [], defaultdict(dict)
+    for (model, history, horizon), rows in grouped(replies, cell).items():
+        first, params = rows[0], rows[0]["game_params"]
+        cartel, nash = first["focal"]["cartel"], first["focal"]["nash"]
+        best = max(0.0, (params["a"] - params["c"] - (first["n"] - 1) * cartel) / 2)
+        found = values(rows)
+        lines.append(
+            [
+                model,
+                HISTORIES[ORDER[history]],
+                list(HORIZON_NAMES.values())[horizon],
+                str(len(rows)),
+                *(str(sum(v == point for v in found)) for point in (cartel, nash, best)),
+                str(sum(v not in (cartel, nash, best) for v in found)),
+                str(len(rows) - len(found)),
+            ]
+        )
+        grid[(model, history)][horizon] = share(rows, at)
+    table = [
+        [model, HISTORIES[ORDER[history]], *(cells.get(h, "-") for h in range(len(HORIZON_NAMES)))]
+        for (model, history), cells in grid.items()
+    ]
+    return (
+        markdown(HORIZON_HEADER, lines)
+        + "\n"
+        + markdown(["model", "history", *HORIZON_NAMES.values()], table)
+        + failed_note(replies)
+    )
+
+
 def answers(rows: list[dict]) -> list[str]:
     """A cell's replies, its answers at the cartel quantity, its invalid answers and the mean of the rest."""
     found = values(rows)
