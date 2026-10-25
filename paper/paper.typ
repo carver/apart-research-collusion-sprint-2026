@@ -136,14 +136,15 @@ Ours play one round, and share at most the model and its prompt.
 Theorists have proposed ways for agents that reason alike to cooperate without talking: each asks what the pair should do @gold2007, or programs read each other's code @tennenholtz2004 or a score of how similar they are @oesterheld2023.
 
 = Methods <sec-methods>
-Each call sends one firm's prompt, with the market and the sentences under test, and asks for a number on a final answer line (@app-prompts shows one of the pilot's prompts).
+Each call sends one firm's prompt, with the market and the sentences under test, and asks for a number on a final answer line (@app-mind-prompts shows the two-firm market's neutral prompt and what each rung and horizon adds).
 The communality and conceptualization levers count an answer at a point of @tab-game when it is within half a unit of it.
 The conceptualization lever asks Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 each rung under #n("conceptualization.backgrounds.opus") backgrounds, three horizons times four records, and GPT-6 Astra and GLM-5.3 each rung under the #n("conceptualization.backgrounds.glm") backgrounds with no record.
 #claim("the Claude models ran every background, four records", ("conceptualization.backgrounds.haiku", "conceptualization.backgrounds.sonnet", "conceptualization.backgrounds.opus", "conceptualization.records.opus"), (haiku, sonnet, opus, records) => haiku == opus and sonnet == opus and records == 4)
 #claim("GPT-6 Astra and GLM-5.3 ran only the backgrounds with no record", ("conceptualization.backgrounds.astra", "conceptualization.backgrounds.glm", "conceptualization.norecord.astra", "conceptualization.norecord.glm"), (astra, glm, astra-none, glm-none) => astra == glm and astra-none == astra and glm-none == glm)
 Each model, rung and background is a *cell* of #n("conceptualization.cells.replies") replies.
-The communality lever asks the Claude models and GLM-5.3, starting from six of those cells and from a market where the rival's output is already fixed, #n("idl1.first") replies a cell (@fig-idl1).
-A second call, the readback, shows the model its prompt and reply and asks what output and price it expected.
+The communality lever asks the same five models, starting from six of those rung-and-background prompts and from a market where the rival's output is already fixed, #n("idl1.first") replies a cell (@fig-idl1).
+#claim("the communality lever asks the same five models", ("idl1.models",), models => models == "haiku sonnet opus astra glm")
+A second call, the readback, shows the model its prompt and reply and asks what output and price it expected (for the communality lever, every model's but GPT-6 Astra's).
 The readback tells a leader from a firm that ignored its rival.
 In the single quarter and against the fixed rival, where holding back can't pay for itself, it also tells sympathy from belief.
 @app-methods has the details.
@@ -355,6 +356,7 @@ Before the sprint, a pilot asked Claude Haiku, Sonnet and Opus how much a firm s
 When the prompt says that every firm gets its number by asking "this same AI model with this same prompt", #n("pilot.same.cartel") replies land on the cartel share, against #n("pilot.base.cartel") when it says nothing about rivals' advisors (@tab-pilot).
 #claim("the same-prompt sentence raises the cartel share", ("pilot.same.cartel", "pilot.base.cartel"), (same, base) => same > base)
 Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@fig-pilot).
+@app-prompts gives the prompt with that sentence, for two firms.
 
 #figure(
   data-table("pilot-table"),

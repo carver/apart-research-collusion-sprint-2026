@@ -162,6 +162,12 @@ def fill(ledger: Ledger, rows: list[dict], labels: dict[str, dict]) -> None:
         len(found),
         how="tests in the family: identities against controls, controls against the bare start",
     )
+    named = [m for m in MODELS if m in models] + [m for m in models if m not in MODELS]  # MODELS' order
+    ledger.value(
+        "idl1.models",
+        " ".join(named),
+        how="the models whose every cell has its first stage, so in the family",
+    )
     ledger.value("idl1.pass", len(passing), how=f"comparisons that pass (q < {Q:g})")
     ledger.value(
         "idl1.aside",

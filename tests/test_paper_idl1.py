@@ -136,3 +136,10 @@ def test_fill_counts_the_bars_refusals_explain_and_the_refusals_behind_them_once
     assert entries["idl1.pass"]["value"] == 3
     assert entries["idl1.aside"]["value"] == 2  # both against the holding company; the buyers' bar holds
     assert (entries["idl1.refusals"]["value"], entries["idl1.refusals.law"]["value"]) == (10, 9)
+
+
+def test_fill_names_the_models_whose_first_stage_is_complete_for_methods(tmp_path):
+    unfinished = [r for r in rows_for("haiku") if not (r["condition"] == "id_open_base" and r["sample"] == 9)]
+    ledger = Ledger(tmp_path)
+    fill(ledger, ROWS + unfinished, LABELS)
+    assert ledger.entries["idl1.models"]["value"] == "opus glm"  # haiku's first stage is one reply short
