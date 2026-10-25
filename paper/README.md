@@ -83,6 +83,7 @@ Each draft page carries a DRAFT watermark and a footer with the commit and build
 |---|---|
 | `paper.typ` | the paper |
 | `refs.bib` | the references (BibTeX, rendered in APA) |
+| `citations.md` | the running list of sources: what each supports and where it's used |
 | `lib.typ` | the functions above, and the template with the draft marks |
 | `apart.typ` | the Apart template's layout. Preexisting: copied from Jason's earlier run, then updated to the live template |
 | `requirements.md` | the sprint's rules for the report, fetched 2026-10-23 |
