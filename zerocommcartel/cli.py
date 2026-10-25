@@ -1,6 +1,7 @@
 """zcc: run and tabulate the criteria's conditions.
 
     uv run zcc list                                   # each criterion and its conditions
+    uv run zcc list conc                              # one criterion's, by a prefix only its name has
     uv run zcc show consistent same 2                 # one condition's system prompt and prompt, n = 2
     uv run zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
     uv run zcc judge consistent                       # the copy judge labels each reply (cached)
@@ -11,6 +12,7 @@
     uv run zcc synth                                  # the measures beside same's cartel and deliberate rates
     uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 
+A command that takes a criterion takes its name or a prefix no other criterion's name shares (conc, cons).
 `run` appends to logs/<criterion>/results.jsonl unless --out names another file. A criterion's replies are
 that log's and its experiments' (logs/<criterion>/<id>/results.jsonl, from the scripts in experiments/). `run`
 skips the replies they already have, so raising --samples adds samples and a rerun retries failures. The
@@ -119,9 +121,10 @@ def replies(
 
 def cmd_list(registry: Registry, args):
     """Each criterion and the question it asks, then its conditions, each with its slot levels, its question
-    (ask) and its game. show, run --conditions and table --conditions take these names."""
-    for name, criterion in registry.criteria.items():
-        print(f"{name}: {criterion.question}")
+    (ask) and its game. show, run --conditions and table --conditions take these names. Criteria named
+    (or prefixed: conc) narrow it to theirs."""
+    for name in args.criteria or registry.criteria:
+        print(f"{name}: {registry.criteria[name].question}")
         for cond, spec in registry.conditions(name).items():
             parts = [f"{slot}={level}" for slot, level in spec.levels.items()]
             print(f"  {cond:<14} {' '.join([*parts, f'ask={spec.ask}', f'game={spec.game.name}'])}")
@@ -337,13 +340,34 @@ def cmd_hashes(registry: Registry, args):
 def filter_options(s: argparse.ArgumentParser, criteria: list[str], conditions: str, models: str) -> None:
     """The criterion, its --log, and the options that narrow its replies, which table, grid and replies share.
     `conditions` and `models` name, for the help, what each narrowing keeps (rows, columns, replies)."""
-    s.add_argument("criterion", choices=criteria)
+    criterion_argument(s, criteria)
     s.add_argument("--log", help=LOG_HELP)
     s.add_argument("--conditions", nargs="+", help=f"only these conditions' {conditions}; default: all")
     s.add_argument(
         "--models", nargs="+", choices=list(MODELS), help=f"only these models' {models}; default: all"
     )
     s.add_argument("--ns", nargs="+", type=int, help="only these numbers of firms; default: all")
+
+
+def criterion_named(criteria: list[str], text: str) -> str:
+    """The criterion named `text`, or else the one whose name starts with it."""
+    if text in criteria:
+        return text
+    found = [name for name in criteria if name.startswith(text)]
+    if len(found) == 1:
+        return found[0]
+    if found:
+        raise argparse.ArgumentTypeError(f"{text!r} starts more than one criterion: {', '.join(found)}")
+    raise argparse.ArgumentTypeError(f"no criterion is or starts with {text!r}")
+
+
+def criterion_argument(
+    s: argparse.ArgumentParser, criteria: list[str], dest: str = "criterion", **kwargs
+) -> None:
+    """A criterion, by its name or a prefix that no other criterion's name shares (conc for
+    conceptualization)."""
+    # type turns a prefix into the full name before choices checks it, so choices only lists the names in -h
+    s.add_argument(dest, choices=criteria, type=lambda text: criterion_named(criteria, text), **kwargs)
 
 
 def at_least_zero(text: str) -> int:
@@ -387,14 +411,15 @@ def main(argv=None, registry: Registry = REGISTRY):
         )
 
     criteria = list(registry.criteria)
-    command("list", "each criterion and its conditions")
+    s = command("list", "each criterion and its conditions")
+    criterion_argument(s, criteria, "criteria", nargs="*", help="only these criteria; default: all")
     s = command("show", "print one condition's prompt")
-    s.add_argument("criterion", choices=criteria)
+    criterion_argument(s, criteria)
     s.add_argument("condition", help="one of the criterion's conditions, as `zcc list` names them")
     s.add_argument("n", type=int, help="the number of firms in the market, such as 2, 3 or 4")
     s.add_argument("--model", choices=list(MODELS), help="the model a prompt names, if it names one")
     s = command("run", "ask the models, appending to the criterion's log")
-    s.add_argument("criterion", choices=criteria)
+    criterion_argument(s, criteria)
     s.add_argument("--conditions", nargs="+", help="default: all of the criterion's conditions")
     s.add_argument("--models", nargs="+", default=["haiku", "sonnet", "opus"])
     s.add_argument(
@@ -409,7 +434,7 @@ def main(argv=None, registry: Registry = REGISTRY):
         help="print the calls per model and their OpenRouter price, and call nothing",
     )
     s = command("judge", "label the criterion's replies with judges (cached beside the log)")
-    s.add_argument("criterion", choices=criteria)
+    criterion_argument(s, criteria)
     s.add_argument("--judges", nargs="+", default=["copy"], choices=list(registry.judges))
     s.add_argument("--log", help=LOG_HELP)
     s = command("table", "a markdown table of the criterion's replies")

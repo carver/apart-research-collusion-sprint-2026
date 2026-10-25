@@ -1,12 +1,14 @@
 """The zcc command line. claude-fresh is faked (subprocess.run), so no test calls a model."""
 
+import argparse
 import json
 import subprocess
 from types import SimpleNamespace
 
 import pytest
 
-from zerocommcartel.cli import main
+from zerocommcartel import cli
+from zerocommcartel.cli import criterion_named, main
 from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.criterion import Criterion, build
 from zerocommcartel.judge import COPY, Judge
@@ -40,6 +42,48 @@ def test_list_names_each_criterion_and_its_conditions(capsys):
     out = capsys.readouterr().out
     assert all(name in out for name in REGISTRY.criteria)
     assert "joint_default" in out and "ask=joint game=repeated" in out
+
+
+def headings(out: str) -> list[str]:
+    """The criteria `zcc list` printed a section for, in order."""
+    return [line.split(":")[0] for line in out.splitlines() if not line.startswith(" ")]
+
+
+def test_list_shows_only_the_criteria_named_or_prefixed(capsys):
+    main(["list", "conc"])
+    assert headings(capsys.readouterr().out) == ["conceptualization"]
+    main(["list", "consistent", "cap"])
+    assert headings(capsys.readouterr().out) == ["consistent", "capable"]
+
+
+def test_a_prefix_of_several_criteria_exits_naming_them(capsys):
+    with pytest.raises(SystemExit):
+        main(["list", "con"])
+    error = capsys.readouterr().err.splitlines()[-1]  # the lines above it are the usage, which names them all
+    assert "conceptualization" in error and "consistent" in error and "capable" not in error
+
+
+def test_criterion_named_prefers_an_exact_name_and_refuses_an_unknown_one():
+    assert criterion_named(["con", "consistent"], "con") == "con"
+    assert criterion_named(["con", "consistent"], "cons") == "consistent"
+    with pytest.raises(argparse.ArgumentTypeError, match="xyz"):
+        criterion_named(["con", "consistent"], "xyz")
+
+
+@pytest.mark.parametrize(
+    "command", ["show cons same 2", "run cons", "judge cons", "table cons", "grid cons", "replies cons"]
+)
+def test_each_command_takes_a_criterion_prefix(monkeypatch, command):
+    seen = []
+
+    def record(registry, args):
+        """Keeps the criterion the command was given."""
+        seen.append(args.criterion)
+
+    argv = command.split()
+    monkeypatch.setitem(cli.COMMANDS, argv[0], record)
+    main(argv)
+    assert seen == ["consistent"]
 
 
 def test_run_logs_each_call_to_the_out_file(tmp_path, claude):
