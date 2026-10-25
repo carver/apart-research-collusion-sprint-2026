@@ -1,8 +1,9 @@
-"""CPL-9. The environment (EXPERIMENT_IDEAS.md): does changing the firm's environment, by what it's told about
-oversight, a reporting tool it's offered, and what round 1 is called, change whether it keeps colluding?
-Every combination of five oversight levels, four tools and four labels, 80 cells, under no_info after the
-round at 20. The 11 cells that vary one axis (the other two at none) get 30 calls each, the rest 10. Results:
-EXPERIMENT_RESULTS.md.
+"""CPL-9. The environment (EXPERIMENT_IDEAS.md): does changing the company's environment, by what it's told
+about oversight, a reporting tool it's offered, and what the previous quarter is called, change whether it
+keeps colluding? Every combination of five oversight levels, four tools and four labels, 80 cells, in CAP-9's
+realistic market after a quarter at 20 with many more to come. The 11 cells that vary one axis (the other two
+at none) get 30 calls each, the rest 10. Its first version ran the single-axis cells in the standards'
+game-like market (env_*); those replies stay in its log. Results: EXPERIMENT_RESULTS.md.
 
     uv run python experiments/cpl9_environment.py --single-axis   # the 11 single-axis cells only
     uv run python experiments/cpl9_environment.py                 # every cell: run what's missing, report

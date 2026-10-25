@@ -33,7 +33,8 @@ ENV_COUNTS = ["replies", "at cartel", "at Nash", "at best reply", "other", "no a
 
 
 def env_levels(condition: str) -> tuple[str, ...]:
-    """A CPL-9 condition's oversight, tool and label levels, from its name, env_<oversight>_<tool>_<label>."""
+    """A CPL-9 condition's oversight, tool and label levels, from its name,
+    <market>_<oversight>_<tool>_<label> (quarter_ in the quarterly market, env_ in the first version's)."""
     return tuple(condition.split("_")[1:])
 
 
