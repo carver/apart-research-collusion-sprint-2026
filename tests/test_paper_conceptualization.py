@@ -366,3 +366,16 @@ def test_coverage_counts_each_models_backgrounds_and_records_from_its_own_number
         "conceptualization.records.glm": 1,
         "conceptualization.norecord.glm": 2,
     }
+
+
+def test_coverage_leaves_out_forecast_and_extra_chance_arms_and_models_with_no_own_number_replies(tmp_path):
+    rows = [own_row("haiku", "same", "unsaid", "none")]
+    rows += [{**own_row("sonnet", "same", "unsaid", "none"), "condition": "mind_same_unsaid_none_s48"}]
+    rows += [{**own_row("haiku", "same", "open", "coop"), "condition": "mind_extra_same_open_coop"}]
+    ledger = Ledger(tmp_path)
+    fill_coverage(ledger, rows)
+    assert {key: e["value"] for key, e in ledger.entries.items()} == {
+        "conceptualization.backgrounds.haiku": 1,
+        "conceptualization.records.haiku": 1,
+        "conceptualization.norecord.haiku": 1,
+    }

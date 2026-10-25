@@ -150,27 +150,45 @@ def swallowed_hashes(text: str) -> list[Problem]:
     return found
 
 
-def citation_reads(table: str) -> dict[str, str]:
-    """citations.md's `read` column, by key: how much of each source someone has read."""
-    rows = [line for line in table.splitlines() if line.startswith("|")]
-    cells = [[cell.strip() for cell in row.strip().strip("|").split("|")] for row in rows]
-    header, body = cells[0], cells[2:]  # cells[1] is the |---| rule
-    key, read = header.index("key"), header.index("read")
-    return {row[key].strip("`"): row[read] for row in body}
+def citation_reads(table: str) -> dict[str, str | None] | None:
+    """citations.md's `read` column, by key: how much of each source someone has read, or None for a row
+    without the table's columns. None when no table has key and read columns."""
+    header: list[str] | None = None
+    reads: dict[str, str | None] = {}
+    for line in table.splitlines():
+        if not line.startswith("|"):
+            if reads:
+                break  # past the table
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if header is None:
+            header = cells if {"key", "read"} <= set(cells) else None
+        elif not set("".join(cells)) <= set("-: "):  # not the |---| rule
+            key = cells[header.index("key")].strip("`") if len(cells) > header.index("key") else ""
+            reads[key] = cells[header.index("read")] if len(cells) == len(header) else None
+    return reads if header is not None else None
 
 
 def unread_citations(cited: set[str], bib: str, table: str) -> list[Problem]:
-    """Each source the paper cites that citations.md doesn't say someone read in full. `cited` holds every
-    label the paper references, so only those that are refs.bib keys count."""
+    """Each source the paper cites that citations.md doesn't say someone read in full; keys in `cited` that
+    aren't refs.bib keys aren't checked."""
+    keys = sorted(cited & set(BIB_KEY.findall(bib)))
     reads = citation_reads(table)
+    if reads is None:
+        return [Problem("citation", "citations.md has no table with key and read columns")] if keys else []
     found = []
-    for key in sorted(cited & set(BIB_KEY.findall(bib))):
-        read = reads.get(key)
-        if read is None:
-            found.append(Problem("citation", f"@{key} is cited, but citations.md has no row for it"))
-        elif read != READ_IN_FULL:
-            says = NOT_READ_IN_FULL.get(read, f"its read column says {read!r}")
-            found.append(Problem("citation", f"@{key} is cited, but citations.md says {says}"))
+    for key in keys:
+        if key not in reads:
+            why = "citations.md has no row for it"
+        elif (read := reads[key]) is None:
+            why = "its row in citations.md doesn't have the table's columns"
+        elif read == READ_IN_FULL:
+            continue
+        elif read in NOT_READ_IN_FULL:
+            why = f"citations.md says {NOT_READ_IN_FULL[read]}"
+        else:
+            why = f"its read column in citations.md is {read!r}, not full text"
+        found.append(Problem("citation", f"@{key} is cited, but {why}"))
     return found
 
 

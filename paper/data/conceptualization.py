@@ -539,7 +539,8 @@ def fill_coverage(ledger: Ledger, rows: list[dict]) -> None:
     ran: defaultdict[str, set[tuple[str, str]]] = defaultdict(set)
     for row in rows:
         if (cell := OWN_CELLS.get(row["condition"])) is not None:
-            ran[row["model"]].add(cell[1:])
+            _, horizon, record = cell
+            ran[row["model"]].add((horizon, record))
     for model in MODELS:
         if backgrounds := ran.get(model):
             ledger.value(
