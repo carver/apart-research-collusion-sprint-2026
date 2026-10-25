@@ -12,6 +12,8 @@ bin/build-paper watch     # the draft now, recompiled on each save and rebuilt o
 
 `watch` keeps `build/DRAFT-paper.pdf` current while you write. A save of any `.typ` or `.bib` here recompiles it within a second or two, from the numbers and figures of the last full build, and prints Typst's error when it can't. A full build runs in the background each time HEAD moves, and when the text cites a key the ledger lacks, once the text has been still for five seconds (`--settle`). Open the PDF in a viewer that reloads a changed file, such as Skim or VS Code; macOS Preview doesn't.
 
+Only one build of a tree runs at a time: a build holds `build/.lock`, and another waits for it, so a watch's builds and an agent's can't clear each other's figures. A watch says when another process's build pauses it. Whether a lock taken on the host is seen by a build inside a sandbox that mounts the repo, or the other way round, is untested.
+
 ## Writing
 
 Write one sentence per line, so diffs and merges go sentence by sentence. Never type a number from the data. Cite it by its key, and the build fills it in:

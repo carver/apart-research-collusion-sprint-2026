@@ -6,16 +6,19 @@ build checks more (every link resolves, nothing uncommitted, every log it read p
 <paper dir>/zerocommcartel.pdf and its ledger only when every check passes. Both write a PNG of each page to
 build/pages/, and the ledger to build/numbers.json (which paper.typ reads) and build/numbers.md."""
 
+import fcntl
 import json
 import os
 import shutil
 import sys
 import tempfile
-from collections.abc import Mapping
+import time
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import IO, Any
 
 from paper.checks import (
     Problem,
@@ -34,7 +37,18 @@ from paper.git import Repo
 from paper.ledger import DuplicateKey, Ledger, Provenance, display
 from paper.typeset import BuildError, typeset
 
-__all__ = ["DRAFT_NAME", "FINAL_NAME", "BuildError", "Problem", "Report", "build", "stamp", "write_atomic"]
+__all__ = [
+    "DRAFT_NAME",
+    "FINAL_NAME",
+    "BuildError",
+    "Problem",
+    "Report",
+    "build",
+    "build_lock",
+    "lock_holder",
+    "stamp",
+    "write_atomic",
+]
 
 DRAFT_NAME = "DRAFT-paper"
 FINAL_NAME = "zerocommcartel"  # the submission: <paper dir>/zerocommcartel.pdf and its ledger
@@ -164,9 +178,67 @@ def write_pages(folder: Path, pngs: list[bytes]) -> list[Path]:
     return pages
 
 
+LOCK = ".lock"  # in build/: held by the build that is running, with its pid inside
+
+
+@contextmanager
+def build_lock(out: Path) -> Iterator[None]:
+    """Holds <out>/.lock for a build, after waiting for any other build of the same paper to finish. The OS
+    drops the lock when its process ends, so a crashed build leaves none behind."""
+    out.mkdir(parents=True, exist_ok=True)
+    with os.fdopen(os.open(out / LOCK, os.O_RDWR | os.O_CREAT, 0o644), "r+") as lock:
+        if not _try_lock(lock):
+            pid = _read_pid(lock)
+            holder = f"pid {pid}" if pid else "pid unknown"
+            print(f"build-paper: waiting for another build of this paper ({holder})", file=sys.stderr)
+            fcntl.flock(lock, fcntl.LOCK_EX)
+        lock.seek(0)
+        lock.truncate()
+        lock.write(str(os.getpid()))
+        lock.flush()
+        yield
+
+
+def lock_holder(out: Path) -> int | None:
+    """The pid of the process holding <out>/.lock, or None when no build runs (or, for an instant, when the
+    one that just took it hasn't written its pid yet)."""
+    if not (out / LOCK).exists():
+        return None
+    with (out / LOCK).open("a+") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return _read_pid(lock)
+        fcntl.flock(lock, fcntl.LOCK_UN)
+        return None
+
+
+def _try_lock(lock: IO[str]) -> bool:
+    """Takes the lock if it is free. Tries a few times over 50 ms, since lock_holder() takes it for an
+    instant to see whether it is free."""
+    for _ in range(5):
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except BlockingIOError:
+            time.sleep(0.01)
+    return False
+
+
+def _read_pid(lock: IO[str]) -> int | None:
+    lock.seek(0)
+    text = lock.read().strip()
+    return int(text) if text.isdigit() else None
+
+
 def build(paper_dir: Path, sources: Mapping[str, Source] | None = None, final: bool = False) -> Report:
-    """Builds <paper_dir>/paper.typ from `sources` (every registered data source by default). Raises
-    BuildError when Typst can't compile it; every other problem is in the report."""
+    """Builds <paper_dir>/paper.typ from `sources` (every registered data source by default), once no other
+    build of it runs. Raises BuildError when Typst can't compile it; every other problem is in the report."""
+    with build_lock(paper_dir / "build"):
+        return _build(paper_dir, sources, final)
+
+
+def _build(paper_dir: Path, sources: Mapping[str, Source] | None, final: bool) -> Report:
     out, repo = paper_dir / "build", Repo.of(paper_dir)
     shutil.rmtree(out / "figures", ignore_errors=True)
     ledger, problems = fill(registered() if sources is None else sources, out / "figures", repo)
