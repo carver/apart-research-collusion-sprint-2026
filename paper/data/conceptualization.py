@@ -29,7 +29,7 @@ from zerocommcartel.criteria.conceptualization import DUOPOLY, HORIZONS, RUNGS, 
 from zerocommcartel.criterion import near
 from zerocommcartel.mentions import MENTIONS
 
-MODELS = {"haiku": "Haiku", "sonnet": "Sonnet", "opus": "Opus", "glm": "GLM-5.3"}
+MODELS = {"haiku": "Haiku", "sonnet": "Sonnet", "opus": "Opus", "astra": "GPT-6 Astra", "glm": "GLM-5.3"}
 INK = "#0b0b0b"  # titles and labels wear text ink, not a series colour (dataviz)
 HORIZON_LABELS = {"unsaid": "no repeat mentioned", "single": "one quarter only", "open": "repeats"}
 HORIZON_COLORS = {"unsaid": "#6250d6", "single": "#eda100", "open": "#e87ba4"}  # dataviz slots 7, 4, 5

@@ -66,7 +66,8 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
     #n("conceptualization.caption.layout")
     Top: answers at the cartel share, with a 95% Wilson band over #n("conceptualization.cells.replies") replies a cell.
     Bottom, a reading of the model rather than data: the same lines if every answer that cites antitrust law (a keyword check), off the cartel share and at or below Nash, had answered at the cartel share#n("conceptualization.caption.ghost").
-    Such answers are #n("conceptualization.refusals.opus") of Opus's answers off the cartel share and at or below Nash, #n("conceptualization.refusals.haiku") of Haiku's, #n("conceptualization.refusals.sonnet") of Sonnet's and #n("conceptualization.refusals.glm") of GLM-5.3's.
+    Such answers are #n("conceptualization.refusals.opus") of Opus's answers off the cartel share and at or below Nash, #n("conceptualization.refusals.haiku") of Haiku's, #n("conceptualization.refusals.sonnet") of Sonnet's, #n("conceptualization.refusals.astra") of GPT-6 Astra's and #n("conceptualization.refusals.glm") of GLM-5.3's.
+    For GPT-6 Astra the rung that names GPT-6 Astra is its own name, the same prompt as the rung before it, so it has no point of its own.
   ],
 ) <fig-conceptualization>
 
