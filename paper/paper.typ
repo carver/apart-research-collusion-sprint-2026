@@ -59,6 +59,7 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
 #todo[The lever's prose: where each model sits on the neutral rung and how far each rung moves it (@fig-conceptualization), worded model by model; flaws.md, "Conceptualization", first.]
 
 #figure(
+  placement: auto,
   data-figure("conceptualization-figure", width: 100%),
   caption: [
     The lever, model by model.
