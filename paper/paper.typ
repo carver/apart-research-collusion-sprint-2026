@@ -243,23 +243,40 @@ So the models need the setting to say different amounts before they stop: one se
 
 == Communality
 // The identity lever (#41), from paper/data/idl1.py.
-#todo[The lever's prose: which identities move which model, and how far (@fig-idl1), worded model by model; flaws.md, Communal, "The identity lever", first.]
 
-Of #n("idl1.tests") comparisons, #n("idl1.pass") pass (@fig-idl1).
+#todo[Is there a better bullet point style to use?]
+Models take into account the identity of the players in the game. Some notable examples
+(our interpretations in parentheses):
+- If Sonnet 5.5 acts for a charity, it colludes more often (benefiting the charity)
+- If Opus 5.5 competes with a charity, it colludes more often (benefiting the charity)
+- If Claude models hear the identity of the buyers, they collude less (avoiding harm)
+- If Claude models hear the identity of the other seller, they collude less (avoiding risk)
+- GLM is unaffected
+
+We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-idl1).
+Models are asked why they refuse collusion.
+Of the #n("idl1.refusals") refusals, #n("idl1.refusals.law") cite antitrust or legal risk.
+
+This is an interesting crossover between Caution and Communality. The mention of a player who is losing something in the game can trigger a second order effect, by making the model more cautious, and then avoiding collusion. Perhaps even more interesting, by naming a sympathetic beneficiary, some models throw caution to the wind and collude.
+
+#todo[what is this slop:
 A Haiku judge reads each reply off the cartel share and counts it as a refusal when it names a lower output, such as the two firms' joint optimum, and turns it down as illegal or as harmful to buyers or the public.
 Run on the answers that aren't refusals, the same test misses for #n("idl1.aside") of the #n("idl1.pass") passing comparisons.
-Of the #n("idl1.refusals") refusals behind the bars, #n("idl1.refusals.law") cite antitrust or legal risk.
+]
 
 #figure(
   data-figure("idl1-figure", width: 100%),
   caption: [
-    Who the firms and the buyers are, model by model.
-    Each bar is the share of answers at the cartel share under one sentence minus the share under its reference, a same-shape control or no sentence, with Newcombe's 95% interval.
-    Only comparisons that pass are drawn: Fisher's exact test with Benjamini–Hochberg across #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell, #n("idl1.pass.first") of the bars; a comparison that moved #n("idl1.screen") replies or more and missed was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those, #n("idl1.pass.fresh") of the bars.
-    A bar marked \* ends at 0% or 100% and is #n("idl1.cap") points or shorter, so the floor or the ceiling may have cut it short.
+    Models, told who the competitors or buyers are, collude more or less (Newcombe's 95% interval).
+    The shown experiments pass Fisher's exact test with Benjamini–Hochberg.\*\*
     #n("idl1.caption.none")
   ],
 ) <fig-idl1>
+
+#todo[move these into footnotes:
+\*Cartel dropped to 0%, effect may be stronger.
+\*\* Compared #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell, #n("idl1.pass.first") of the bars; a comparison that moved #n("idl1.screen") replies or more and missed was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those, #n("idl1.pass.fresh") of the bars.
+]
 
 == Conceptualization
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
