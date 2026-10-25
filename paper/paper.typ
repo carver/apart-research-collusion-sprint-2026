@@ -87,6 +87,7 @@ A record is a few sentences in the prompt, so we choose where the induction star
 
 Calvano et al. write that, to economists, collusion is more than high prices: it needs a scheme of reward and punishment, so that the high prices are each firm's best play rather than a mistake @calvano2020.
 We use the word more loosely, for any answer at the cartel share.
+Every lever counts an answer there when it is within half a unit of the cartel share; the three-firm market of the capability and compliance levers asks for whole numbers, so there an answer must equal it.
 
 == Capability
 _Can the model work out the output that is best for the pair?_
@@ -136,7 +137,7 @@ A second call, the readback, shows the model its prompt and reply and asks what 
 The readback tells a leader from a firm that ignored its rival.
 In the single quarter and against the fixed rival, where holding back can't pay for itself, it also tells sympathy from belief.
 @app-methods has the details.
-#todo[Thomas: the three-firm market (CAP-8 to CAP-10, CPL-9, and the standards' market before them): its prompt, horizon and history, the models, the replies a cell, and how it counts an answer as held (details in @app-methods).]
+#todo[Thomas: the three-firm market (CAP-8 to CAP-10, CPL-9, and the standards' market before them): its prompt, horizon and history, the models and the replies a cell (details in @app-methods).]
 
 = Results
 The pre-sprint pilot that set up these criteria is in the appendix (@tab-pilot, @fig-pilot).
