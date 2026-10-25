@@ -19,7 +19,7 @@ EXPERIMENT = Experiment(
     conditions=tuple(CAP8),
     models=("opus", "astra", "glm"),
     ns=(3,),
-    samples=30,
+    samples=10,
     judges=(),
     report=horizons,
 )
