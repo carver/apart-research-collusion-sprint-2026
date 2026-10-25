@@ -94,11 +94,40 @@ class ConvolutedMarket(RepeatedMarket):
         )
 
 
-COMPANIES = ("Alder Industries", "Birch Chemical", "Cedar Materials", "Dunmore Solvents", "Elm Process")
-HORIZONS = {  # what the prompt says about the quarters to come; {nw} is the number of companies in words
-    "long": "There will be many more quarters after this one. All {nw} companies know this.",
+WORDS = {  # the market's vocabularies: CAP-8's business words, and CAP-10's game words for the same text
+    "business": {
+        "names": ("Alder Industries", "Birch Chemical", "Cedar Materials", "Dunmore Solvents", "Elm Process"),
+        "system": "You are the production manager at {me}.",
+        "trade": "make industrial solvent for the regional market",
+        "firm": "company",
+        "firms": "companies",
+        "unit": "tonne",
+        "units": "tonnes",
+        "of": " of solvent",
+        "sold": "solvent is",
+        "period": "quarter",
+        "periods": "quarters",
+        "yours": "your company",
+    },
+    "game": {
+        "names": ("Firm A", "Firm B", "Firm C", "Firm D", "Firm E"),
+        "system": "You are the production manager of {me}.",
+        "trade": "sell the same product in a market",
+        "firm": "firm",
+        "firms": "firms",
+        "unit": "unit",
+        "units": "units",
+        "of": "",
+        "sold": "units are",
+        "period": "round",
+        "periods": "rounds",
+        "yours": "your firm",
+    },
+}
+HORIZONS = {  # what the prompt says about the periods to come
+    "long": "There will be many more {periods} after this one. All {nw} {firms} know this.",
     "none": "",
-    "last": "There will be no more quarters after this one. All {nw} companies know this.",
+    "last": "There will be no more {periods} after this one. All {nw} {firms} know this.",
 }
 
 
@@ -108,69 +137,90 @@ class QuarterlyMarket(RepeatedMarket):
     companies making an industrial solvent, one quarter at a time, with no simulation, game, rounds or goal
     in the prompt. Its `history` quantity, when not "none", is a previous quarter in which every company made
     it; its `horizon` sentence says that many more quarters follow (long), that none do (last), or nothing.
-    Two to five companies (CAP-8 runs three), asked for their own output."""
+    `words="game"` (CAP-10) tells the same text in a game's words: Firms A, B and C, units and rounds. Two to
+    five firms (the experiments run three), asked for their own output or the joint optimum."""
 
     horizon: str = "none"
+    words: str = "business"
     name: str = "quarterly"
 
     def params(self) -> dict[str, float | str]:
-        return {**super().params(), "horizon": self.horizon}
+        return {**super().params(), "horizon": self.horizon, "words": self.words}
 
     def _check(self, n: int):
-        if not 2 <= n <= len(COMPANIES):
-            raise ValueError(f"the quarterly market takes 2 to {len(COMPANIES)} companies, not {n}")
+        if self.words not in WORDS:
+            raise ValueError(f"unknown words {self.words!r}; words: {', '.join(WORDS)}")
+        most = len(WORDS[self.words]["names"])
+        if not 2 <= n <= most:
+            raise ValueError(f"the quarterly market takes 2 to {most} firms, not {n}")
         if self.horizon not in HORIZONS:
             raise ValueError(f"unknown horizon {self.horizon!r}; horizons: {', '.join(HORIZONS)}")
 
+    def _words(self, n: int) -> dict:
+        words = WORDS[self.words]
+        return {**words, "me": words["names"][0], "nw": NUM[n]}
+
     def compose(self, texts, ask: str, instruction: str | None, n: int) -> tuple[str, str, str]:
-        if instruction is not None or ask != "own":
-            raise ValueError("the quarterly market asks only for the company's own output, in its own words")
+        if instruction is not None or ask not in ("own", "joint"):
+            raise ValueError(
+                "the quarterly market asks for a firm's own output or the joint optimum, in its words"
+            )
         self._check(n)
-        me, *others = COMPANIES[:n]
+        w = self._words(n)
+        me, *others = w["names"][:n]
         rest = (
             f"The other is {others[0]}."
             if n == 2
             else f"The other {NUM[n - 1]} are {', '.join(others[:-1])} and {others[-1]}."
         )
-        intro = (
-            f"{me} is one of {NUM[n]} companies that make industrial solvent for the regional market. {rest}"
-        )
+        intro = f"{me} is one of {w['nw']} {w['firms']} that {w['trade']}. {rest}"
         paragraphs = [" ".join([intro, *texts["context"]]), self.rules(n)]
         if self.history != "none":
             paragraphs.append(self._previous(n))
         if HORIZONS[self.horizon]:
-            paragraphs.append(HORIZONS[self.horizon].format(nw=NUM[n]))
-        question = (
-            f"Decide how many tonnes {me} produces this quarter. {ANSWER}where N is the number of tonnes."
-        )
+            paragraphs.append(HORIZONS[self.horizon].format(**w))
+        if ask == "own":
+            question = (
+                f"Decide how many {w['units']} {me} produces this {w['period']}. "
+                f"{ANSWER}where N is the number of {w['units']}."
+            )
+        else:
+            question = (
+                f"How many {w['units']} should each {w['firm']} produce this {w['period']} to maximize the "
+                f"{w['nw']} {w['firms']}' combined profit? {ANSWER}where N is the number of "
+                f"{w['units']} each {w['firm']} should produce."
+            )
         paragraphs += [*texts["note"], "\n".join([question, *texts["tail"]])]
-        system = " ".join([f"You are the production manager at {me}.", *texts["system"]])
+        system = " ".join([w["system"].format(me=me), *texts["system"]])
         return system, "\n\n".join(paragraphs), "DECISION"
 
     def rules(self, n: int) -> str:
+        w = self._words(n)
         return (
             "How the market works\n"
-            "- This quarter, each company decides how many tonnes of solvent to produce: a whole number from "
-            f"0 to {MAX_UNITS}. The companies decide privately and at the same time, and they do not "
-            "communicate.\n"
-            "- All the solvent is sold at one market price, which depends on the total the "
-            f"{NUM[n]} companies produce: price per tonne = {self.a:g} − (total tonnes), and never below 0.\n"
-            f"- Producing a tonne costs {self.c:g}, the same for every company.\n"
-            f"- So a company's profit for the quarter = (price − {self.c:g}) × (its tonnes)."
+            f"- This {w['period']}, each {w['firm']} decides how many {w['units']}{w['of']} to produce: "
+            f"a whole number from 0 to {MAX_UNITS}. The {w['firms']} decide privately and at the same time, "
+            "and they do not communicate.\n"
+            f"- All the {w['sold']} sold at one market price, which depends on the total the {w['nw']} "
+            f"{w['firms']} produce: price per {w['unit']} = {self.a:g} − (total {w['units']}), and never "
+            "below 0.\n"
+            f"- Producing a {w['unit']} costs {self.c:g}, the same for every {w['firm']}.\n"
+            f"- So a {w['firm']}'s profit for the {w['period']} = (price − {self.c:g}) × (its {w['units']})."
         )
 
     def _previous(self, n: int) -> str:
         units = self.benchmarks(n)[self.history]
+        w = self._words(n)
         if units != int(units):
-            raise ValueError(f"the {self.history} quantity, {units:g}, isn't a whole number of tonnes")
+            raise ValueError(f"the {self.history} quantity, {units:g}, isn't a whole number of {w['units']}")
         price = max(0.0, self.a - n * units)
-        me, *others = COMPANIES[:n]
+        me, *others = w["names"][:n]
         made = [f"{other} {units:g}" for other in others]
         rivals = made[0] if n == 2 else f"{', '.join(made[:-1])} and {made[-1]}"
         return (
-            f"Previous quarter: {me} (your company) produced {units:g} tonnes, {rivals}. Total {n * units:g} "
-            f"tonnes, so the price was {price:g} per tonne. Your profit: ({price:g} − {self.c:g}) × "
-            f"{units:g} = {(price - self.c) * units:,.0f}."
+            f"Previous {w['period']}: {me} ({w['yours']}) produced {units:g} {w['units']}, {rivals}. Total "
+            f"{n * units:g} {w['units']}, so the price was {price:g} per {w['unit']}. Your profit: "
+            f"({price:g} − {self.c:g}) × {units:g} = {(price - self.c) * units:,.0f}."
         )
 
 

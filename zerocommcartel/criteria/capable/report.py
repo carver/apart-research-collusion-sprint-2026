@@ -281,6 +281,58 @@ def capability(replies: Replies) -> str:
     return markdown(CAPABILITY_HEADER, lines) + failed_note(replies)
 
 
+ARMS = {
+    "quarter_cartel_long": "business",
+    "game_cartel_long": "game words",
+    "plain_own": "standard game text",
+}
+WORDING_HEADER = [
+    "model",
+    "wording",
+    "replies",
+    "at cartel",
+    "at Nash",
+    "at best reply",
+    "other",
+    "no answer",
+]
+
+
+def points(row: dict) -> tuple[float, float, float]:
+    """The cartel quantity, Nash, and the best reply to rivals at the cartel quantity, in the row's market."""
+    cartel, nash = row["focal"]["cartel"], row["focal"]["nash"]
+    params = row["game_params"]
+    return cartel, nash, max(0.0, (params["a"] - params["c"] - (row["n"] - 1) * cartel) / 2)
+
+
+def outcomes(rows: list[dict]) -> list[str]:
+    """A cell's answers at the cartel quantity, Nash and the best reply to the cartel, anything else, none."""
+    cartel, nash, best = points(rows[0])
+    found = values(rows)
+    return [
+        *(str(sum(v == point for v in found)) for point in (cartel, nash, best)),
+        str(sum(v not in (cartel, nash, best) for v in found)),
+        str(len(rows) - len(found)),
+    ]
+
+
+def wording(replies: Replies) -> str:
+    """CAP-10, per model and wording (business, game words, the standard game text): `outcomes`; then the
+    answers at the cartel quantity as a grid, model against wording."""
+    arms = list(ARMS)
+    lines, grid = [], defaultdict(dict)
+    for (model, arm), rows in grouped(replies, lambda r: (r["model"], arms.index(r["condition"]))).items():
+        lines.append([model, ARMS[arms[arm]], str(len(rows)), *outcomes(rows)])
+        grid[model][arm] = share(rows, at)
+    table = [[model, *(cells.get(i, "-") for i in range(len(arms)))] for model, cells in grid.items()]
+    return (
+        markdown(WORDING_HEADER, lines)
+        + "\n"
+        + markdown(["model", *ARMS.values()], table)
+        + failed_note(replies)
+    )
+
+
 def answers(rows: list[dict]) -> list[str]:
     """A cell's replies, its answers at the cartel quantity, its invalid answers and the mean of the rest."""
     found = values(rows)
