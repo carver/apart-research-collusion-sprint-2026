@@ -289,20 +289,55 @@ def test_the_ladder_counts_any_focal_point_and_marks_cells_without_it():
     assert grid_line(grid, "one quarter only")[3] == "n/a"
 
 
-def test_the_match_grid_counts_replies_whose_readback_expects_their_own_answer():
+def test_the_match_grid_counts_the_cartel_answers_whose_readback_expects_the_other_firm_at_30():
     rows = [
         row("mind_same_open_none", 30, reply="mirror: 30"),
-        row("mind_same_open_none", 40, sample=1, reply="nash: 40"),
-        row("mind_same_open_none", 30, sample=2, reply="unasked: 30"),
+        row("mind_same_open_none", 30, sample=1, reply="pair: 30"),
+        row("mind_same_open_none", 40, sample=2, reply="nash: 40"),
+        row("mind_same_open_none", 30, sample=3, reply="unasked: 30"),
     ]
     prompt = arm("mind_same_open_none")
     readbacks = {
         readback.key("haiku", prompt, 0, "mirror: 30"): readback.Readback(30, 70),
-        readback.key("haiku", prompt, 1, "nash: 40"): readback.Readback(30, 60),
+        readback.key("haiku", prompt, 1, "pair: 30"): readback.Readback(40, 60),
+        readback.key("haiku", prompt, 2, "nash: 40"): readback.Readback(40, 50),
     }
     grid = report.matches(rows, "haiku", readbacks, REGISTRY)
     assert grid_line(grid, "repeats")[0] == "1/2"
     assert grid_line(grid, "repeats")[1] == "-"
+
+
+def test_the_second_ladder_counts_answers_above_nash():
+    rows = [row("mind_none_unsaid_coop", 45), row("mind_none_unsaid_coop", 40, sample=1)]
+    rows += [row("mind_none_unsaid_coop", 60, sample=2), row("mind_none_unsaid_coop", 30, sample=3)]
+    assert grid_line(report.above(rows, "haiku"), "no repeat mentioned, after 30s")[4] == "2/4"
+
+
+def test_the_sixties_line_splits_leaders_from_firms_that_ignore_the_rival():
+    rows = [row("mind_informed_unsaid_none", 60, sample=s, reply=f"sixty {s}") for s in range(4)]
+    rows += [row("mind_informed_unsaid_none", 40, sample=4, reply="nash")]
+    prompt = arm("mind_informed_unsaid_none")
+    readbacks = {
+        readback.key("haiku", prompt, 0, "sixty 0"): readback.Readback(30, 40),
+        readback.key("haiku", prompt, 1, "sixty 1"): readback.Readback(30, 40),
+        readback.key("haiku", prompt, 2, "sixty 2"): readback.Readback(0, 70),
+    }
+    assert report.sixties(rows, "haiku", readbacks, REGISTRY) == (
+        "answers at 60: 2 leading (other firm at 30, $40), 1 ignoring the other firm ($70), 0 other, 1 unread"
+    )
+
+
+def test_the_slope_grid_reads_the_two_forecasts_of_each_cell():
+    rows = [row("mind_samemodel_unsaid_none_s48", 48), row("mind_samemodel_unsaid_none_s48", 48, sample=1)]
+    rows += [row("mind_samemodel_unsaid_none_s26", 26), row("mind_samemodel_unsaid_none_s26", 26, sample=1)]
+    rows += [row("mind_none_unsaid_none_s48", 40), row("mind_none_unsaid_none_s26", 40)]
+    rows += [row("mind_human_unsaid_none_s48", 36), row("mind_human_unsaid_none_s26", 47)]
+    rows += [row("mind_otherdev_unsaid_none_s48", 40)]
+    line = grid_line(report.slopes(rows, "haiku"), "no repeat mentioned")
+    assert line[1] == "+1.00"
+    assert line[4] == "+0.00"
+    assert line[8] == "-0.50"
+    assert line[6] == "-"
 
 
 def test_two_samples_with_the_same_reply_are_each_asked(tmp_path):
