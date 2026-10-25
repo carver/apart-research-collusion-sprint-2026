@@ -148,7 +148,7 @@ def test_a_cell_without_replies_leaves_a_gap_not_a_zero():
     assert raised[2] == 0.3 and math.isnan(raised[1])
 
 
-# Figure 3: the extra chance
+# The extra-chance figure
 
 
 def extra_row(model="opus", arm="same", horizon="unsaid", value=45.0, sample=0):

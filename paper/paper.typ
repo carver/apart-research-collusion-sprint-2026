@@ -55,10 +55,10 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
 #todo[Variance, seeds, baselines and the positive control.]
 
 == Capability
-#todo[The capability criterion's results (#39).]
+#todo[The capability criterion's results (\#39).]
 
 == Compliance
-#todo[The compliance criterion's results (#40).]
+#todo[The compliance criterion's results (\#40).]
 
 == Communality
 // The identity lever (#41), from paper/data/idl1.py.

@@ -1,21 +1,25 @@
 """The conceptualization criterion (#42): its two figures, from the rows `zcc table conceptualization` counts.
 
-Figure 2 follows each model along the lever, the rungs from a rival that asks this same model with this
-same prompt to one that won't cooperate, in the three backgrounds with no record of past play (a line per
-horizon). Top row: the share of answers at the cartel share, with a shaded 95% Wilson band. Bottom row, a
-reading of the model's mind rather than a data report: the same lines raised as if every antitrust refusal had
-been a cartel answer. A refusal is an answer off the cartel share, at or below Nash, whose reply cites the law
-(`zerocommcartel.mentions.MENTIONS["antitrust"]`): a keyword check, read by hand on samples (flaws.md,
-"Conceptualization"). Each model's refusals, of its answers off the cartel share, are keys too, so the caption
-can word the reading model by model.
+The lever figure (`conceptualization-figure`, `<fig-conceptualization>`) follows each model along the lever,
+the rungs from a rival that asks this same model with this same prompt to one that won't cooperate, in the
+three backgrounds with no record of past play (a line per horizon). Top row: the share of answers at the
+cartel share, with a shaded 95% Wilson band. Bottom row, a reading of the model's mind rather than a data
+report: the same lines raised as if every antitrust refusal had been a cartel answer. A refusal is an answer
+off the cartel share, at or below Nash, whose reply cites the law (`zerocommcartel.mentions.MENTIONS
+["antitrust"]`): a keyword check, read by hand on samples (flaws.md, "Conceptualization"). Each model's
+refusals, of its answers off the cartel share, are keys too, so the caption can word the reading model by
+model.
 
-Figure 3 sets the extra-chance arms beside the copy's own prompt: a 100% bar per model and arm, split into
-answers at the cartel share, answers exploiting the copy (a best response to the other firm's output the
-reply's readback expected, when that is below Nash) and the rest.
+The extra-chance figure (`conceptualization-extra-figure`, `<fig-extra>`) sets the extra-chance arms beside
+the copy's own prompt: a 100% bar per model and arm, split into answers at the cartel share, answers
+exploiting the copy (a best response to the other firm's output the reply's readback expected, when that is
+below Nash) and the rest. Where the copy's own prompt is at the cartel share in fewer than 8 of 10 replies,
+its bar is outlined.
 
-To change Figure 2, change `STYLE` (the rungs on x, how the neutral rung is marked, whether the bottom row
-draws the raw line faintly behind); Figure 3, `EXTRA_STYLE` (the arms and the panels); both, `MODELS`. Then
-rebuild the paper. The captions' phrases about the layout follow the styles. Issue #45 has recipes."""
+To change the lever figure, change `STYLE` (the rungs on x, how the neutral rung is marked, whether the
+bottom row draws the raw line faintly behind); the extra-chance figure, `EXTRA_STYLE` (the arms and the
+panels); both, `MODELS`. Then rebuild the paper. The captions' phrases about the layout follow the styles.
+Issue #45 has recipes."""
 
 import math
 import re
@@ -233,7 +237,7 @@ def fill(ledger: Ledger, rows: list[dict], style: Style = STYLE) -> None:
             )
 
 
-# Figure 3: the extra chance. My firm's request ends with a paragraph the copy's lacks; does the model keep
+# The extra-chance figure. My firm's request ends with a paragraph the copy's lacks; does the model keep
 # the mirror, or best-respond to the copy it predicts?
 
 BARS = {"base": "copy’s prompt", "same": "extra chance", "asym": "asymmetry only", "both": "both get it"}
@@ -304,7 +308,7 @@ def draw_extra(ax: Any, data: ExtraData) -> None:
             ys.append(y)
             y += 1
         y += 0.6  # a gap between models
-    weak = set(weak_panels(data.splits, style))
+    weak = set(weak_panels(data))
     for panel, horizon in zip(axes, style.backgrounds, strict=True):
         bars = [(m, arm, data.splits.get((m, arm, horizon))) for m in models for arm in style.arms]
         for yy, (model, arm, split) in zip(ys, bars, strict=True):
@@ -349,33 +353,34 @@ def caption_arms(style: ExtraStyle) -> str:
     return named_list([ARM_PHRASES[arm] for arm in style.arms])
 
 
-WEAK_BELOW = (
-    0.8  # flaws.md: read defection where the copy's own prompt is at the cartel share in 8 of 10 or more
-)
+# flaws.md: read defection where the copy's own prompt is at the cartel share in 8 of 10 replies or more
+WEAK_BELOW = (8, 10)
 
 
-def weak_panels(splits: dict[tuple[str, str, str], Split], style: ExtraStyle) -> list[tuple[str, str]]:
-    """The (model, background) panels whose copy's-prompt bar is below WEAK_BELOW at the cartel share: there
-    the copy colludes too seldom for its absence of exploits to say much."""
+def weak_panels(data: ExtraData) -> list[tuple[str, str]]:
+    """The (model, background) panels whose copy's-prompt bar is below WEAK_BELOW at the cartel share."""
+    at_least, of = WEAK_BELOW
     return [
         (model, horizon)
         for model in MODELS
-        for horizon in style.backgrounds
-        if (split := splits.get((model, "base", horizon))) and split.n and split.cartel / split.n < WEAK_BELOW
+        for horizon in data.style.backgrounds
+        if (split := data.splits.get((model, "base", horizon)))
+        and split.n
+        and split.cartel * of < at_least * split.n
     ]
 
 
-def caption_weak(splits: dict[tuple[str, str, str], Split], style: ExtraStyle) -> str:
+def caption_weak(data: ExtraData) -> str:
     """The caption's sentence on the outlined bars, empty when no panel is weak."""
     by_model: dict[str, list[str]] = defaultdict(list)
-    for model, horizon in weak_panels(splits, style):
+    for model, horizon in weak_panels(data):
         by_model[model].append(HORIZON_LABELS[horizon])
     if not by_model:
         return ""
     panels = "; ".join(f"{MODELS[m]} in {named_list(hs)}" for m, hs in by_model.items())
     return (
-        f"Outlined: the copy’s own prompt reaches the cartel share in fewer than {round(WEAK_BELOW * 10)} "
-        f"of 10 replies, so a bar there says less about defection either way ({panels})."
+        f"Outlined: the copy’s own prompt reaches the cartel share in fewer than {WEAK_BELOW[0]} of "
+        f"{WEAK_BELOW[1]} replies, so a bar there says less about defection either way ({panels})."
     )
 
 
@@ -395,7 +400,7 @@ def fill_extra(ledger: Ledger, rows: list[dict], read: Reader, style: ExtraStyle
     ledger.value(
         "conceptualization.extra.caption.arms", caption_arms(style), how="the arms, from EXTRA_STYLE"
     )
-    weak = caption_weak(splits, style)
+    weak = caption_weak(ExtraData(splits, style))
     ledger.value(
         "conceptualization.extra.caption.weak", weak, how="the outlined panels, from the copy's bars"
     )
@@ -425,8 +430,8 @@ def conceptualization(ledger: Ledger) -> None:
 
 @source("conceptualization-extra")
 def conceptualization_extra(ledger: Ledger) -> None:
-    """A source of its own, so a failure here can't drop Figure 2's keys. Without the readback cache every
-    exploit would read as "other", so a missing cache stops the source instead."""
+    """A source of its own, so a failure here can't drop the lever figure's keys. Without the readback cache
+    every exploit would read as "other", so a missing cache stops the source instead."""
     cache = readback.cache_path(cli.sources(REGISTRY, "conceptualization", None).log)
     if not cache.exists():
         raise FileNotFoundError(f"{cache}: the extra-chance figure reads exploits through the readbacks")
