@@ -60,16 +60,17 @@ With two firms, it raises each firm's profit from \$#n("game.two.nash.profit.min
 But if the rival holds to the cartel share, a firm's best reply is to *cash in* at #n("game.two.cashin.mine") units, earning \$#n("game.two.cashin.profit.mine") while the rival drops to \$#n("game.two.cashin.profit.others").
 Cashing in pays, yet both firms do worse at Nash than at the cartel share, the shape of a prisoner's dilemma.
 #claim("cashing in pays, the rival loses, and Nash is worse for both", ("game.two.cashin.profit.mine", "game.two.cartel.profit.mine", "game.two.cashin.profit.others", "game.two.nash.profit.mine"), (cash, cartel, rival, nash) => cash > cartel and rival < cartel and nash < cartel)
-If a firm expects its rival to predict its output and then make its own best reply, the firm does best at #n("game.two.leader.mine") units, as the *Stackelberg leader* @stackelberg1934.
+If a firm expects its rival to predict its output and then make its own best reply, the firm does best at #n("game.two.leader.mine") units, as the *Stackelberg leader*.
 A firm that plans as if it were alone in the market also picks #n("game.two.naive"), so the number alone can't tell the two apart.
 #claim("a firm alone picks the leader's output", ("game.two.naive", "game.two.leader.mine"), (alone, lead) => alone == lead)
 
 Since cashing in pays, a firm needs a reason to *hold back* at the cartel share.
 We see three, which we call routes.
 The first is the *mirror*: if a firm expects its rival to make whatever it makes, only equal splits are possible, and the best of them is the cartel share.
-Asking "what output would I want every firm to choose?" is Roemer's simple Kantian reasoning @roemer2019, which gives the cartel share here.
+Asking "what output would I want every firm to choose?" is what Roemer calls simple Kantian optimization @roemer2020.
+With identical firms, no other outcome makes every firm better off @roemer2013, and here that outcome is the cartel share.
 Roemer counts a price-fixing cartel, which hurts consumers, as an equilibrium of a related Kantian kind @roemer2020.
-The second is the *future*: in a market that repeats with no known end, a firm can hold back so its rival keeps holding back, since cashing in invites punishment in later quarters @friedman1971.
+The second is the *future*: in a market that repeats with no known end, a firm can hold back so its rival keeps holding back, since cashing in invites punishment in later quarters @calvano2020.
 The third is *sympathy*: a firm that counts its rival's profit as its own, and expects the rival to hold back, finds the cartel share its best reply.
 Two things pull the other way: the gain from cashing in, for a firm unsure of its reason, and the buyers' loss, which a model may weigh for the buyers' sake or because the law forbids collusion.
 
@@ -84,7 +85,7 @@ In a final quarter, only the mirror or sympathy still gives a reason to hold bac
 No model plays real quarters.
 A record is a few sentences in the prompt, so we choose where the induction starts.
 
-Harrington defines collusion by a scheme of reward and punishment @harrington2018, as do Calvano et al. @calvano2020.
+Calvano et al. write that, to economists, collusion is more than high prices: it needs a scheme of reward and punishment, so that the high prices are each firm's best play rather than a mistake @calvano2020.
 We use the word more loosely, for any answer at the cartel share.
 
 == Capability
@@ -123,7 +124,7 @@ LLM pricing agents in a repeated market reach prices above the competitive level
 In double auctions, messages between sellers raise collusion, and without them sellers did not price above the competitive level after the first ten rounds @agrawal2025.
 These agents play many rounds and see prices or messages come back.
 Ours play one round, and share at most the model and its prompt.
-Theorists have long argued that agents who reason alike can cooperate without talking: superrational players @hofstadter1983, team reasoners @gold2007, and programs that read each other's code @tennenholtz2004 or see how similar they are @oesterheld2023.
+Theorists have proposed ways for agents that reason alike to cooperate without talking: each asks what the pair should do @gold2007, or programs read each other's code @tennenholtz2004 or a score of how similar they are @oesterheld2023.
 
 = Methods <sec-methods>
 Each call sends one firm's prompt, with the market and the sentences under test, and asks for a number on a final answer line (@app-prompts shows one of the pilot's prompts).
@@ -187,20 +188,7 @@ GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback
   ],
 ) <fig-conceptualization>
 
-#todo[The extra chance's prose (@fig-extra): which models exploit a copy that thinks less, and where; flaws.md, "Conceptualization", "The extra chance", first.]
-
-#figure(
-  data-figure("conceptualization-extra-figure", width: 100%),
-  caption: [
-    The extra chance: when my firm's request ends with a paragraph its copy's request lacks, does the model keep the mirror or exploit the copy?
-    Each model's answers on #n("conceptualization.extra.caption.arms").
-    Blue: at the cartel share.
-    Red: exploiting the copy, a best response to the other firm's output the reply's readback expected, when that is below Nash.
-    Gray: Nash or other.
-    A panel per background with no record (#n("conceptualization.extra.caption.backgrounds")), #n("conceptualization.extra.replies") replies a bar.
-    #n("conceptualization.extra.caption.weak")
-  ],
-) <fig-extra>
+#todo[The extra chance's prose (@fig-extra, in the appendix): which models exploit a copy that thinks less, and where; flaws.md, "Conceptualization", "The extra chance", first.]
 
 = Discussion and Limitations
 #todo[What the results mean.]
@@ -245,6 +233,21 @@ A comparison that moved by #n("idl1.screen") replies or more but missed signific
 
 #todo[Each lever's arms in full, and the two-firm market's prompt.]
 #todo[Thomas: the three-firm market's details.]
+
+= The extra chance <app-extra>
+// Moved out of Results to save page budget.
+#figure(
+  data-figure("conceptualization-extra-figure", width: 100%),
+  caption: [
+    The extra chance: when my firm's request ends with a paragraph its copy's request lacks, does the model keep the mirror or exploit the copy?
+    Each model's answers on #n("conceptualization.extra.caption.arms").
+    Blue: at the cartel share.
+    Red: exploiting the copy, a best response to the other firm's output the reply's readback expected, when that is below Nash.
+    Gray: Nash or other.
+    A panel per background with no record (#n("conceptualization.extra.caption.backgrounds")), #n("conceptualization.extra.replies") replies a bar.
+    #n("conceptualization.extra.caption.weak")
+  ],
+) <fig-extra>
 
 = The pre-sprint pilot <app-pilot>
 // From the pre-sprint pilot's log through paper/data/pilot.py: counts, one cell's interval, a claim, a table
