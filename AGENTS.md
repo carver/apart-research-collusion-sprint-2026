@@ -6,7 +6,7 @@
 
 `/sprint-paper` (type it; it doesn't fire on its own) takes a sprint project from the rubric to a reviewed report through multi-agent workflows, with the rules that keep long runs from corrupting themselves.
 
-When Jason runs `/upskill`, also list every global tool the session called that isn't in `bin/` (anything from `llm-toolbox/bin` or another personal PATH entry). Pitch copying each into `bin/` from `/home/carver/code/claudedev/llm-toolbox/bin/`; a tool that imports beyond the standard library needs its dependencies added to `pyproject.toml` too. Its path also goes in `REUSE.toml`'s table of llm-toolbox copies, which names Jason alone.
+When Jason runs `/upskill`, also list every global tool the session called that isn't in `bin/` (anything from `llm-toolbox/bin` or another personal PATH entry). Pitch copying each into `bin/` from `/home/carver/code/claudedev/llm-toolbox/bin/`; a tool that imports beyond the standard library lists its dependencies in its `# /// script` header, where uv resolves them under `pyproject.toml`'s `exclude-newer` date. Its path also goes in `REUSE.toml`'s table of llm-toolbox copies, which names Jason alone.
 
 ## Git
 
