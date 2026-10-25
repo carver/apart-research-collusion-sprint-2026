@@ -91,6 +91,16 @@ def test_the_replies_a_cell_read_as_one_number_when_every_cell_has_the_same(tmp_
     assert ledger.entries["conceptualization.cells.replies"]["value"] == "3"
 
 
+def test_the_caption_numbers_count_only_the_rungs_the_figure_shows(tmp_path):
+    rows = [row(model="opus", rung="informed", value=40.0, reply=LAW, sample=s) for s in range(3)]
+    rows += [row(model="opus", rung="samemodel", value=40.0, sample=3)]
+    ledger = Ledger(tmp_path)
+    fill(ledger, rows, Style(rungs=tuple(rung for rung in STYLE.rungs if rung != "informed")))
+    refusals = ledger.entries["conceptualization.refusals.opus"]
+    assert (refusals["k"], refusals["n"]) == (0, 1)
+    assert ledger.entries["conceptualization.cells.replies"]["value"] == "1"
+
+
 def svg(tmp_path, style):
     fill(Ledger(tmp_path), ROWS, style)
     return (tmp_path / "conceptualization-figure.svg").read_text()

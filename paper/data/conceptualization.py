@@ -23,8 +23,8 @@ ignoring the rival, the other firm at 60 too, or other.
 
 To change the lever figure, change `STYLE` (the rungs on x, how the neutral rung is marked, whether the
 bottom row draws the raw line faintly behind); the extra-chance figure, `EXTRA_STYLE` (the arms and the
-panels); both, `MODELS`. Then rebuild the paper. The captions' phrases about the layout, and the sentence on
-the answers at 60, follow the styles.
+panels); both, `MODELS`. Then rebuild the paper. The captions, their numbers included, and the sentence on the
+answers at 60 follow the styles.
 Issue #45 has recipes."""
 
 import math
@@ -119,11 +119,16 @@ def refuses(row: dict) -> bool:
     return could_refuse(row) and bool(LAW.search(row["reply"]))
 
 
-def counts(rows: list[dict]) -> dict[tuple[str, str, str], Count]:
-    """The own-number arms with no record, per model, rung and horizon."""
+def shown(style: Style) -> set[str]:
+    """The conditions the lever figure draws: its rungs, in the backgrounds with no record."""
+    return {condition for condition, (rung, _) in NO_RECORD.items() if rung in style.rungs}
+
+
+def counts(rows: list[dict], style: Style) -> dict[tuple[str, str, str], Count]:
+    """The own-number arms the figure draws, per model, rung and horizon."""
     cells: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
     for row in rows:
-        if row["condition"] in NO_RECORD and row["model"] in MODELS and row["value"] is not None:
+        if row["condition"] in shown(style) and row["model"] in MODELS and row["value"] is not None:
             cells[(row["model"], *NO_RECORD[row["condition"]])].append(row)
     return {
         cell: Count(sum(map(at_cartel, found)), sum(map(refuses, found)), len(found))
@@ -232,7 +237,7 @@ HOW = (
 
 
 def fill(ledger: Ledger, rows: list[dict], style: Style = STYLE) -> None:
-    found = counts(rows)
+    found = counts(rows, style)
     ledger.figure("conceptualization-figure", draw, FigureData(found, style), how=HOW, size=(6.5, 3.9))
     ledger.value(
         "conceptualization.caption.layout", caption_layout(style), how="the caption's layout, from STYLE"
@@ -243,7 +248,7 @@ def fill(ledger: Ledger, rows: list[dict], style: Style = STYLE) -> None:
     replies = replies_text([c.n for c in found.values()])
     ledger.value("conceptualization.cells.replies", replies, how="parsed answers a cell in the figure")
     for model in MODELS:
-        off = [r for r in rows if r["model"] == model and r["condition"] in NO_RECORD and could_refuse(r)]
+        off = [r for r in rows if r["model"] == model and r["condition"] in shown(style) and could_refuse(r)]
         if off:
             ledger.pooled(
                 f"conceptualization.refusals.{model}", off, refuses, how=f"{HOW}; refusals / answers off it"
@@ -459,12 +464,12 @@ def clause(label: str, kinds: list[str]) -> str:
     return f"{label} 1, {only}" if len(kinds) == 1 else f"{label} {len(kinds)}, all {only}"
 
 
-def sixties_text(rows: list[dict], read: Reader, style: Style = STYLE) -> str:
-    """A sentence on each model's answers at 60 on the rungs the lever figure shows (the style's), split by
-    `sixty_kind`."""
-    shown = {condition for condition, (rung, _) in NO_RECORD.items() if rung in style.rungs}
+def sixties_text(rows: list[dict], read: Reader, style: Style) -> str:
+    """A sentence on each model's answers at 60 on the rungs the lever figure shows, split by `sixty_kind`."""
     at_sixty = [
-        r for r in rows if r["condition"] in shown and r["value"] is not None and near(r["value"], SIXTY)
+        r
+        for r in rows
+        if r["condition"] in shown(style) and r["value"] is not None and near(r["value"], SIXTY)
     ]
     clauses = [
         clause(label, [sixty_kind(read(row)) for row in at_sixty if row["model"] == model])
@@ -486,8 +491,8 @@ def fill_sixties(ledger: Ledger, rows: list[dict], read: Reader, style: Style = 
     ledger.value(
         "conceptualization.sixties",
         sixties_text(rows, read, style),
-        how="own-number arms with no record (the lever figure's rows); answers within 0.5 of 60, split by "
-        "readback.sixty_kind",
+        how="own-number arms with no record on STYLE's rungs (the lever figure's); answers within 0.5 of 60, "
+        "split by readback.sixty_kind",
     )
 
 
