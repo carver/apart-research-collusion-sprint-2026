@@ -193,10 +193,9 @@ def caption_named(style: Style) -> str:
     return "GPT-6 Astra skips the rung that names GPT-6 Astra, which for it would name itself."
 
 
-BAR = {"width": 0.7, "edgecolor": "white", "linewidth": 0.5}  # the white edge parts stacked segments
-WHISKER_INK = (
-    "#0d366b"  # dataviz blue 700: the whisker belongs to the blue bar, even where it crosses the gray
-)
+SEGMENT = {"width": 0.7, "edgecolor": "white", "linewidth": 0.5}  # the white edge parts stacked segments
+# dataviz blue 700: the whisker belongs to the blue segment, even where it crosses the gray
+WHISKER_INK = "#0d366b"
 WHISKER = {"fmt": "none", "ecolor": WHISKER_INK, "elinewidth": 0.6, "capsize": 1.2, "capthick": 0.6}
 
 
@@ -211,20 +210,7 @@ def draw(ax: Any, data: FigureData) -> None:
     xs = list(range(len(style.rungs)))
     for panels, horizon in zip(axes, ORDER, strict=True):
         for panel, model in zip(panels, models, strict=True):
-            for x, bar in zip(xs, heights(data, model, horizon), strict=True):
-                if bar is None:
-                    continue
-                panel.bar(x, bar.cartel, color=AT_CARTEL, **BAR)
-                panel.bar(x, bar.objection, bottom=bar.cartel, color=OBJECTION, **BAR)
-                below, above = bar.cartel - bar.low, bar.high - bar.cartel
-                panel.errorbar(x, bar.cartel, yerr=[[below], [above]], **WHISKER)
-            mark_neutral(panel, style)
-            panel.set_ylim(0, 1.04)
-            panel.set_yticks([0, 0.5, 1])
-            panel.yaxis.set_major_formatter(PercentFormatter(1.0))
-            panel.grid(axis="y", color=GRID, linewidth=0.6)
-            panel.set_axisbelow(True)
-            plain(panel)
+            draw_panel(panel, heights(data, model, horizon), style)
         panels[0].set_ylabel(HORIZON_LABELS[horizon], fontsize=7.5, color=INK)
     for panel, model in zip(axes[0], models, strict=True):
         panel.set_title(MODELS[model], fontsize=8.5, color=INK)
@@ -234,24 +220,34 @@ def draw(ax: Any, data: FigureData) -> None:
         )
     axes[-1][0].set_xlim(-0.5, len(xs) - 0.5)
     fig.tight_layout()
+    whisker = {"marker": "|", "linestyle": "none", "markersize": 7, "markeredgewidth": 0.6}
     handles = [
         Patch(color=AT_CARTEL, label="at the cartel share"),
-        Line2D(
-            [],
-            [],
-            color=WHISKER_INK,
-            marker="|",
-            linestyle="none",
-            markersize=7,
-            markeredgewidth=0.6,
-            label="95% interval",
-        ),
+        Line2D([], [], color=WHISKER_INK, label="95% interval", **whisker),
         Patch(color=OBJECTION, label="antitrust objection"),
     ]
     fig.suptitle(TITLE, fontsize=9.5, color=INK, fontweight="bold", y=1.09)
     fig.legend(
         handles=handles, loc="upper center", ncol=3, fontsize=7, frameon=False, bbox_to_anchor=(0.5, 1.05)
     )
+
+
+def draw_panel(panel: Any, bars: list[Bar | None], style: Style) -> None:
+    """One model under one horizon: a bar per rung, the neutral rung marked. A missing bar leaves a gap."""
+    for x, bar in enumerate(bars):
+        if bar is None:
+            continue
+        panel.bar(x, bar.cartel, color=AT_CARTEL, **SEGMENT)
+        panel.bar(x, bar.objection, bottom=bar.cartel, color=OBJECTION, **SEGMENT)
+        below, above = bar.cartel - bar.low, bar.high - bar.cartel
+        panel.errorbar(x, bar.cartel, yerr=[[below], [above]], **WHISKER)
+    mark_neutral(panel, style)
+    panel.set_ylim(0, 1.04)
+    panel.set_yticks([0, 0.5, 1])
+    panel.yaxis.set_major_formatter(PercentFormatter(1.0))
+    panel.grid(axis="y", color=GRID, linewidth=0.6)
+    panel.set_axisbelow(True)
+    plain(panel)
 
 
 def mark_neutral(panel: Any, style: Style) -> None:
