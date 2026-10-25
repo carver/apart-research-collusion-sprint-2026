@@ -61,15 +61,19 @@ pythonVersion = "3.12"
 line-length = 110
 target-version = "py312"
 # Copies of llm-toolbox tools and the module they import, kept identical to their originals.
+# REUSE.toml's table of llm-toolbox copies lists the same paths, but for session-digest
+# (tests/test_toolbox_copies.py).
 extend-exclude = [
     "lib",
     "bin/apply-edits",
     "bin/bgrun",
     "bin/claude-fresh",
     "bin/edit-script-gate",
+    "bin/issue-todo",
     "bin/openrouter-credits",
     "bin/paper",
     "bin/safeps",
+    "bin/session-digest",
     "bin/waitone",
 ]
 
