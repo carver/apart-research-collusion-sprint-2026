@@ -15,6 +15,7 @@ from paper.data.conceptualization import (
     exploits,
     extra_splits,
     fill,
+    fill_coverage,
     fill_extra,
     fill_sixties,
     points,
@@ -339,3 +340,29 @@ def test_the_sixties_sentence_counts_only_the_rungs_the_figure_shows(tmp_path):
     line = ledger.entries["conceptualization.sixties"]["value"]
     assert "on the rungs the lever figure shows" in line
     assert "Opus 1, leading" in line
+
+
+def own_row(model: str, rung: str, horizon: str, record: str) -> dict:
+    return {**row(model=model, rung=rung, horizon=horizon), "condition": f"mind_{rung}_{horizon}_{record}"}
+
+
+def test_coverage_counts_each_models_backgrounds_and_records_from_its_own_number_replies(tmp_path):
+    rows = [
+        own_row("haiku", "same", horizon, record)
+        for horizon in ("unsaid", "single", "open")
+        for record in ("none", "coop", "cheat", "nash")
+    ]
+    rows += [
+        own_row("glm", rung, horizon, "none") for rung in ("same", "none") for horizon in ("unsaid", "open")
+    ]
+    ledger = Ledger(tmp_path)
+    fill_coverage(ledger, rows)
+    values = {key: e["value"] for key, e in ledger.entries.items()}
+    assert values == {
+        "conceptualization.backgrounds.haiku": 12,
+        "conceptualization.records.haiku": 4,
+        "conceptualization.norecord.haiku": 3,
+        "conceptualization.backgrounds.glm": 2,
+        "conceptualization.records.glm": 1,
+        "conceptualization.norecord.glm": 2,
+    }

@@ -42,7 +42,16 @@ from paper.data import source
 from paper.ledger import Ledger, wilson
 from zerocommcartel import cli
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.conceptualization import DUOPOLY, HORIZONS, RUNGS, extra_name, name, readback
+from zerocommcartel.criteria.conceptualization import (
+    CELLS,
+    DUOPOLY,
+    HORIZONS,
+    OWN,
+    RUNGS,
+    extra_name,
+    name,
+    readback,
+)
 from zerocommcartel.criteria.conceptualization.readback import (
     SIXTY,
     SIXTY_KINDS,
@@ -81,6 +90,7 @@ LINE: dict[str, Any] = {
 BAND_ALPHA = 0.08  # light, so three overlapping 0-of-10 bands don't read as data
 LAW = re.compile(MENTIONS["antitrust"], re.I)
 NO_RECORD = {name(rung, horizon, "none"): (rung, horizon) for rung in RUNGS for horizon in HORIZONS}
+OWN_CELLS = {name(*cell): cell for cell in CELLS}  # each own-number arm's (rung, horizon, record)
 
 
 @dataclass(frozen=True)
@@ -521,6 +531,38 @@ def conceptualization_extra(ledger: Ledger) -> None:
     read = reader("the extra-chance figure reads exploits through the readbacks")
     rows = cli.replies(REGISTRY, "conceptualization", None, list(BAR_OF), list(MODELS)).rows
     fill_extra(ledger, rows, read)
+
+
+def fill_coverage(ledger: Ledger, rows: list[dict]) -> None:
+    """Per model, the backgrounds (horizon × record) and the records in which it has own-number replies: what
+    Methods says each model ran, read from the replies rather than from the arms the criterion defines."""
+    ran: defaultdict[str, set[tuple[str, str]]] = defaultdict(set)
+    for row in rows:
+        if (cell := OWN_CELLS.get(row["condition"])) is not None:
+            ran[row["model"]].add(cell[1:])
+    for model in MODELS:
+        if backgrounds := ran.get(model):
+            ledger.value(
+                f"conceptualization.backgrounds.{model}",
+                len(backgrounds),
+                how="backgrounds (horizon × record) with own-number replies",
+            )
+            ledger.value(
+                f"conceptualization.records.{model}",
+                len({record for _, record in backgrounds}),
+                how="records among those backgrounds",
+            )
+            ledger.value(
+                f"conceptualization.norecord.{model}",
+                sum(record == "none" for _, record in backgrounds),
+                how="those backgrounds with no record",
+            )
+
+
+@source("conceptualization-coverage")
+def conceptualization_coverage(ledger: Ledger) -> None:
+    rows = cli.replies(REGISTRY, "conceptualization", None, list(OWN), list(MODELS)).rows
+    fill_coverage(ledger, rows)
 
 
 @source("conceptualization-sixties")

@@ -130,7 +130,9 @@ Theorists have proposed ways for agents that reason alike to cooperate without t
 = Methods <sec-methods>
 Each call sends one firm's prompt, with the market and the sentences under test, and asks for a number on a final answer line (@app-prompts shows one of the pilot's prompts).
 The communality and conceptualization levers count an answer at a point of @tab-game when it is within half a unit of it.
-The conceptualization lever asks Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 each rung under twelve backgrounds, three horizons times four records, and GPT-6 Astra and GLM-5.3 each rung under the three backgrounds with no record.
+The conceptualization lever asks Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 each rung under #n("conceptualization.backgrounds.opus") backgrounds, three horizons times four records, and GPT-6 Astra and GLM-5.3 each rung under the #n("conceptualization.backgrounds.glm") backgrounds with no record.
+#claim("the Claude models ran every background, four records", ("conceptualization.backgrounds.haiku", "conceptualization.backgrounds.sonnet", "conceptualization.backgrounds.opus", "conceptualization.records.opus"), (haiku, sonnet, opus, records) => haiku == opus and sonnet == opus and records == 4)
+#claim("GPT-6 Astra and GLM-5.3 ran only the backgrounds with no record", ("conceptualization.backgrounds.astra", "conceptualization.backgrounds.glm", "conceptualization.norecord.astra", "conceptualization.norecord.glm"), (astra, glm, astra-none, glm-none) => astra == glm and astra-none == astra and glm-none == glm)
 Each model, rung and background is a *cell* of #n("conceptualization.cells.replies") replies.
 The communality lever asks the Claude models and GLM-5.3, starting from six of those cells and from a market where the rival's output is already fixed, #n("idl1.first") replies a cell (@fig-idl1).
 A second call, the readback, shows the model its prompt and reply and asks what output and price it expected.
