@@ -316,6 +316,7 @@ def test_the_second_ladder_counts_answers_above_nash():
 def test_the_sixties_line_splits_leaders_from_firms_that_ignore_the_rival():
     rows = [row("mind_informed_unsaid_none", 60, sample=s, reply=f"sixty {s}") for s in range(4)]
     rows += [row("mind_informed_unsaid_none", 40, sample=4, reply="nash")]
+    rows += [row("mind_informed_unsaid_none_s48", 60, sample=5, reply="a forecast of 60")]
     prompt = arm("mind_informed_unsaid_none")
     readbacks = {
         readback.key("haiku", prompt, 0, "sixty 0"): readback.Readback(30, 40),
@@ -440,3 +441,30 @@ def test_the_readback_asks_only_the_own_number_arms_by_default(tmp_path):
     readback.main(["--log", str(log)], REGISTRY, call)
     assert len(asked) == 1 and "QUANTITY: 40" in asked[0]
     assert len(readback.load(tmp_path / "readback.jsonl")) == 1
+
+
+def test_the_forecast_counts_show_a_split_the_slope_averages_away():
+    rows = [row("mind_samemodel_unsaid_none_s48", 48), row("mind_samemodel_unsaid_none_s48", 36, sample=1)]
+    rows += [row("mind_samemodel_unsaid_none_s26", 26), row("mind_samemodel_unsaid_none_s26", 47, sample=1)]
+    rows += [row("mind_none_unsaid_none_s48", 40), row("mind_none_unsaid_none_s26", 40)]
+    line = grid_line(report.forecast_counts(rows, "haiku"), "no repeat mentioned")
+    assert line[1] == "2 mirror, 2 follower of 4"
+    assert line[4] == "0 mirror, 0 follower of 2"
+    assert line[6] == "-"
+
+
+@pytest.mark.parametrize("rung", RUNGS)
+@pytest.mark.parametrize("horizon", HORIZONS)
+@pytest.mark.parametrize("record", RECORDS)
+@pytest.mark.parametrize("x", SUPPOSED)
+def test_every_forecast_arm_is_its_own_arm_with_the_supposition_and_the_forecast_question(
+    rung, horizon, record, x
+):
+    own = user(f"mind_{rung}_{horizon}_{record}").split("\n\n")
+    *start, supposition, question = user(f"mind_{rung}_{horizon}_{record}_s{x}").split("\n\n")
+    assert start == own[:-1]
+    assert (
+        supposition
+        == f"Suppose this AI model tells my firm to produce {x} units this quarter, and my firm does."
+    )
+    assert question.startswith("How many units do you expect the other firm to produce this quarter?")

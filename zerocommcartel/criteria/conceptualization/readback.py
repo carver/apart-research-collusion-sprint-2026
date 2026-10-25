@@ -2,17 +2,21 @@
 
 A second call to the same model shows it the arm's prompt and its reply, and asks what it expected. A leader
 at 60 expects the other firm at 30 and a price of $40; a firm that ignores its rival expects $70; a Nash reply
-40 and $50; a cartel reply 30 and $70. So the readback tells the two readings of 60 apart, and a reply whose
-expected rival output equals its own answer "expects a match" (the mirror, or cooperation, or a record
-continued; the background tells which can apply).
+40 and $50; a cartel reply 30 and $70. So the readback tells the two readings of 60 apart, and says whether a
+cartel answer expected the other firm at 30 too (the mirror, or cooperation, or a record continued; the
+background tells which can apply). It can't say whether the model expects the other firm's output to depend
+on its own: in a symmetric market a Nash reply expects the other firm at its own 40 too. The forecast arms
+(`<arm>_s48`, `<arm>_s26`) ask that.
+
+By default it reads back the own-number arms only (`OWN`): its question doesn't fit a forecast.
 
 It reads reasoned replies only. On a bare number it reconstructs an answer from the prompt, and under `same`
 Haiku's readback drifts toward the prompt's reading (flaws.md, "Conceptualization"). The arm check also
 tried a counterfactual question ("if you had told my firm 45 ...") and dropped it: it read the prompt, not
 the reply.
 
-Each readback is cached beside the criterion's log, keyed by the model, the prompt and the reply, so a rerun
-asks only new replies; a failed call isn't cached.
+Each readback is cached beside the criterion's log, keyed by the model, the prompt, the sample and the reply,
+so a rerun asks only new replies; a failed call, or a readback without an OTHER line, isn't cached.
 
     uv run python -m zerocommcartel.criteria.conceptualization.readback
     uv run python -m zerocommcartel.criteria.conceptualization.readback --models haiku \\
@@ -77,6 +81,12 @@ def prompt_of(registry: Registry, criterion: str, row: dict) -> Prompt:
     """The prompt a row's reply answered, as `table.prepare` renders it."""
     condition = registry.condition(criterion, row["condition"])
     return registry.render(condition, row["n"], NAMES.get(row["model"], MODEL))
+
+
+def lookup(readbacks: dict[str, Readback], registry: Registry, criterion: str, row: dict) -> Readback | None:
+    """A row's readback in `readbacks` (`load`'s), if it has one."""
+    prompt = prompt_of(registry, criterion, row)
+    return readbacks.get(key(row["model"], prompt, row["sample"], row["reply"]))
 
 
 def ask(

@@ -26,7 +26,9 @@ from zerocommcartel.call import MODELS
 from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.criteria.conceptualization import (
     CRITERION,
+    DUOPOLY,
     HORIZONS,
+    OWN,
     RECORDS,
     RUNGS,
     SUPPOSED,
@@ -96,13 +98,6 @@ def above(rows: list[dict], model: str) -> str:
     )
 
 
-def readback_of(
-    row: dict, readbacks: dict[str, readback.Readback], registry: Registry
-) -> readback.Readback | None:
-    prompt = readback.prompt_of(registry, CRITERION.name, row)
-    return readbacks.get(readback.key(row["model"], prompt, row["sample"], row["reply"]))
-
-
 def matches(rows: list[dict], model: str, readbacks: dict[str, readback.Readback], registry: Registry) -> str:
     """Of the cartel answers with a readback, those that expected the other firm at the cartel share too. Only
     cartel answers count: a Nash reply expects the other firm at its own 40 as well."""
@@ -117,7 +112,8 @@ def matches(rows: list[dict], model: str, readbacks: dict[str, readback.Readback
         expected = [
             (other, row["focal"]["cartel"])
             for row in cartel
-            if (got := readback_of(row, readbacks, registry)) and (other := got.other) is not None
+            if (got := readback.lookup(readbacks, registry, CRITERION.name, row))
+            and (other := got.other) is not None
         ]
         return counted(expected, lambda pair: near(*pair))
 
@@ -125,18 +121,24 @@ def matches(rows: list[dict], model: str, readbacks: dict[str, readback.Readback
 
 
 def sixties(rows: list[dict], model: str, readbacks: dict[str, readback.Readback], registry: Registry) -> str:
-    """The model's answers at 60, which both a leader (the other firm follows at 30, price $40) and a firm
-    that ignores the other firm (price $70) give, split by their readbacks."""
+    """The model's own-number answers at 60, which both a leader (the other firm follows at 30, price $40)
+    and a firm that ignores the other firm (price $70) give, split by their readbacks."""
+    sixty = DUOPOLY.benchmarks(2)["naive"]
+    follower = DUOPOLY.best_response(sixty)
+    leading_price, ignoring_price = DUOPOLY.a - sixty - follower, DUOPOLY.a - sixty
     kinds = {"leading": 0, "ignoring": 0, "other": 0, "unread": 0}
     for row in rows:
-        if row["model"] != model or row["value"] is None or not near(row["value"], row["focal"]["naive"]):
+        if row["model"] != model or row["condition"] not in OWN or row["value"] is None:
             continue
-        got = readback_of(row, readbacks, registry)
+        if not near(row["value"], sixty):
+            continue
+        got = readback.lookup(readbacks, registry, CRITERION.name, row)
+        price = got.price if got else None
         if got is None or got.other is None:
             kinds["unread"] += 1
-        elif near(got.other, 30) and got.price is not None and near(got.price, 40):
+        elif near(got.other, follower) and price is not None and near(price, leading_price):
             kinds["leading"] += 1
-        elif got.price is not None and near(got.price, 70):
+        elif price is not None and near(price, ignoring_price):
             kinds["ignoring"] += 1
         else:
             kinds["other"] += 1
@@ -162,6 +164,22 @@ def slopes(rows: list[dict], model: str) -> str:
     return grid(cell)
 
 
+def forecast_counts(rows: list[dict], model: str) -> str:
+    """Per cell, the forecasts at the mirror's numbers (48, 26) and at the follower's (36, 47), of both
+    suppositions' forecasts: a split the slope's average hides."""
+    cells = parsed(rows, model)
+
+    def cell(rung: str, horizon: str, record: str) -> str:
+        found = [row for x in SUPPOSED for row in cells.get(forecast_name(rung, horizon, record, x), [])]
+        if not found:
+            return "-"
+        mirror = sum(near(row["value"], row["focal"]["mirror"]) for row in found)
+        follower = sum(near(row["value"], row["focal"]["follower"]) for row in found)
+        return f"{mirror} mirror, {follower} follower of {len(found)}"
+
+    return grid(cell)
+
+
 def main(argv=None, registry: Registry = REGISTRY):
     p = argparse.ArgumentParser(description="Each model's replies as a ladder, one line per background.")
     p.add_argument("--log", help=cli.LOG_HELP)
@@ -181,6 +199,8 @@ def main(argv=None, registry: Registry = REGISTRY):
             )
         print(f"### {model}: the forecast's slope (mirror +1, follower -0.5, on its own 0)\n")
         print(slopes(rows, model))
+        print(f"### {model}: forecasts at the mirror's and the follower's numbers\n")
+        print(forecast_counts(rows, model))
 
 
 if __name__ == "__main__":
