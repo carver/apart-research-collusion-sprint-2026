@@ -15,7 +15,7 @@ from typing import Protocol
 
 import typst
 
-from paper.build import DRAFT_NAME, stamp, write_atomic
+from paper.build import DRAFT_NAME, lock_holder, stamp, write_atomic
 from paper.git import Repo
 from paper.typeset import paper_compiler
 
@@ -46,6 +46,7 @@ class Watch:
         sources: Callable[[], Hashable],
         live: Callable[[], LiveCompile],
         full: FullBuild,
+        others: Callable[[], int | None],
         now: Callable[[], float],
         settle: float,
         say: Callable[[str], None],
@@ -54,12 +55,14 @@ class Watch:
         self.sources = sources
         self.live = live
         self.full = full
+        self.others = others
         self.now = now
         self.settle = settle
         self.say = say
         self.commit = ""  # the HEAD the last full build was asked for
         self.wanted = False  # a full build to start once none runs
         self.building = False
+        self.other: int | None = None  # the pid of another process's build of the paper, while it runs
         self.built_over: Hashable = None  # the sources when the running full build started
         # the sources the last live compile read; None: compile at the next poll
         self.compiled: Hashable = None
@@ -79,9 +82,14 @@ class Watch:
             self.seen, self.edited = sources, self.now()
         if self.building and not self.full.running():
             self.building = False
-            if self.retry or sources != self.built_over:
-                self.compiled = None  # the build typeset older text than the last live compile
-            self.retry = False
+            self.build_ended(stale=self.retry or sources != self.built_over)
+        other = self.others()
+        if other is not None and self.other is None:
+            self.say(f"paused: another build is running (pid {other})")
+        elif other is None and self.other is not None:
+            self.say("resumed")
+            self.build_ended(stale=True)  # its PDF may hold text this watch never saw it build
+        self.other = other
         if self.missing - self.tried and self.now() - self.edited >= self.settle:
             self.wanted = True
         if self.wanted and not self.building:
@@ -91,10 +99,17 @@ class Watch:
         if sources != self.compiled:
             self.compile(sources)
 
+    def build_ended(self, stale: bool) -> None:
+        """A full build ended; `stale` when its PDF may show older text than the sources now hold."""
+        if stale:
+            self.compiled = None
+        self.retry = False
+
     def compile(self, sources: Hashable) -> None:
         self.compiled = sources
         result = self.live()
-        if result.error and self.building:
+        busy = self.building or self.other is not None
+        if result.error and busy:
             self.retry = True  # the build is rewriting the ledger and figures
             return
         if result.error:
@@ -135,6 +150,10 @@ class DraftBuilds:
         subject = self.repo.git("log", "-1", "--format=%h %s").stdout.strip()
         self.say(f"full build at HEAD {subject}")
         self.process = subprocess.Popen([sys.executable, "-m", "paper"], cwd=self.repo.root)
+
+    def ours(self, pid: int) -> bool:
+        """Whether `pid`, a lock holder's, is this watch's own build."""
+        return self.process is not None and pid == self.process.pid
 
     def running(self) -> bool:
         if self.process is None or self.process.poll() is None:
@@ -183,11 +202,18 @@ def main(argv: list[str], paper_dir: Path) -> int:
     if repo is None:
         print(f"build-paper watch: {paper_dir} is not in a git repository", file=sys.stderr)
         return 1
+    builds = DraftBuilds(repo, say)
+
+    def others() -> int | None:
+        holder = lock_holder(paper_dir / "build")
+        return None if holder is None or builds.ours(holder) else holder
+
     watch = Watch(
         head=repo.head,
         sources=lambda: source_stamps(paper_dir),
         live=lambda: live_compile(paper_dir, repo),
-        full=DraftBuilds(repo, say),
+        full=builds,
+        others=others,
         now=time.monotonic,
         settle=args.settle,
         say=say,

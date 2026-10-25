@@ -27,6 +27,7 @@ class Script:
         self.t = 0.0
         self.result = LiveCompile()
         self.building = False
+        self.other: int | None = None  # the pid of a build another process runs
         self.builds = 0
         self.compiles = 0
         self.said: list[str] = []
@@ -35,6 +36,7 @@ class Script:
             sources=lambda: self.text,
             live=self.live,
             full=self,
+            others=lambda: self.other,
             now=lambda: self.t,
             settle=SETTLE,
             say=self.said.append,
@@ -130,6 +132,60 @@ def test_an_error_during_a_full_build_waits_for_it_and_then_recompiles():
     compiles = s.compiles
     s.result = LiveCompile()
     s.finish()
+    assert s.compiles == compiles + 1
+
+
+def test_another_process_s_build_pauses_the_watch_and_its_end_resumes_it():
+    s = Script()
+    s.poll()
+    s.finish()
+    s.other = 4242
+    s.poll()
+    s.poll()
+    assert [line for line in s.said if "paused" in line] == ["paused: another build is running (pid 4242)"]
+    s.other = None
+    s.poll()
+    assert "resumed" in s.said
+
+
+def test_an_error_during_another_process_s_build_waits_for_it_and_then_recompiles():
+    s = Script()
+    s.poll()
+    s.finish()
+    s.other = 4242
+    s.result = LiveCompile(error="error: file not found (build/figures/x.png)")
+    s.text += 1
+    s.poll()
+    assert not any("file not found" in line for line in s.said)
+    s.result = LiveCompile()
+    compiles = s.compiles
+    s.other = None
+    s.poll()
+    assert s.compiles == compiles + 1
+
+
+def test_a_key_missing_during_another_process_s_build_still_brings_a_build_of_ours():
+    s = Script()
+    s.poll()
+    s.finish()
+    s.other = 4242
+    s.result = LiveCompile(missing=frozenset({"new"}))
+    s.text += 1
+    s.poll()
+    s.other = None
+    s.poll(SETTLE)
+    assert s.builds == 2
+
+
+def test_the_end_of_another_process_s_build_brings_a_recompile_over_its_pdf():
+    s = Script()
+    s.poll()
+    s.finish()
+    s.other = 4242
+    s.poll()
+    compiles = s.compiles
+    s.other = None
+    s.poll()
     assert s.compiles == compiles + 1
 
 
