@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from paper.data.game import game
+from paper.data.game import TWO, game, points
 from paper.ledger import Ledger
 from zerocommcartel.criteria.capable.games import QuarterlyMarket
 from zerocommcartel.criteria.communal.games import Duopoly
@@ -56,9 +56,13 @@ def test_the_two_firm_market_gives_each_points_price_and_profits(ledger, point, 
     assert value(ledger, f"game.two.{point}.profit.others") == others
 
 
+def test_a_firm_that_ignores_its_rivals_makes_the_leaders_output(ledger):
+    assert value(ledger, "game.two.naive") == 60
+    assert value(ledger, "game.two.naive") == value(ledger, "game.two.leader.mine")
+
+
 def test_the_price_rule_is_both_markets(ledger):
     assert (value(ledger, "game.a"), value(ledger, "game.c")) == (130, 10)
-    assert (Duopoly().a, Duopoly().c) == (QuarterlyMarket().a, QuarterlyMarket().c)
 
 
 def test_whole_numbers_are_ints_so_the_paper_prints_40_not_40_0(ledger):
@@ -72,16 +76,24 @@ def test_the_leader_best_responds_to_followers_who_best_respond_to_it(ledger, ma
     name = {2: "two", 3: "three"}[n]
     lead, follow = value(ledger, f"game.{name}.leader.mine"), value(ledger, f"game.{name}.leader.others")
     assert lead is not None and follow is not None
-    margin = market.a - market.c
 
-    def followers(q: float) -> float:  # each follower's Cournot output among themselves, given mine
-        return (margin - q) / n
+    def followers(q: float) -> float:
+        """Each follower's output given mine: best responses among the followers, iterated to rest."""
+        f = 0.0
+        for _ in range(200):
+            f = market.best_response(q + (n - 2) * f)
+        return f
 
     def profit(q: float) -> float:
-        return q * (margin - q - (n - 1) * followers(q))
+        return q * (market.a - market.c - q - (n - 1) * followers(q))
 
-    assert market.best_response(lead + (n - 2) * follow) == pytest.approx(follow)
-    assert all(profit(lead) >= profit(q) for q in range(0, int(margin) + 1))
+    assert followers(lead) == pytest.approx(follow)
+    grid = [q / 4 for q in range(0, 4 * int(market.a - market.c) + 1)]
+    assert max(grid, key=profit) == pytest.approx(lead)
+
+
+def test_the_two_firm_leader_is_the_duopolys_own():
+    assert points(TWO)["leader"].mine == Duopoly().leader()
 
 
 def test_the_table_lists_the_points_in_order_and_names_each_columns_market(ledger):
@@ -89,13 +101,13 @@ def test_the_table_lists_the_points_in_order_and_names_each_columns_market(ledge
     assert table is not None
     assert table["header"] == [
         "",
-        "Two firms: my output",
-        "the other firm's",
+        "Two firms: this firm's output",
+        "the rival's output",
         "price",
-        "my profit",
-        "the other firm's",
-        "Three firms: my output",
-        "each other firm's",
+        "this firm's profit",
+        "the rival's profit",
+        "Three firms: this firm's output",
+        "each rival's output",
     ]
     assert table["rows"] == [
         ["Nash", "40", "40", "$50", "$1600", "$1600", "30", "30"],

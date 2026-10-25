@@ -5,8 +5,8 @@ levers' (`Duopoly`); the three-firm one is the capable and compliant criteria's 
 (`QuarterlyMarket`, CAP-8 to CAP-10 and CPL-9). For two firms it also gives each point's price and both
 firms' profits. Computed from the games, not read from logs.
 
-The leader's followers play Cournot among themselves against its output q, so each makes (margin − q)/n, and
-the leader's profit is q(margin − q)/n, at its peak at q = margin/2."""
+The leader's followers play Cournot among themselves against its output q, so each makes (margin − q)/n. The
+leader's profit is then q(margin − q)/n, which peaks at q = margin/2."""
 
 from typing import NamedTuple
 
@@ -17,38 +17,54 @@ from zerocommcartel.criteria.communal.games import Duopoly
 from zerocommcartel.game import LinearDemand
 
 POINTS = {"nash": "Nash", "cartel": "Cartel share", "cashin": "Cashing in", "leader": "Stackelberg leader"}
-MARKETS = {"two": (Duopoly(), 2), "three": (QuarterlyMarket(), 3)}
 HEADER = [
     "",
-    "Two firms: my output",
-    "the other firm's",
+    "Two firms: this firm's output",
+    "the rival's output",
     "price",
-    "my profit",
-    "the other firm's",
-    "Three firms: my output",
-    "each other firm's",
+    "this firm's profit",
+    "the rival's profit",
+    "Three firms: this firm's output",
+    "each rival's output",
 ]
 
 
+class Market(NamedTuple):
+    name: str  # the ledger's word for it, as in game.two.nash.mine
+    game: LinearDemand
+    n: int  # firms
+
+
+TWO = Market("two", Duopoly(), 2)
+THREE = Market("three", QuarterlyMarket(), 3)
+
+
 class Point(NamedTuple):
-    mine: float  # my firm's output
-    others: float  # each other firm's output
+    """A settling point in one market: my firm's output and each other firm's, the price, and the profits."""
+
+    mine: float
+    others: float
+    price: float
+    profit_mine: float
+    profit_others: float
 
 
-def points(market: LinearDemand, n: int) -> dict[str, Point]:
-    """Each settling point's outputs in a market of n firms."""
-    margin, cartel = market.a - market.c, market.benchmarks(n)["cartel"]
+def points(market: Market) -> dict[str, Point]:
+    """Each settling point in the market, by its key in POINTS."""
+    game, n = market.game, market.n
+    margin, bench = game.a - game.c, game.benchmarks(n)
     lead = margin / 2
-    return {
-        "nash": Point(market.benchmarks(n)["nash"], market.benchmarks(n)["nash"]),
-        "cartel": Point(cartel, cartel),
-        "cashin": Point(market.best_response((n - 1) * cartel), cartel),
-        "leader": Point(lead, (margin - lead) / n),
+    outputs = {
+        "nash": (bench["nash"], bench["nash"]),
+        "cartel": (bench["cartel"], bench["cartel"]),
+        "cashin": (game.best_response((n - 1) * bench["cartel"]), bench["cartel"]),
+        "leader": (lead, (margin - lead) / n),
     }
-
-
-def price(market: LinearDemand, n: int, point: Point) -> float:
-    return max(0.0, market.a - point.mine - (n - 1) * point.others)
+    found = {}
+    for key, (mine, others) in outputs.items():
+        price = max(0.0, game.a - mine - (n - 1) * others)
+        found[key] = Point(mine, others, price, (price - game.c) * mine, (price - game.c) * others)
+    return found
 
 
 def whole(x: float) -> int | float:
@@ -61,45 +77,45 @@ def dollars(x: float) -> str:
     return f"${x:.0f}" if float(x).is_integer() else f"${x:.2f}"
 
 
-def units(x: float) -> str:
-    return f"{x:g}"
-
-
 @source("game")
 def game(ledger: Ledger) -> None:
-    two, three = (market for market, _ in MARKETS.values())
-    if (two.a, two.c) != (three.a, three.c):
+    if (TWO.game.a, TWO.game.c) != (THREE.game.a, THREE.game.c):
         raise ValueError("the paper gives one price rule for both markets, but they differ")
-    ledger.value("game.a", whole(two.a), how="the price rule's intercept: price = a − total output")
-    ledger.value("game.c", whole(two.c), how="each firm's cost a unit")
-    found = {name: points(market, n) for name, (market, n) in MARKETS.items()}
-    for name, (_, n) in MARKETS.items():
-        for key, point in found[name].items():
-            for side, output in point._asdict().items():
-                ledger.value(f"game.{name}.{key}.{side}", whole(output), how=f"{n} firms, {POINTS[key]}")
-    for key, point in found["two"].items():
-        p = price(two, 2, point)
-        ledger.value(f"game.two.{key}.price", whole(p), how=f"two firms, {POINTS[key]}: a − total output")
-        for side, output in point._asdict().items():
-            ledger.value(
-                f"game.two.{key}.profit.{side}",
-                whole((p - two.c) * output),
-                how=f"two firms, {POINTS[key]}: (price − c) × output",
-            )
+    ledger.value("game.a", whole(TWO.game.a), how="the price rule's intercept: price = a − total output")
+    ledger.value("game.c", whole(TWO.game.c), how="each firm's cost a unit")
+    ledger.value(
+        "game.two.naive",
+        whole(TWO.game.benchmarks(TWO.n)["naive"]),
+        how="two firms: a firm that ignores its rival",
+    )
+    two, three = points(TWO), points(THREE)
+    for market, found in ((TWO, two), (THREE, three)):
+        for key, point in found.items():
+            at = f"{market.name} firms, {POINTS[key].lower()}"
+            ledger.value(f"game.{market.name}.{key}.mine", whole(point.mine), how=f"{at}: my output")
+            ledger.value(f"game.{market.name}.{key}.others", whole(point.others), how=f"{at}: each other's")
+    for key, point in two.items():
+        at = f"two firms, {POINTS[key].lower()}"
+        ledger.value(f"game.two.{key}.price", whole(point.price), how=f"{at}: a − total output")
+        ledger.value(f"game.two.{key}.profit.mine", whole(point.profit_mine), how=f"{at}: (price − c) × mine")
+        ledger.value(
+            f"game.two.{key}.profit.others",
+            whole(point.profit_others),
+            how=f"{at}: (price − c) × the other's",
+        )
     rows = []
     for key, label in POINTS.items():
-        point, p = found["two"][key], price(two, 2, found["two"][key])
-        trio = found["three"][key]
+        pair, trio = two[key], three[key]
         rows.append(
             [
                 label,
-                units(point.mine),
-                units(point.others),
-                dollars(p),
-                dollars((p - two.c) * point.mine),
-                dollars((p - two.c) * point.others),
-                units(trio.mine),
-                units(trio.others),
+                f"{pair.mine:g}",
+                f"{pair.others:g}",
+                dollars(pair.price),
+                dollars(pair.profit_mine),
+                dollars(pair.profit_others),
+                f"{trio.mine:g}",
+                f"{trio.others:g}",
             ]
         )
     ledger.table(
