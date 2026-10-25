@@ -57,7 +57,7 @@ from dataclasses import replace
 
 from zerocommcartel.criteria.communal import identity
 from zerocommcartel.criteria.communal.games import Duopoly, FixedRival, RunFixedRival
-from zerocommcartel.criteria.communal.judge import RULE
+from zerocommcartel.criteria.communal.judge import REFUSAL, RULE
 from zerocommcartel.criteria.communal.measures import measures
 from zerocommcartel.criterion import BASELINE, Criterion
 from zerocommcartel.prompt import Condition, Level, Slot
@@ -223,5 +223,5 @@ CRITERION = Criterion(
     conditions=CONDITIONS,
     focal=focal,
     measure=measures,
-    judges={"rule": RULE},
+    judges={"rule": RULE, "refusal": REFUSAL},
 )

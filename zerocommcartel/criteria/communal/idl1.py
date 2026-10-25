@@ -10,10 +10,13 @@ instead. Each identity's weight is also read as its gap from the same party's ho
 It also holds IDL-1's significance gate, which picks what the paper's figure draws: Fisher's exact test on
 each identity against its control and each control against the bare start, Benjamini-Hochberg across that
 family, and for a test that moved but missed, a second test on fresh replies alone (`verdicts`). One owner
-over both firms is a sanity check, kept out of the correction (`sanity_checks`).
+over both firms is a sanity check, kept out of the correction (`sanity_checks`). The same tests run again
+with refusals set aside (`set_aside`, from the refusal judge's labels) tell which passing tests show no move
+beyond refusals.
 
     uv run python experiments/idl1_identity_lever.py --models haiku sonnet opus   # run, then report
     uv run python -m zerocommcartel.criteria.communal.idl1 --models haiku sonnet opus   # the readbacks
+    uv run python -m zerocommcartel.criteria.communal.idl1 judge   # the refusal judge, on what it hasn't seen
 """
 
 import argparse
@@ -29,8 +32,10 @@ from zerocommcartel.call import MODELS, complete
 from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.criteria.communal.games import FixedRival
 from zerocommcartel.criteria.communal.identity import CELLS, CITES, CONTROLS, DUOPOLY, FIRM_ARMS, STARTS
+from zerocommcartel.criteria.communal.judge import REFUSAL, Outcome, at_cartel, outcome
 from zerocommcartel.criteria.conceptualization import readback
-from zerocommcartel.criterion import Registry, near
+from zerocommcartel.criterion import Registry
+from zerocommcartel.judge import claude_call, label
 from zerocommcartel.table import Replies, at_focal, fmt, markdown, model_rank
 
 FOLDER = "communal/idl1"  # IDL-1's folder in logs/, from its id
@@ -233,16 +238,20 @@ def newcombe(hits: int, n: int, other_hits: int, other_n: int, z: float = 1.96) 
 Tallies = dict[tuple[str, str, str], Tally]  # (model, cell, "first" or "fresh"): its tally
 
 
+def stage_of(row: dict) -> Stage:
+    """A reply's stage: among its cell's first FIRST replies, or fresh."""
+    return "first" if row["sample"] < FIRST else "fresh"
+
+
 def counted(rows: list[dict]) -> tuple[Tallies, list[str]]:
     """Each (model, cell, stage)'s tally, and the models with every cell's first stage complete."""
     found: Tallies = {}
-    cartel = DUOPOLY.benchmarks(2)["cartel"]
     for row in rows:
         if row["condition"] not in CELLS:
             continue
-        key = (row["model"], row["condition"], "first" if row["sample"] < FIRST else "fresh")
+        key = (row["model"], row["condition"], stage_of(row))
         hits, n = found.get(key, Tally(0, 0))
-        found[key] = Tally(hits + (row["value"] is not None and near(row["value"], cartel)), n + 1)
+        found[key] = Tally(hits + at_cartel(row), n + 1)
     models = sorted({m for m, _, _ in found}, key=model_rank)
     return found, [
         m for m in models if all(found.get((m, c, "first"), Tally(0, 0)).n >= FIRST for c in CELLS)
@@ -309,6 +318,75 @@ def verdicts(rows: list[dict]) -> list[Comparison]:
     return found
 
 
+Outcomes = dict[tuple[str, str, Stage], list[Outcome | None]]  # (model, cell, stage): each reply's outcome
+
+
+def outcomes(rows: list[dict], labels: dict[str, dict]) -> Outcomes:
+    """Each IDL-1 reply's outcome (`judge.outcome`), by model, cell and stage."""
+    found: Outcomes = {}
+    for row in rows:
+        if row["condition"] in CELLS:
+            found.setdefault((row["model"], row["condition"], stage_of(row)), []).append(outcome(row, labels))
+    return found
+
+
+def answered(found: Outcomes, model: str, cell: str, stage: Stage) -> Tally:
+    """A cell's answers that aren't refusals: hits those at the cartel share. Raises when one of its replies
+    is off the cartel share and the refusal judge hasn't labelled it."""
+    replies = found.get((model, cell, stage), [])
+    if None in replies:
+        raise ValueError(
+            f"{model} {cell}: {replies.count(None)} replies off the cartel share have no refusal label; "
+            "run `python -m zerocommcartel.criteria.communal.idl1 judge`"
+        )
+    return Tally(replies.count("cartel"), replies.count("cartel") + replies.count("other"))
+
+
+def retested(tests: list[Comparison], found: Outcomes, stage: Stage, ran: list[bool]) -> list[Comparison]:
+    """The tests again in `stage`, on the answers that aren't refusals, Benjamini-Hochberg across them. A test
+    that didn't run enters at p = 1 and is left uncounted; a side with no answers gives p = 1."""
+    counts: list[tuple[int, int, int, int]] = []
+    for test, run in zip(tests, ran, strict=True):
+        target = answered(found, test.model, test.target, stage) if run else Tally(0, 0)
+        reference = answered(found, test.model, test.reference, stage) if run else Tally(0, 0)
+        counts.append((target.hits, target.n, reference.hits, reference.n))
+    ps = [fisher(*n) if n[1] and n[3] else 1.0 for n in counts]
+    return [
+        Comparison(*test[:4], stage, *n, p, q, q < Q)
+        for test, n, p, q in zip(tests, counts, ps, benjamini_hochberg(ps), strict=True)
+    ]
+
+
+def set_aside(rows: list[dict], labels: dict[str, dict]) -> list[tuple[Comparison, Comparison]]:
+    """Each of `verdicts`' tests, paired with the same test on the answers that aren't refusals (`answered`),
+    in the stage its verdict used. Fisher's test, Benjamini-Hochberg across the same family as that stage:
+    every test at the first stage, every pending one at the fresh stage, where an unconfirmed one enters at
+    p = 1 and keeps its first-stage counts, as in `verdicts`; q < Q passes. A passing test whose set-aside one
+    misses shows no move beyond refusals."""
+    found = verdicts(rows)
+    replies = outcomes(rows, labels)
+    first = retested(found, replies, "first", [True] * len(found))
+    pending = [i for i, c in enumerate(found) if c.stage != "first"]
+    ran = [found[i].stage == "fresh" for i in pending]
+    fresh = retested([found[i] for i in pending], replies, "fresh", ran)
+    aside = dict(enumerate(first))
+    for i, test in zip(pending, fresh, strict=True):
+        aside[i] = test if found[i].stage == "fresh" else first[i]._replace(stage="unconfirmed", passes=False)
+    return [(c, aside[i]) for i, c in enumerate(found)]
+
+
+def refusals_behind(passing: list[Comparison], rows: list[dict], labels: dict[str, dict]) -> tuple[int, int]:
+    """The refusals in the replies behind the passing tests, each model, cell and stage counted once however
+    many tests share it, and how many of them give the law as a reason."""
+    behind = {(c.model, cell, c.stage) for c in passing for cell in (c.target, c.reference)}
+    refused = [
+        labels[REFUSAL.key(row["reply"])]
+        for row in rows
+        if (row["model"], row["condition"], stage_of(row)) in behind and outcome(row, labels) == "refusal"
+    ]
+    return len(refused), sum(given["law"] for given in refused)
+
+
 def sanity_checks(rows: list[dict]) -> list[Comparison]:
     """One owner over both firms against the bare start, on the first stage's replies, outside the family's
     correction, so q is p."""
@@ -324,15 +402,29 @@ def sanity_checks(rows: list[dict]) -> list[Comparison]:
     return found
 
 
-def main(argv=None, registry: Registry = REGISTRY, call: Callable = complete):
+def main(
+    argv=None, registry: Registry = REGISTRY, call: Callable = complete, judge_call: Callable = claude_call
+):
     p = argparse.ArgumentParser(
-        description="Ask each of IDL-1's duopoly replies what it expected the other firm to produce."
+        description="Ask each of IDL-1's duopoly replies what it expected the other firm to produce, or "
+        "(judge) label each one off the cartel share with the refusal judge."
     )
+    p.add_argument("action", nargs="?", choices=("readback", "judge"), default="readback")
     p.add_argument("--log", help=f"default: IDL-1's own, logs/{FOLDER}/results.jsonl")
     p.add_argument("--models", nargs="+", choices=list(MODELS))
     args = p.parse_args(argv)
     log = Path(args.log) if args.log else logs.experiment_log(FOLDER)
     rows = cli.replies(registry, "communal", str(log), list(DUOPOLY_CELLS), args.models).rows
+    if args.action == "judge":
+        todo = [row["reply"] for row in rows if not at_cartel(row)]
+        cache = logs.judge_path(log, REFUSAL.name)
+        judged, failed, cached = label(REFUSAL, todo, cache, judge_call)
+        print(
+            f"refusal judge: judged {judged}, {len(failed)} failed, {cached} already labelled, into {cache}"
+        )
+        for line in failed:
+            print(f"  failed {line}")
+        return
     cache = readback.cache_path(log)
     asked, failed, cached = readback.ask(rows, registry, "communal", cache, call)
     print(f"readback: asked {asked}, {len(failed)} failed, {cached} already cached, into {cache}")
