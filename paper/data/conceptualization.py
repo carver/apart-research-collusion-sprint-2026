@@ -15,17 +15,19 @@ draws the raw line faintly behind) or `MODELS`, and rebuild the paper."""
 import math
 import re
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal, NamedTuple
 
 from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
 from matplotlib.ticker import PercentFormatter
 
 from paper.data import source
 from paper.ledger import Ledger, wilson
 from zerocommcartel import cli
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.conceptualization import DUOPOLY, HORIZONS, RUNGS, name
+from zerocommcartel.criteria.conceptualization import DUOPOLY, HORIZONS, RUNGS, name, readback
 from zerocommcartel.criterion import near
 from zerocommcartel.mentions import MENTIONS
 
@@ -228,7 +230,132 @@ def fill(ledger: Ledger, rows: list[dict], style: Style = STYLE) -> None:
             )
 
 
+# Figure 3: the extra chance. My firm's request ends with a paragraph the copy's lacks; does the model keep
+# the mirror, or best-respond to the copy it predicts?
+
+EXTRA_ARMS = {  # arm: (its label, its condition in a background with no record)
+    "base": ("copy’s prompt", lambda h: name("same", h, "none")),
+    "same": ("extra chance", lambda h: f"mind_extra_same_{h}_none"),
+    "asym": ("asymmetry only", lambda h: f"mind_extra_asym_{h}_none"),
+    "both": ("both get it", lambda h: f"mind_extra_both_{h}_none"),
+}
+AT_CARTEL, EXPLOIT, OTHER = "#2a78d6", "#e34948", "#e4e3df"  # dataviz blue, red and a neutral gray
+
+
+@dataclass(frozen=True)
+class ExtraStyle:
+    arms: tuple[str, ...] = tuple(EXTRA_ARMS)  # the bars in each model's group, in order
+    backgrounds: tuple[str, ...] = HORIZONS  # the panels: horizons with no record
+
+
+EXTRA_STYLE = ExtraStyle()
+
+
+class Split(NamedTuple):
+    cartel: int  # at the cartel share
+    exploit: int  # best-responding to the copy its readback expected
+    n: int  # parsed answers
+
+
+@dataclass(frozen=True)
+class ExtraData:
+    splits: dict[tuple[str, str, str], Split]  # (model, arm, horizon)
+    style: ExtraStyle = EXTRA_STYLE
+
+
+def exploits(row: dict, got: Any) -> bool:
+    """An answer off the cartel share that best-responds to the other firm's output its readback expected,
+    when that is below Nash: a copy predicted to collude, exploited."""
+    nash = DUOPOLY.benchmarks(2)["nash"]
+    if row["value"] is None or at_cartel(row) or got is None or got.other is None or got.other >= nash - 0.5:
+        return False
+    return near(row["value"], DUOPOLY.best_response(got.other))
+
+
+def extra_splits(rows: list[dict], read: Callable[[dict], Any]) -> dict[tuple[str, str, str], Split]:
+    arm_of = {cond(h): (arm, h) for arm, (_, cond) in EXTRA_ARMS.items() for h in HORIZONS}
+    cells: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
+    for row in rows:
+        if row["condition"] in arm_of and row["model"] in MODELS and row["value"] is not None:
+            cells[(row["model"], *arm_of[row["condition"]])].append(row)
+    return {
+        cell: Split(sum(map(at_cartel, found)), sum(exploits(r, read(r)) for r in found), len(found))
+        for cell, found in cells.items()
+    }
+
+
+def draw_extra(ax: Any, data: ExtraData) -> None:
+    """A panel per background, a 100% bar per model and arm: at the cartel share, exploiting, other."""
+    fig, style = ax.figure, data.style
+    ax.remove()
+    models = [m for m in MODELS if any(cell[0] == m for cell in data.splits)]
+    axes = fig.subplots(1, len(style.backgrounds), sharey=True, squeeze=False)[0]
+    ys, labels, y = [], [], 0.0
+    for model in models:
+        for i, arm in enumerate(style.arms):
+            label = EXTRA_ARMS[arm][0]
+            labels.append(f"{MODELS[model]} · {label}" if i == 0 else label)
+            ys.append(y)
+            y += 1
+        y += 0.6  # a gap between models
+    for panel, horizon in zip(axes, style.backgrounds, strict=True):
+        bars = [data.splits.get((m, arm, horizon)) for m in models for arm in style.arms]
+        for yy, split in zip(ys, bars, strict=True):
+            if not split or not split.n:
+                continue
+            cartel, exploit = split.cartel / split.n, split.exploit / split.n
+            panel.barh(yy, cartel, color=AT_CARTEL, height=0.75)
+            panel.barh(yy, exploit, left=cartel, color=EXPLOIT, height=0.75)
+            panel.barh(yy, 1 - cartel - exploit, left=cartel + exploit, color=OTHER, height=0.75)
+        panel.set_title(HORIZON_LABELS[horizon], fontsize=8, color=INK)
+        panel.set_xlim(0, 1)
+        panel.xaxis.set_major_formatter(PercentFormatter(1.0))
+        panel.tick_params(axis="both", length=0, labelsize=6.5)
+        for side in ("top", "right", "left"):
+            panel.spines[side].set_visible(False)
+    axes[0].set_yticks(ys, labels=labels, fontsize=6.3)
+    axes[0].invert_yaxis()
+    handles = [
+        Patch(color=AT_CARTEL, label="at the cartel share"),
+        Patch(color=EXPLOIT, label="exploits the copy"),
+        Patch(color=OTHER, label="Nash or other"),
+    ]
+    fig.legend(
+        handles=handles, loc="upper center", ncol=3, fontsize=7, frameon=False, bbox_to_anchor=(0.6, 1.04)
+    )
+    fig.tight_layout()
+
+
+def named_list(items: list[str]) -> str:
+    return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
+
+
+def fill_extra(
+    ledger: Ledger, rows: list[dict], read: Callable[[dict], Any], style: ExtraStyle = EXTRA_STYLE
+) -> None:
+    splits = extra_splits(rows, read)
+    size = (6.5, 0.24 * len(MODELS) * len(style.arms) + 1.0)
+    how = (
+        "the copy's prompt and the extra-chance arms, with no record; an exploit best-responds to the copy "
+        "its readback expected, below Nash"
+    )
+    ledger.figure("conceptualization-extra-figure", draw_extra, ExtraData(splits, style), how=how, size=size)
+    fewest, most = min(s.n for s in splits.values()), max(s.n for s in splits.values())
+    replies = str(most) if fewest == most else f"{fewest} to {most}"
+    ledger.value(
+        "conceptualization.extra.replies", replies, how="parsed answers a bar in the extra-chance figure"
+    )
+    backgrounds = named_list([HORIZON_LABELS[h] for h in style.backgrounds])
+    ledger.value(
+        "conceptualization.extra.caption.backgrounds", backgrounds, how="the panels, from EXTRA_STYLE"
+    )
+
+
 @source("conceptualization")
 def conceptualization(ledger: Ledger) -> None:
     rows = cli.replies(REGISTRY, "conceptualization", None, list(NO_RECORD), list(MODELS)).rows
     fill(ledger, rows)
+    conditions = [cond(h) for _, cond in EXTRA_ARMS.values() for h in HORIZONS]
+    extra_rows = cli.replies(REGISTRY, "conceptualization", None, conditions, list(MODELS)).rows
+    reads = readback.load(readback.cache_path(cli.sources(REGISTRY, "conceptualization", None).log))
+    fill_extra(ledger, extra_rows, lambda row: readback.lookup(reads, REGISTRY, "conceptualization", row))

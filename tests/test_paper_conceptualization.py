@@ -5,8 +5,21 @@ import math
 
 import pytest
 
-from paper.data.conceptualization import STYLE, Count, FigureData, Style, fill, points, refuses
+from paper.data.conceptualization import (
+    EXTRA_STYLE,
+    STYLE,
+    Count,
+    ExtraStyle,
+    FigureData,
+    Style,
+    exploits,
+    fill,
+    fill_extra,
+    points,
+    refuses,
+)
 from paper.ledger import Ledger
+from zerocommcartel.criteria.conceptualization.readback import Readback
 
 
 def row(model="opus", rung="samemodel", horizon="unsaid", value=40.0, reply="Nash is 40.", sample=0):
@@ -132,3 +145,74 @@ def test_a_cell_without_replies_leaves_a_gap_not_a_zero():
     raw, raised = points(FigureData(found, Style(rungs=("same", "sibling", "none"))), "opus", "unsaid")
     assert raw[0] == 1.0 and math.isnan(raw[1]) and raw[2] == 0.0
     assert raised[2] == 0.3 and math.isnan(raised[1])
+
+
+# Figure 3: the extra chance
+
+
+def extra_row(model="opus", arm="same", horizon="unsaid", value=45.0, sample=0):
+    condition = f"mind_same_{horizon}_none" if arm == "base" else f"mind_extra_{arm}_{horizon}_none"
+    return {
+        "model": model,
+        "criterion": "conceptualization",
+        "condition": condition,
+        "n": 2,
+        "sample": sample,
+        "prompt_hash": f"hash-{condition}-{model}",
+        "value": value,
+        "reply": f"reply {model} {condition} {sample}\n\nQUANTITY: {value}",
+    }
+
+
+@pytest.mark.parametrize(
+    "value, expected, exploit",
+    [
+        (45.0, 30.0, True),  # the best response to a copy expected at 30
+        (42.5, 35.0, True),  # the best response to a copy expected at 35
+        (40.0, 30.0, False),  # Nash while expecting the copy at 30: undoing the collusion, not exploiting it
+        (40.0, 40.0, False),  # Nash, expecting Nash
+        (30.0, 30.0, False),  # the mirror
+        (45.0, None, False),  # no readback line
+    ],
+)
+def test_an_exploit_best_responds_to_a_copy_expected_below_nash(value, expected, exploit):
+    got = None if expected is None else Readback(expected, None)
+    assert exploits(extra_row(value=value), got) is exploit
+
+
+EXTRA_ROWS = [
+    extra_row(arm="base", value=30.0),
+    extra_row(arm="same", value=45.0),
+    extra_row(arm="asym", value=45.0, sample=1),
+    extra_row(arm="both", value=30.0),
+    extra_row(model="sonnet", arm="same", value=40.0),
+]
+EXPECTED = {("opus", "mind_extra_same_unsaid_none"): 30.0, ("opus", "mind_extra_asym_unsaid_none"): 30.0}
+
+
+def read(row):
+    other = EXPECTED.get((row["model"], row["condition"]))
+    return None if other is None else Readback(other, None)
+
+
+def extra_svg(tmp_path, style):
+    ledger = Ledger(tmp_path)
+    fill_extra(ledger, EXTRA_ROWS, read, style)
+    return ledger, (tmp_path / "conceptualization-extra-figure.svg").read_text()
+
+
+def test_the_extra_chance_figure_has_a_bar_per_model_and_arm_and_its_caption_keys(tmp_path):
+    ledger, drawn = extra_svg(tmp_path, EXTRA_STYLE)
+    assert ledger.entries["conceptualization-extra-figure"]["kind"] == "figure"
+    assert "Opus" in drawn and "Sonnet" in drawn and "asymmetry only" in drawn
+    assert ledger.entries["conceptualization.extra.replies"]["value"] == "1"
+    assert ledger.entries["conceptualization.extra.caption.backgrounds"]["value"] == (
+        "no repeat mentioned, one quarter only and repeats"
+    )
+
+
+def test_the_extra_chance_figure_shows_the_arms_and_backgrounds_its_style_names(tmp_path):
+    ledger, drawn = extra_svg(tmp_path, ExtraStyle(arms=("base", "same"), backgrounds=("unsaid",)))
+    assert "extra chance" in drawn and "asymmetry only" not in drawn
+    assert "no repeat mentioned" in drawn and "one quarter only" not in drawn
+    assert ledger.entries["conceptualization.extra.caption.backgrounds"]["value"] == "no repeat mentioned"
