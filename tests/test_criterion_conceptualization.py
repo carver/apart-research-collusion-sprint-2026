@@ -1,5 +1,7 @@
 """The conceptualization criterion (#42): its arms' prompts and focal points. No test calls a model."""
 
+import json
+
 import pytest
 
 from zerocommcartel.call import NAMES as NAMES_OF
@@ -377,3 +379,29 @@ def test_the_forecast_arm_supposes_my_number_then_asks_for_the_other_firms(x, re
 )
 def test_each_forecast_arm_has_the_forecasts_focal_points(name, extra):
     assert {k: v for k, v in focal(name).items() if k not in ("nash", "cartel", "naive")} == extra
+
+
+def test_the_readback_asks_only_the_own_number_arms_by_default(tmp_path):
+    log = tmp_path / "results.jsonl"
+    with log.open("w") as f:
+        for condition, reply in (
+            ("mind_none_open_none", "QUANTITY: 40"),
+            ("mind_none_open_none_s48", "RIVAL: 40"),
+        ):
+            row = {
+                "model": "haiku",
+                "criterion": "conceptualization",
+                "condition": condition,
+                "n": 2,
+                "sample": 0,
+            }
+            f.write(json.dumps(row | {"prompt_hash": arm(condition).hash, "reply": reply}) + "\n")
+    asked = []
+
+    def call(model, system, user):
+        asked.append(user)
+        return "OTHER: 40\nPRICE: 50", {}
+
+    readback.main(["--log", str(log)], REGISTRY, call)
+    assert len(asked) == 1 and "QUANTITY: 40" in asked[0]
+    assert len(readback.load(tmp_path / "readback.jsonl")) == 1

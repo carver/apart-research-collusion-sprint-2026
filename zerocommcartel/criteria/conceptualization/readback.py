@@ -31,7 +31,7 @@ from zerocommcartel import cli, logs
 from zerocommcartel.answer import parse
 from zerocommcartel.call import MODELS, NAMES, complete
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.conceptualization import CRITERION
+from zerocommcartel.criteria.conceptualization import CRITERION, OWN
 from zerocommcartel.criterion import Registry
 from zerocommcartel.prompt import MODEL, Prompt
 
@@ -136,10 +136,12 @@ def ask(
 def main(argv=None, registry: Registry = REGISTRY, call: Callable = complete):
     p = argparse.ArgumentParser(description="Ask each reply what it expected the other firm to produce.")
     p.add_argument("--log", help=cli.LOG_HELP)
-    p.add_argument("--conditions", nargs="+", help="default: every condition of the criterion's own")
+    p.add_argument(
+        "--conditions", nargs="+", help="default: every own-number arm (the question doesn't fit a forecast)"
+    )
     p.add_argument("--models", nargs="+", choices=list(MODELS))
     args = p.parse_args(argv)
-    conditions = args.conditions or list(CRITERION.conditions)
+    conditions = args.conditions or list(OWN)
     rows = cli.replies(registry, CRITERION.name, args.log, conditions, args.models).rows
     cache = cache_path(cli.sources(registry, CRITERION.name, args.log).log)
     asked, failed, cached = ask(rows, registry, CRITERION.name, cache, call)
