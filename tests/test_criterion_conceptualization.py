@@ -548,6 +548,8 @@ def test_the_extra_chance_grid_sets_each_arm_beside_its_base():
         ("The other firm's request lacks this paragraph, so it answers 30.\n\nQUANTITY: 45", True),
         ("Everything above the last paragraph is what the other firm sees.\n\nQUANTITY: 45", True),
         ("Both firms reason alike, so the joint optimum is 30 each.\n\nQUANTITY: 30", False),
+        ("The other firm’s request stops before my note, so it says 30.\n\nQUANTITY: 45", True),
+        ("After its cheat, I give the other firm a second chance at 30.\n\nQUANTITY: 30", False),
     ],
 )
 def test_noticed_finds_a_mention_of_the_extra_paragraph(reply, noticed):
@@ -557,5 +559,24 @@ def test_noticed_finds_a_mention_of_the_extra_paragraph(reply, noticed):
 def test_the_noticed_grid_counts_each_extra_arms_replies_that_mention_the_paragraph():
     rows = [row("mind_extra_same_open_none", 45, reply="I use my extra chance.\n\nQUANTITY: 45")]
     rows += [row("mind_extra_same_open_none", 30, sample=1, reply="Joint optimum.\n\nQUANTITY: 30")]
+    rows += [
+        row("mind_extra_same_open_none", None, sample=2, reply="This paragraph asks me to exploit a copy.")
+    ]
     line = grid_line(report.noticed_grid(rows, "haiku"), "repeats")
-    assert line == ["1 of 2", "-", "-", "-"]
+    assert line == ["2 of 3", "-", "-", "-"]
+
+
+def test_the_extra_reads_grid_finds_exploits_and_undos_through_the_readback():
+    replies = {"exploit": 45, "undo": 40, "nash": 40, "mirror": 30}
+    rows = [
+        row("mind_extra_same_unsaid_none", v, sample=s, reply=r) for s, (r, v) in enumerate(replies.items())
+    ]
+    rows += [row("mind_extra_same_unsaid_none", 45, sample=4, reply="unread")]
+    prompt = arm("mind_extra_same_unsaid_none")
+    expected = {"exploit": 30, "undo": 30, "nash": 40, "mirror": 30}
+    readbacks = {
+        readback.key("haiku", prompt, s, r): readback.Readback(expected[r], None)
+        for s, r in enumerate(replies)
+    }
+    line = grid_line(report.extra_reads(rows, "haiku", readbacks, REGISTRY), "no repeat mentioned")
+    assert line == ["1 exploit, 1 undo of 4", "-", "-", "-"]

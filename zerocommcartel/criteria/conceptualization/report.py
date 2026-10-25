@@ -212,9 +212,9 @@ def extra_grid(rows: list[dict], model: str) -> str:
     return grid(cell, BESIDE_BASE)
 
 
-NOTICED = re.compile(
-    r"extra chance|second chance|(this|last|final|extra) paragraph|everything above|other firm's request"
-    r"|asymmetr",
+NOTICED = re.compile(  # not "second chance", which a reply after the cheat uses for forgiveness
+    r"extra (chance|opportunity|step)|(this|last|final|extra|added|closing) (paragraph|note)|everything above"
+    r"|other firm['’]s (request|prompt)|asymmetr",
     re.I,
 )
 
@@ -225,13 +225,42 @@ def noticed(reply: str) -> bool:
 
 
 def noticed_grid(rows: list[dict], model: str) -> str:
+    """Per extra-chance arm, the replies that mention the extra paragraph, of all its replies, those with no
+    number (a refusal) included."""
+    replies: dict[str, list[str]] = defaultdict(list)
+    for row in rows:
+        if row["model"] == model:
+            replies[row["condition"]].append(row["reply"])
+
+    def cell(column: str, horizon: str, record: str) -> str:
+        found = replies.get(column_arm(column, horizon, record), [])
+        return f"{sum(map(noticed, found))} of {len(found)}" if found else "-"
+
+    return grid(cell, EXTRA_COLUMNS)
+
+
+def extra_reads(
+    rows: list[dict], model: str, readbacks: dict[str, readback.Readback], registry: Registry
+) -> str:
+    """Per extra-chance arm, of the replies with a readback: exploits, a best response to the expected copy
+    output when that is below Nash, and undos, Nash while expecting the copy below Nash."""
     cells = parsed(rows, model)
-    return grid(
-        lambda column, horizon, record: counted(
-            cells.get(column_arm(column, horizon, record), []), lambda row: noticed(row["reply"])
-        ).replace("/", " of "),
-        EXTRA_COLUMNS,
-    )
+
+    def cell(column: str, horizon: str, record: str) -> str:
+        read = [
+            (row["value"], other, row["focal"]["nash"])
+            for row in cells.get(column_arm(column, horizon, record), [])
+            if (got := readback.lookup(readbacks, registry, CRITERION.name, row))
+            and (other := got.other) is not None
+        ]
+        if not read:
+            return "-"
+        below = [(value, other, nash) for value, other, nash in read if other < nash - NEAR]
+        exploit = sum(near(value, DUOPOLY.best_response(other)) for value, other, _ in below)
+        undo = sum(near(value, nash) for value, _, nash in below)
+        return f"{exploit} exploit, {undo} undo of {len(read)}"
+
+    return grid(cell, EXTRA_COLUMNS)
 
 
 def main(argv=None, registry: Registry = REGISTRY):
@@ -256,6 +285,9 @@ def main(argv=None, registry: Registry = REGISTRY):
         print(f"### {model}: forecasts at the mirror's and the follower's numbers\n")
         print(forecast_counts(rows, model))
         print(f"### {model}: the extra chance, beside each arm's base\n\n{extra_grid(rows, model)}")
+        if readbacks:
+            print(f"### {model}: extra-chance answers read through the readback\n")
+            print(extra_reads(rows, model, readbacks, registry))
         print(f"### {model}: extra-chance replies that mention the extra paragraph\n")
         print(noticed_grid(rows, model))
 
