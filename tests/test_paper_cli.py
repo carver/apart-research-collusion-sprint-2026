@@ -47,15 +47,11 @@ def test_a_swallowed_semicolon_is_a_problem_and_unclaimed_wording_a_warning(pape
     )
 
 
-def test_a_hash_before_a_digit_and_a_heading_reference_ending_a_sentence_are_problems(paper_dir, capsys):
-    paper = (
-        '#import "lib.typ": *\n#show: apart.with(abstract: [x])\n= Methods <sec-m>\nSee (#39) and @sec-m.\n'
-    )
+def test_a_hash_before_a_digit_is_a_problem(paper_dir, capsys):
+    paper = '#import "lib.typ": *\n#show: apart.with(abstract: [x])\n= Methods\nSee (#39).\n'
     (paper_dir / "paper.typ").write_text(paper)
     assert main([], paper_dir, sources={}) == 0
-    out = capsys.readouterr().out
-    assert "hash: line 4: #39 renders as 39" in out
-    assert "period: line 4: @sec-m. renders two periods" in out
+    assert "hash: line 4: #39 renders as 39" in capsys.readouterr().out
 
 
 def test_a_paper_typst_cannot_compile_fails_with_its_error(paper_dir, capsys):

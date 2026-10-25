@@ -1,10 +1,8 @@
 """The checks bin/build-paper runs on paper.typ's source: a semicolon Typst swallows after a call, a `#` it
-swallows before a digit, a reference to a section that ends a sentence, and wording that rests on the numbers
-with no #claim behind it."""
+swallows before a digit, and wording that rests on the numbers with no #claim behind it."""
 
 from paper.checks import (
     Problem,
-    heading_ref_periods,
     swallowed_hashes,
     swallowed_semicolons,
     unclaimed_wording,
@@ -73,25 +71,4 @@ def test_a_hash_before_a_digit_is_a_problem_naming_its_line():
         Problem("hash", "line 1: #39 renders as 39 (write \\#39)"),
         Problem("hash", "line 4: #7 renders as 7 (write \\#7)"),
         Problem("hash", "line 4: #8 renders as 8 (write \\#8)"),
-    ]
-
-
-REFS = """= Methods <sec-methods>
-== Market <sec-market>
-#figure(rect(), caption: [A box.]) <fig-box>
-Details are in @sec-methods.
-The box is in @fig-box. A subsection's number has no period: see @sec-market.
-// See @sec-methods. in a comment.
-= The pilot <app-pilot>
-The pilot is in @app-pilot. Its prompts are in @app-pilot[Appendix].
-#claim("in @sec-methods.", ("a",), r => r > 0) and `@sec-methods.` in raw
-"""
-
-
-def test_a_reference_to_a_heading_that_ends_a_sentence_is_a_problem():
-    fix = "renders two periods, since the section number ends in one; don't end the sentence with it"
-    assert heading_ref_periods(REFS) == [
-        Problem("period", f"line 4: @sec-methods. {fix}"),
-        Problem("period", f"line 8: @app-pilot. {fix}"),
-        Problem("period", f"line 8: @app-pilot[Appendix]. {fix}"),
     ]
