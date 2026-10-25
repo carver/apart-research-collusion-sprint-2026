@@ -19,7 +19,7 @@ from paper.data.pilot import COLORS as PILOT_COLORS
 from paper.ledger import Ledger
 from zerocommcartel import cli, logs
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.communal.crossmodel import Split, split, verdicts
+from zerocommcartel.criteria.communal.crossmodel import Split, split, start_of, verdicts
 from zerocommcartel.criteria.communal.identity import CELLS, STARTS
 from zerocommcartel.criteria.communal.idl1 import FIRST, FOLDER, Q, outcomes, wilson_share
 from zerocommcartel.criteria.communal.judge import REFUSAL
@@ -29,13 +29,6 @@ COLORS = PILOT_COLORS | {"glm": "#eda100", "astra": "#e87ba4"}  # dataviz's cate
 MARKERS = {"haiku": "o", "sonnet": "s", "opus": "D", "glm": "^", "astra": "v"}
 THIN = 5  # a point on fewer answers than this is faded
 HOW = "IDL-1's cells confirmed on fresh replies, from logs/communal/idl1/ (communal.crossmodel.verdicts)"
-
-
-def start_of(cell: str) -> str | None:
-    """The cell's nothing-said start, with the same start and question; None when that is the cell itself."""
-    c = CELLS[cell]
-    start = f"id_{c.start}_base" + ("_own" if c.ask == "own" else "")
-    return start if start in CELLS and start != cell else None
 
 
 def label(cell: str) -> str:

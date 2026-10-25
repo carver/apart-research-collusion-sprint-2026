@@ -14,11 +14,13 @@ import math
 from collections.abc import Iterator
 from typing import NamedTuple
 
+from zerocommcartel.criteria.communal.identity import CELLS
 from zerocommcartel.criteria.communal.idl1 import (
     DUOPOLY_CELLS,
     Outcomes,
     Q,
     Stage,
+    Tally,
     answered,
     benjamini_hochberg,
     counted,
@@ -89,15 +91,47 @@ def corrected(found: list[CellVerdict]) -> list[CellVerdict]:
     ]
 
 
-def verdicts(rows: list[dict], labels: dict[str, dict]) -> list[CellVerdict]:
-    """Each duopoly cell's verdict, in `DUOPOLY_CELLS` order, by the rule in the module's docstring."""
+def start_of(cell: str) -> str | None:
+    """The cell's nothing-said start, with the same start and question; None when that is the cell itself."""
+    c = CELLS[cell]
+    start = f"id_{c.start}_base" + ("_own" if c.ask == "own" else "")
+    return start if start in CELLS and start != cell else None
+
+
+def screened(rows: list[dict]) -> list[str]:
+    """The cells whose first stage passes the share test alone, with no refusal labels: a superset of the
+    cells `verdicts` tests again, since its refusal test can only remove cells."""
+    tallies, models = counted(rows)
+    if len(models) < 2:
+        return []
+
+    def unjudged(model: str, cell: str) -> Split:  # every reply counted as an answer, none as a refusal
+        hits, n = tallies.get((model, cell, "first"), Tally(0, 0))
+        return Split(model, hits, 0, n)
+
+    found = corrected([tested(cell, [unjudged(m, cell) for m in models], "first") for cell in DUOPOLY_CELLS])
+    return [v.cell for v in found if v.choice_q < Q]
+
+
+def first_stage(rows: list[dict], labels: dict[str, dict]) -> list[CellVerdict]:
+    """Each duopoly cell's first-stage verdict, in `DUOPOLY_CELLS` order: both tests on its first FIRST
+    replies a model, corrected across the cells. Needs labels for those replies only."""
     _, models = counted(rows)
     if len(models) < 2:
         return []
     replies = outcomes(rows, labels)
-    first = corrected(
+    return corrected(
         [tested(c, [split(replies, m, c, "first") for m in models], "first") for c in DUOPOLY_CELLS]
     )
+
+
+def verdicts(rows: list[dict], labels: dict[str, dict]) -> list[CellVerdict]:
+    """Each duopoly cell's verdict, in `DUOPOLY_CELLS` order, by the rule in the module's docstring."""
+    first = first_stage(rows, labels)
+    if not first:
+        return []
+    _, models = counted(rows)
+    replies = outcomes(rows, labels)
     pending = [i for i, v in enumerate(first) if v.passes]
     ran = {i for i in pending if all(replies.get((m, first[i].cell, "fresh")) for m in models)}
     fresh = corrected(

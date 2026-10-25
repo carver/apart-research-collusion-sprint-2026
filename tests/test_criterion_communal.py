@@ -7,7 +7,7 @@ import json
 import pytest
 
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.communal import crossmodel, idl1, report
+from zerocommcartel.criteria.communal import crossmodel, fresh, idl1, report
 from zerocommcartel.criteria.communal.identity import CONDITIONS as IDENTITY
 from zerocommcartel.criteria.communal.judge import REFUSAL, outcome
 from zerocommcartel.criteria.conceptualization import readback
@@ -1091,3 +1091,123 @@ def test_the_cross_model_test_stops_on_a_reply_the_judge_hasnt_labelled():
     labels.pop(REFUSAL.key(next(r for r in rows if r["condition"] == "id_mirror_harm")["reply"]))
     with pytest.raises(ValueError, match="idl1 judge"):
         crossmodel.verdicts(rows, labels)
+
+
+def test_the_readback_asks_only_the_first_stage(tmp_path):
+    log = tmp_path / "results.jsonl"
+    replies = [row("id_single_rival_charity", 40), row("id_single_rival_charity", 40, sample=12)]
+    log.write_text("".join(json.dumps(r) + "\n" for r in replies))
+    asked = []
+
+    def call(model, system, user):
+        asked.append(user)
+        return "OTHER: 40\nPRICE: 50", {}
+
+    idl1.main(["--log", str(log)], REGISTRY, call)
+    assert len(asked) == 1
+
+
+# Which cells a model still needs fresh replies in: the handoff's command
+
+
+def test_the_share_screen_needs_no_labels_and_keeps_a_gap_refusals_made():
+    rows = models_rows(
+        {
+            "haiku": ({"id_mirror_harm": 10}, {}),
+            "sonnet": ({"id_mirror_buyers_towns": 10}, {}),  # Nash under the harm sentence, refusing or not
+            "glm": ({"id_mirror_buyers_towns": 10, "id_mirror_harm": 10}, {}),
+        }
+    )
+    assert set(crossmodel.screened(rows)) == {"id_mirror_buyers_towns", "id_mirror_harm"}
+
+
+def handoff_rows(fresh_for=None):
+    """Opus with a pending Figure 1 test (3 of 10 against none) and a cross-model gap in the towns cell;
+    `fresh_for` adds Opus's fresh replies ({cell: replies at 30 of 30})."""
+    return models_rows(
+        {
+            "haiku": ({}, {}),
+            "opus": ({"id_single_rival_pe": 3, "id_mirror_buyers_towns": 10}, fresh_for or {}),
+            "glm": ({"id_mirror_buyers_towns": 10}, {}),
+        }
+    )
+
+
+NEEDED = {"id_single_rival_pe", "id_single_rival_holding", "id_mirror_buyers_towns", "id_mirror_base"}
+
+
+def test_a_models_fresh_cells_are_its_pending_tests_and_the_screened_cells_with_their_starts():
+    found = fresh.cells(handoff_rows(), "opus")
+    assert set(found) == NEEDED
+    assert found == [cell for cell in idl1.DUOPOLY_CELLS if cell in NEEDED]
+
+
+def test_a_model_with_its_first_stage_incomplete_has_no_fresh_cells_yet():
+    rows = handoff_rows() + gate_rows("astra", {}, skip={"id_run_base"})
+    with pytest.raises(ValueError, match="astra"):
+        fresh.cells(rows, "astra")
+
+
+def logged(rows):
+    """Fixture rows as the log holds them, for the command line, which reads each answer from its reply."""
+    return [row(r["condition"], r["value"], sample=r["sample"], model=r["model"]) for r in rows]
+
+
+def test_the_check_counts_the_fresh_replies_still_missing_and_fails_until_none_are(tmp_path, capsys):
+    rows = handoff_rows({"id_single_rival_pe": 0, "id_single_rival_holding": 0, "id_mirror_buyers_towns": 30})
+    assert fresh.missing(rows, "opus", sorted(NEEDED)) == 30  # the start, id_mirror_base
+    log = tmp_path / "results.jsonl"
+    log.write_text("".join(json.dumps(r) + "\n" for r in logged(rows)))
+    with pytest.raises(SystemExit) as stopped:
+        fresh.main(["opus", "--check", "--log", str(log)])
+    assert stopped.value.code == 1 and "30 fresh replies still missing" in capsys.readouterr().out
+    fresh.main(["opus", "--log", str(log)])
+    assert set(capsys.readouterr().out.split()) == NEEDED
+
+
+def test_with_refusal_labels_the_fresh_cells_leave_out_a_gap_refusals_made():
+    rows = models_rows(
+        {
+            "haiku": ({"id_mirror_harm": 10}, {}),
+            "sonnet": ({"id_mirror_buyers_towns": 10}, {}),  # refuses every reply under the harm sentence
+            "glm": ({"id_mirror_buyers_towns": 10, "id_mirror_harm": 10}, {}),
+        }
+    )
+    labels = refusal_labels(rows, {("sonnet", "id_mirror_harm")})
+    assert set(fresh.cells(rows, "glm")) == {"id_mirror_buyers_towns", "id_mirror_harm", "id_mirror_base"}
+    assert set(fresh.cells(rows, "glm", labels)) == {"id_mirror_buyers_towns", "id_mirror_base"}
+
+
+def judged(path, rows, skip=()):
+    """A refusal-judge cache labelling every reply off the cartel share in `rows` as turning nothing down,
+    but the reply texts in `skip`."""
+    keys = {REFUSAL.key(r["reply"]) for r in rows if r["value"] != 30.0 and r["reply"] not in skip}
+    path.write_text(
+        "".join(json.dumps({"key": k, "judge": REFUSAL.model} | refusal(declines=False)) + "\n" for k in keys)
+    )
+
+
+def test_the_check_passes_once_every_fresh_reply_and_refusal_label_is_in(tmp_path, capsys):
+    rows = logged(handoff_rows({cell: 0 for cell in NEEDED}))
+    log, cache = tmp_path / "results.jsonl", tmp_path / "judge-refusal.jsonl"
+    log.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    judged(cache, rows, skip={rows[-1]["reply"]})  # a fresh reply's text, never judged
+    with pytest.raises(SystemExit) as stopped:
+        fresh.main(["opus", "--check", "--log", str(log)])
+    assert stopped.value.code == 1 and "refusal label" in capsys.readouterr().out
+    judged(cache, rows)
+    fresh.main(["opus", "--check", "--log", str(log)])
+    out = capsys.readouterr().out
+    unread = len(idl1.DUOPOLY_CELLS) * idl1.FIRST  # every first-stage reply: no readback cache
+    assert (
+        "complete" in out and f"{unread} first-stage replies have no readback" in out
+    )  # reported, not blocking
+
+
+def test_the_command_stops_with_the_reason_while_a_first_stage_is_incomplete(tmp_path):
+    rows = logged(handoff_rows() + gate_rows("astra", {}, skip={"id_run_base"}))
+    log = tmp_path / "results.jsonl"
+    log.write_text("".join(json.dumps(r) + "\n" for r in rows))
+    with pytest.raises(SystemExit) as stopped:
+        fresh.main(["astra", "--log", str(log)])
+    assert "first stage isn't complete" in str(stopped.value.code)

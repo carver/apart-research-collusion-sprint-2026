@@ -106,9 +106,10 @@ def cites_future(reply: str | None) -> bool:
 
 def report(replies: Replies, readbacks: dict | None = None, registry: Registry = REGISTRY) -> str:
     """Per model and cell: replies and invalid answers, the mean answer, counts at Nash, at the cartel share
-    and at the cell's other focal points, the median output the readbacks expected of the other firm, the
-    median weight on the other firm where it's weighed, the gaps in mean answer and weight from the cell's
-    control arm, and how many replies cite the cell's identity or the future. Then the failed calls."""
+    and at the cell's other focal points, the median output the readbacks (asked of the first stage) expected
+    of the other firm, the median weight on the other firm where it's weighed, from those readbacks or the
+    fixed rival's output, the gaps in mean answer and weight from the cell's control arm, and how many replies
+    cite the cell's identity or the future. Then the failed calls."""
     if readbacks is None:
         readbacks = readback.load(readback.cache_path(logs.experiment_log(FOLDER)))
     cells: dict[tuple[str, str], list[dict]] = {}
@@ -330,12 +331,16 @@ def outcomes(rows: list[dict], labels: dict[str, dict]) -> Outcomes:
     return found
 
 
+class Unlabelled(ValueError):
+    """A reply a test needs is off the cartel share, and the refusal judge hasn't labelled it."""
+
+
 def answered(found: Outcomes, model: str, cell: str, stage: Stage) -> Tally:
-    """A cell's answers that aren't refusals: hits those at the cartel share. Raises when one of its replies
-    is off the cartel share and the refusal judge hasn't labelled it."""
+    """A cell's answers that aren't refusals: hits those at the cartel share. Raises Unlabelled when one of
+    its replies is off the cartel share and the refusal judge hasn't labelled it."""
     replies = found.get((model, cell, stage), [])
     if None in replies:
-        raise ValueError(
+        raise Unlabelled(
             f"{model} {cell}: {replies.count(None)} replies off the cartel share have no refusal label; "
             "run `python -m zerocommcartel.criteria.communal.idl1 judge`"
         )
@@ -406,8 +411,8 @@ def main(
     argv=None, registry: Registry = REGISTRY, call: Callable = complete, judge_call: Callable = claude_call
 ):
     p = argparse.ArgumentParser(
-        description="Ask each of IDL-1's duopoly replies what it expected the other firm to produce, or "
-        "(judge) label each one off the cartel share with the refusal judge."
+        description="Ask each of IDL-1's first-stage duopoly replies what it expected the other firm to "
+        "produce, or (judge) label each duopoly reply off the cartel share with the refusal judge."
     )
     p.add_argument("action", nargs="?", choices=("readback", "judge"), default="readback")
     p.add_argument("--log", help=f"default: IDL-1's own, logs/{FOLDER}/results.jsonl")
@@ -426,7 +431,9 @@ def main(
             print(f"  failed {line}")
         return
     cache = readback.cache_path(log)
-    asked, failed, cached = readback.ask(rows, registry, "communal", cache, call)
+    # the report's expected outputs and weights read the first stage; fresh replies serve the tests
+    first = [row for row in rows if stage_of(row) == "first"]
+    asked, failed, cached = readback.ask(first, registry, "communal", cache, call)
     print(f"readback: asked {asked}, {len(failed)} failed, {cached} already cached, into {cache}")
     for line in failed:
         print(f"  failed {line}")
