@@ -37,7 +37,7 @@ Before a sentence cites an experiment's result, read that experiment's entries i
 
 Who ran what (which models, backgrounds, rungs, replies a cell) comes from the logs or the ledger, through `bin/zcc grid`, `bin/zcc replies --count` or a data source, not from a criterion's docstring: the docstring says what was built, not what ran.
 
-Cite a source only once someone has read it in full, and say so in `citations.md`'s `read` column. A source known by its catalogue entry, its abstract or what others say of it stays uncited; the build checks every source the paper cites.
+Cite a source only once someone has read it in full, and say so in `citations.md`'s `read` column. `bin/paper bib DOI` prints its `refs.bib` entry. A source known by its catalogue entry, its abstract or what others say of it stays uncited; the build checks every source the paper cites.
 
 An interval belongs to one cell: replies to one model and one prompt, so one condition and market size. A count pooled across cells, like README's three models over two market sizes, has no interval, and `#ci` on it shows a red marker. Its replies come from different distributions, so a Wilson interval over them would be too narrow.
 
