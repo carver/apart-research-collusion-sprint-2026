@@ -35,6 +35,10 @@ Point to a section with `@label` (`= Methods <sec-methods>`): it prints "Section
 
 Before a sentence cites an experiment's result, read that experiment's entries in `flaws.md`: a flaw that touches the number belongs in the sentence or in the limitations.
 
+Who ran what (which models, backgrounds, rungs, replies a cell) comes from the logs or the ledger, through `bin/zcc grid`, `bin/zcc replies --count` or a data source, not from a criterion's docstring: the docstring says what was built, not what ran.
+
+Cite a source only once someone has read it in full, and say so in `citations.md`'s `read` column. A source known by its catalogue entry, its abstract or what others say of it stays uncited; the build checks every source the paper cites.
+
 An interval belongs to one cell: replies to one model and one prompt, so one condition and market size. A count pooled across cells, like README's three models over two market sizes, has no interval, and `#ci` on it shows a red marker. Its replies come from different distributions, so a Wilson interval over them would be too narrow.
 
 Put a `#claim` beside any sentence whose wording the data could make false: "most", "fell", "every model". The test gets each key's rate (or a plain value's value), in order:
@@ -77,6 +81,7 @@ On every build:
 - no `#` before a digit (`(#39)`): Typst prints the number without the `#`, so write `\#39`
 - every figure drawn under the section it's written in: a float that doesn't fit on its page moves on, past the next section's heading, and one placed at the top of its page can land above its own (a figure without a caption isn't checked)
 - every figure and table referenced in the text
+- every source the paper cites read in full: its row in `citations.md` says `full text` in the `read` column (a cited source with no row fails too)
 - the Code and Data, LLM Usage Statement, and "Limitations and Dual-Use / Ethical Considerations" sections
 - the PDF: 25 MB at most
 
