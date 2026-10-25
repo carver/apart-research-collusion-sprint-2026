@@ -28,6 +28,14 @@ CITES = re.compile(r"#(?:n|pct|ci)\(")
 STRING = re.compile(r'"[^"\n]*"')  # a key, or quoted words, whose words aren't the sentence's own
 RAW = re.compile(r"`[^`\n]*`")  # raw text, printed as written
 HASH_DIGITS = re.compile(r"(?<!\\)#(\d+)")
+BIB_KEY = re.compile(r"^\s*@\w+\s*\{\s*([^,\s]+)\s*,", re.MULTILINE)  # a refs.bib entry's key
+READ_IN_FULL = "full text"  # citations.md's read column for a source someone has read in full
+NOT_READ_IN_FULL = {  # the column's other values, as a problem words them
+    "abstract": "only its abstract was read",
+    "catalogue": "only its catalogue was read",
+    "secondhand": "it was read only secondhand",
+    "not checked": "no one has checked it",
+}
 WORDING = re.compile(  # words whose truth rests on the numbers beside them, not inside a hyphenated word
     r"(?<![\w-])(?:every|all|none|no one|nobody|neither|never|always|only|most|mostly|nearly|almost"
     r"|fell|falls|rose|rises|raises|raised|lowers|lowered|higher|lower|more often|less often|fewer"
@@ -139,6 +147,30 @@ def swallowed_hashes(text: str) -> list[Problem]:
         for match in HASH_DIGITS.finditer(RAW.sub("", STRING.sub("", line))):
             digits = match.group(1)
             found.append(Problem("hash", f"line {number}: #{digits} renders as {digits} (write \\#{digits})"))
+    return found
+
+
+def citation_reads(table: str) -> dict[str, str]:
+    """citations.md's `read` column, by key: how much of each source someone has read."""
+    rows = [line for line in table.splitlines() if line.startswith("|")]
+    cells = [[cell.strip() for cell in row.strip().strip("|").split("|")] for row in rows]
+    header, body = cells[0], cells[2:]  # cells[1] is the |---| rule
+    key, read = header.index("key"), header.index("read")
+    return {row[key].strip("`"): row[read] for row in body}
+
+
+def unread_citations(cited: set[str], bib: str, table: str) -> list[Problem]:
+    """Each source the paper cites that citations.md doesn't say someone read in full. `cited` holds every
+    label the paper references, so only those that are refs.bib keys count."""
+    reads = citation_reads(table)
+    found = []
+    for key in sorted(cited & set(BIB_KEY.findall(bib))):
+        read = reads.get(key)
+        if read is None:
+            found.append(Problem("citation", f"@{key} is cited, but citations.md has no row for it"))
+        elif read != READ_IN_FULL:
+            says = NOT_READ_IN_FULL.get(read, f"its read column says {read!r}")
+            found.append(Problem("citation", f"@{key} is cited, but citations.md says {says}"))
     return found
 
 

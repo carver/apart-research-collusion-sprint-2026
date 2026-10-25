@@ -13,7 +13,7 @@ PAPER = Path(__file__).resolve().parent.parent / "paper"
 
 @pytest.fixture
 def paper_dir(tmp_path):
-    for name in ("paper.typ", "apart.typ", "lib.typ", "refs.bib"):
+    for name in ("paper.typ", "apart.typ", "lib.typ", "refs.bib", "citations.md"):
         shutil.copy(PAPER / name, tmp_path / name)
     return tmp_path
 

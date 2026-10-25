@@ -95,3 +95,9 @@ Choices made for #38 while Jason was away. Each entry goes once he or Thomas con
 - Options: (a) every matching reply; (b) at most 20, with a line saying how many more matched and the `--limit` that shows them all; (c) a smaller cap such as 10.
 - Chose (b). An unfiltered call on a criterion's log can match hundreds of replies, and each block costs an agent's context about 250 characters; 20 is enough to read a cell or pick a quote.
 - Against: a reader who wants every reply has to rerun with a bigger `--limit`, and a count of the matches is already on the first line, so a smaller cap such as 10 would serve quoting just as well.
+
+## The bar for citing a source
+
+- Options: (a) the full text read, at least the passage the sentence leans on; (b) an abstract is enough for a claim the abstract itself states; (c) a trusted secondary source is enough for a textbook result.
+- Chose (a), the strict bar the /upskill pitch named: `citations.md`'s `read` column must say `full text` for every source the paper cites, and `bin/build-paper` refuses any other (2026-10-25).
+- Against: (b) costs nothing in accuracy when the abstract states the very claim, and it would let a paywalled paper whose abstract says what we need be cited without hunting for an open copy.

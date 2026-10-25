@@ -91,7 +91,7 @@ def test_a_second_holder_waits_for_the_first_and_says_whom_it_waits_for(tmp_path
 
 
 def test_a_build_waits_while_another_process_builds_the_same_paper(tmp_path, holder):
-    for name in ("paper.typ", "apart.typ", "lib.typ", "refs.bib"):
+    for name in ("paper.typ", "apart.typ", "lib.typ", "refs.bib", "citations.md"):
         shutil.copy(PAPER / name, tmp_path / name)
     (tmp_path / "paper.typ").write_text('#import "lib.typ": *\n#show: apart.with(abstract: [x])\nText.\n')
     done = InThread(lambda: build(tmp_path, sources={}))

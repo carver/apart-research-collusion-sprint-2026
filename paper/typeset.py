@@ -29,6 +29,7 @@ class Typeset:
     references: tuple[int, float] | None  # the page and height (pt) just before the References heading
     figures: list[str]  # each figure's label, or its caption when it has none
     refs: set[str]  # the labels referenced
+    cites: set[str]  # the bibliography keys cited, by @key or #cite
     headings: list[str]
     links: list[str]
     misplaced: list[tuple[str, str, str]]  # each figure drawn under another section: name, written, drawn
@@ -92,6 +93,7 @@ def typeset(paper_dir: Path, inputs: dict[str, str]) -> Typeset:
             references=(references[0]["value"]["page"], references[0]["value"]["y"]) if references else None,
             figures=[label(f) if "label" in f else plain(f["caption"]["body"]) for f in figures],
             refs={ref["target"].strip("<>") for ref in query("ref")},
+            cites={cite["key"].strip("<>") for cite in query("cite")},
             headings=[plain(heading["body"]) for heading in query("heading")],
             links=[link["dest"] for link in query("link") if isinstance(link["dest"], str)],
             misplaced=[

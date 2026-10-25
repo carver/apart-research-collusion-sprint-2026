@@ -30,6 +30,7 @@ from paper.checks import (
     swallowed_hashes,
     swallowed_semicolons,
     unclaimed_wording,
+    unread_citations,
     unreferenced,
     unshipped,
 )
@@ -261,6 +262,8 @@ def _build(paper_dir: Path, sources: Mapping[str, Source] | None, final: bool) -
     shutil.copy(numbers, built)
     paper_text = (paper_dir / "paper.typ").read_text()
     problems += rules(page) + swallowed_semicolons(paper_text) + swallowed_hashes(paper_text)
+    bib, table = (paper_dir / "refs.bib").read_text(), (paper_dir / "citations.md").read_text()
+    problems += unread_citations(page.cites, bib, table)
     if final:
         logs = sorted({log for entry in ledger.entries.values() for log in entry["source"]["logs"]})
         problems += broken_links(page) + unshipped(repo, logs)

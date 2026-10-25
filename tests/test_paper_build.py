@@ -25,10 +25,16 @@ BIB = """@article{calvano2020,
 }
 """
 
+CITATIONS = """| key | source | read |
+|---|---|---|
+| `calvano2020` | Calvano et al. (2020) | {read} |
+"""
+
 # A paper with one problem of every kind: a missing number, an interval asked of a pooled count, a false
 # claim, a claim on a missing key, a TODO, an unreferenced figure, the Limitations appendix before References,
-# no LLM Usage Statement, an abstract of 8 words, 11 pages before References, and three links that don't
-# resolve. The template's own link points at the test server.
+# no LLM Usage Statement, an abstract of 8 words, 11 pages before References, three links that don't resolve,
+# and a source cited though only its catalogue entry was read (`flawed` writes its citations.md). The
+# template's own link points at the test server.
 FLAWED = """#import "lib.typ": *
 #show: apart.with(
   title: [Fixture],
@@ -37,7 +43,7 @@ FLAWED = """#import "lib.typ": *
   sprint-url: "{url}/ok",
 )
 = Introduction
-Prior work @calvano2020. Pooled: #n("demo.pooled"), #ci("demo.pooled").
+Prior work #cite(<calvano2020>, form: "prose"). Pooled: #n("demo.pooled"), #ci("demo.pooled").
 #claim("half or more land on the cartel", ("demo.same",), r => r >= 0.5)
 #claim("few land on the cartel", ("demo.same",), r => r < 0.5)
 #claim("the gone arm is lower", ("demo.gone", "demo.same"), (gone, same) => gone < same)
@@ -112,12 +118,13 @@ REFERENCES = (
 )
 
 
-def write_paper(paper_dir: Path, text: str, url: str = "") -> Path:
+def write_paper(paper_dir: Path, text: str, url: str = "", read: str = "full text") -> Path:
     paper_dir.mkdir(parents=True, exist_ok=True)
     for name in ("apart.typ", "lib.typ"):
         shutil.copy(PAPER / name, paper_dir / name)
     (paper_dir / "paper.typ").write_text(text.format(url=url))
     (paper_dir / "refs.bib").write_text(BIB)
+    (paper_dir / "citations.md").write_text(CITATIONS.format(read=read))
     return paper_dir
 
 
@@ -169,7 +176,7 @@ def server():
 @pytest.fixture(scope="module")
 def flawed(tmp_path_factory, server):
     root = tmp_path_factory.mktemp("flawed")
-    paper_dir = write_paper(root / "paper", FLAWED, server)
+    paper_dir = write_paper(root / "paper", FLAWED, server, read="catalogue")
     log = write_log(root / "logs" / "demo.jsonl")
     return paper_dir, log, build(paper_dir, demo_sources(log))
 
@@ -215,7 +222,16 @@ def test_each_rule_of_the_sprint_is_checked(flawed):
     assert report.body_pages == 11  # the figure spills onto page 2; Code and Data shares References' page
     assert report.abstract_words == 8
     assert 0 < report.size < 25_000_000
-    assert {"todo", "unreferenced", "sections", "page-cap", "abstract", "missing", "claim"} <= checks(report)
+    assert {
+        "todo",
+        "unreferenced",
+        "sections",
+        "page-cap",
+        "abstract",
+        "missing",
+        "claim",
+        "citation",
+    } <= checks(report)
 
 
 def test_the_limitations_section_must_be_an_appendix_after_references(flawed):
