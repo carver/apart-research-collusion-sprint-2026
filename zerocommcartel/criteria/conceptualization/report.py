@@ -8,8 +8,8 @@ cooperate; the lines are the twelve backgrounds. Per model:
 - the answers above Nash, moves away from collusion (cashing in at 45, leading at 60) that the cartel count
   can't show where it sits at zero;
 - with the readback's cache beside the log, the cartel answers whose readback expected the other firm at the
-  cartel share too, and a line splitting the answers at 60 into leaders (other firm at 30, price $40) and
-  firms that ignore the other firm (price $70);
+  cartel share too, and a line splitting the answers at 60 by `readback.sixty_kind`: leaders, firms that
+  ignore the other firm, readbacks with the other firm at 60 too, and the rest;
 - the forecast arms' slope: how far the forecast of the other firm moves between the supposed 48 and 26, and
   how many forecasts land on the mirror's and the follower's numbers;
 - each extra-chance arm beside its base arm (answers at 45 and at 30), with the readback its exploits and
@@ -128,19 +128,20 @@ def matches(rows: list[dict], model: str, readbacks: dict[str, readback.Readback
 
 
 def sixties(rows: list[dict], model: str, readbacks: dict[str, readback.Readback], registry: Registry) -> str:
-    """The model's own-number answers at 60, which both a leader (the other firm follows at 30, price $40)
-    and a firm that ignores the other firm (price $70) give, split by their readbacks."""
-    sixty = DUOPOLY.benchmarks(2)["naive"]
+    """The model's own-number answers at 60, split by `readback.sixty_kind`."""
     kinds: dict[str, int] = dict.fromkeys(readback.SIXTY_KINDS, 0)
     for row in rows:
         if row["model"] != model or row["condition"] not in OWN or row["value"] is None:
             continue
-        if near(row["value"], sixty):
+        if near(row["value"], readback.SIXTY):
             kinds[readback.sixty_kind(readback.lookup(readbacks, registry, CRITERION.name, row))] += 1
+    lead, ignore, at = readback.SIXTY_READINGS.values()
+    price = readback.sixty_price
     return (
-        f"answers at 60: {kinds['leading']} leading (other firm at 30, $40), "
-        f"{kinds['ignoring']} ignoring the other firm (0, $70), "
-        f"{kinds['both']} putting the other firm at 60 too ($10), {kinds['other']} other, "
+        f"answers at {readback.SIXTY:g}: "
+        f"{kinds['leading']} leading (other firm at {lead:g}, ${price(lead):g}), "
+        f"{kinds['ignoring']} ignoring the other firm ({ignore:g}, ${price(ignore):g}), "
+        f"{kinds['at_sixty']} putting the other firm at {at:g} too (${price(at):g}), {kinds['other']} other, "
         f"{kinds['unread']} unread"
     )
 

@@ -1,4 +1,5 @@
-"""The conceptualization criterion (#42): its two figures, from the rows `zcc table conceptualization` counts.
+"""The conceptualization criterion (#42): its two figures and a sentence on the answers at 60, from the rows
+`zcc table conceptualization` counts.
 
 The lever figure (`conceptualization-figure`, `<fig-conceptualization>`) follows each model along the lever,
 the rungs from a rival that asks this same model with this same prompt to one that won't cooperate, in the
@@ -15,6 +16,10 @@ the copy's own prompt: a 100% bar per model and arm, split into answers at the c
 exploiting the copy (a best response to the other firm's output the reply's readback expected, when that is
 below Nash) and the rest. Where the copy's own prompt is at the cartel share in fewer than 8 of 10 replies,
 its bar is outlined.
+
+The sentence on the answers at 60 (`conceptualization.sixties`) splits each model's answers at 60 on the lever
+figure's rows by their readbacks (`readback.sixty_kind`): leading a rival that follows, ignoring the rival,
+the other firm at 60 too, or other.
 
 To change the lever figure, change `STYLE` (the rungs on x, how the neutral rung is marked, whether the
 bottom row draws the raw line faintly behind); the extra-chance figure, `EXTRA_STYLE` (the arms and the
@@ -37,7 +42,14 @@ from paper.ledger import Ledger, wilson
 from zerocommcartel import cli
 from zerocommcartel.criteria import REGISTRY
 from zerocommcartel.criteria.conceptualization import DUOPOLY, HORIZONS, RUNGS, extra_name, name, readback
-from zerocommcartel.criteria.conceptualization.readback import Readback
+from zerocommcartel.criteria.conceptualization.readback import (
+    SIXTY,
+    SIXTY_KINDS,
+    SIXTY_READINGS,
+    Readback,
+    sixty_kind,
+    sixty_price,
+)
 from zerocommcartel.criterion import near
 from zerocommcartel.mentions import MENTIONS
 
@@ -422,6 +434,73 @@ def plain(panel: Any) -> None:
         panel.spines[side].set_visible(False)
 
 
+# The answers at 60. Leading a rival that follows and ignoring the rival both answer 60; the readback tells
+# them apart, model by model, on the lever figure's rows.
+
+
+SIXTY_LABELS = {  # how the sentence names each kind of answer at 60
+    "leading": "leading",
+    "ignoring": "ignoring the rival",
+    "at_sixty": f"putting the other firm at {SIXTY:g} too",
+    "other": "other",
+    "unread": "unread",
+}
+
+
+def clause(label: str, kinds: list[str]) -> str:
+    """A model's clause: how many answers at 60 it gave and of which kinds, as "Opus 12, all leading"."""
+    if not kinds:
+        return f"{label} none"
+    counted = [(kinds.count(kind), SIXTY_LABELS[kind]) for kind in SIXTY_KINDS if kind in kinds]
+    if len(counted) > 1:
+        return f"{label} {len(kinds)}: " + named_list([f"{count} {kind}" for count, kind in counted])
+    only = counted[0][1]
+    return f"{label} 1, {only}" if len(kinds) == 1 else f"{label} {len(kinds)}, all {only}"
+
+
+def sixties_text(rows: list[dict], read: Reader) -> str:
+    """A sentence on each model's answers at 60 on the lever figure's rows, split by `sixty_kind`."""
+    at_sixty = [
+        r for r in rows if r["condition"] in NO_RECORD and r["value"] is not None and near(r["value"], SIXTY)
+    ]
+    clauses = [
+        clause(label, [sixty_kind(read(row)) for row in at_sixty if row["model"] == model])
+        for model, label in MODELS.items()
+    ]
+    lead, ignore, too = SIXTY_READINGS.values()
+    return (
+        f"Leading a rival that follows and ignoring the rival both answer {SIXTY:g}, and each reply’s "
+        f"readback tells them apart: a leader expects the other firm at {lead:g} and a price of "
+        f"${sixty_price(lead):g}, a firm that ignores its rival no output from it and a price of "
+        f"${sixty_price(ignore):g}. A readback can also put the other firm at {too:g} too, a price of "
+        f"${sixty_price(too):g}, at which an answer of {SIXTY:g} earns nothing (the best response to "
+        f"{SIXTY:g} is {lead:g}). "
+        f"Answers at {SIXTY:g} on the lever’s rungs with no record: {'; '.join(clauses)}."
+    )
+
+
+def fill_sixties(ledger: Ledger, rows: list[dict], read: Reader) -> None:
+    ledger.value(
+        "conceptualization.sixties",
+        sixties_text(rows, read),
+        how="own-number arms with no record (the lever figure's rows); answers within 0.5 of 60, split by "
+        "readback.sixty_kind",
+    )
+
+
+# The sources. The extra-chance figure and the answers at 60 read the readback cache.
+
+
+def reader(why: str) -> Reader:
+    """Each reply's readback, from the cache beside the criterion's log. A missing cache stops the source:
+    every reply would read as having none."""
+    cache = readback.cache_path(cli.sources(REGISTRY, "conceptualization", None).log)
+    if not cache.exists():
+        raise FileNotFoundError(f"{cache}: {why}")
+    reads = readback.load(cache)
+    return lambda row: readback.lookup(reads, REGISTRY, "conceptualization", row)
+
+
 @source("conceptualization")
 def conceptualization(ledger: Ledger) -> None:
     rows = cli.replies(REGISTRY, "conceptualization", None, list(NO_RECORD), list(MODELS)).rows
@@ -430,11 +509,15 @@ def conceptualization(ledger: Ledger) -> None:
 
 @source("conceptualization-extra")
 def conceptualization_extra(ledger: Ledger) -> None:
-    """A source of its own, so a failure here can't drop the lever figure's keys. Without the readback cache
-    every exploit would read as "other", so a missing cache stops the source instead."""
-    cache = readback.cache_path(cli.sources(REGISTRY, "conceptualization", None).log)
-    if not cache.exists():
-        raise FileNotFoundError(f"{cache}: the extra-chance figure reads exploits through the readbacks")
-    reads = readback.load(cache)
+    """A source of its own, so a failure here can't drop the lever figure's keys."""
+    read = reader("the extra-chance figure reads exploits through the readbacks")
     rows = cli.replies(REGISTRY, "conceptualization", None, list(BAR_OF), list(MODELS)).rows
-    fill_extra(ledger, rows, lambda row: readback.lookup(reads, REGISTRY, "conceptualization", row))
+    fill_extra(ledger, rows, read)
+
+
+@source("conceptualization-sixties")
+def conceptualization_sixties(ledger: Ledger) -> None:
+    """A source of its own, so a failure here can't drop the figures' keys."""
+    read = reader("the answers at 60 are split by their readbacks")
+    rows = cli.replies(REGISTRY, "conceptualization", None, list(NO_RECORD), list(MODELS)).rows
+    fill_sixties(ledger, rows, read)

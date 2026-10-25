@@ -16,6 +16,7 @@ from paper.data.conceptualization import (
     extra_splits,
     fill,
     fill_extra,
+    fill_sixties,
     points,
     refuses,
 )
@@ -281,3 +282,39 @@ def test_no_weak_panel_means_no_sentence_and_no_outline(tmp_path):
     fill_extra(ledger, rows, read, ExtraStyle(backgrounds=("unsaid",)))
     assert ledger.entries["conceptualization.extra.caption.weak"]["value"] == ""
     assert "stroke: #0b0b0b" not in (tmp_path / "conceptualization-extra-figure.svg").read_text()
+
+
+# The answers at 60
+
+
+def test_the_sixties_sentence_splits_each_models_answers_at_60_by_readback(tmp_path):
+    rows = [row(model="opus", value=60.0, sample=s) for s in range(2)]
+    rows += [row(model="haiku", rung="informed", horizon="open", value=60.0)]
+    rows += [row(model="glm", value=60.0, sample=s) for s in range(5)]
+    rows += [row(model="sonnet", value=30.0)]
+    rows += [extra_row(model="sonnet", value=60.0)]  # an extra-chance arm: not the lever figure's
+    rows += [{**row(model="sonnet", value=60.0), "condition": "mind_samemodel_unsaid_coop"}]  # a record
+    reads = {
+        ("opus", 0): Readback(30, 40),
+        ("opus", 1): Readback(30, 40),
+        ("haiku", 0): Readback(30, 40),
+        ("glm", 0): Readback(30, 40),
+        ("glm", 1): Readback(0, 70),
+        ("glm", 2): Readback(60, 10),
+        ("glm", 3): Readback(40, 50),
+        ("sonnet", 0): Readback(30, 40),
+    }
+    ledger = Ledger(tmp_path)
+    fill_sixties(ledger, rows, lambda r: reads.get((r["model"], r["sample"])))
+    line = ledger.entries["conceptualization.sixties"]["value"]
+    assert "the other firm at 30 and a price of $40" in line
+    assert "no output from it and a price of $70" in line
+    assert "a price of $10, at which an answer of 60 earns nothing (the best response to 60 is 30)" in line
+    assert "Haiku 1, leading" in line
+    assert "Sonnet none" in line and "GPT-6 Astra none" in line
+    assert "Opus 2, all leading" in line
+    clauses = ("Haiku 1", "Sonnet none", "Opus 2", "GPT-6 Astra none", "GLM-5.3 5")
+    order = [line.index(clause) for clause in clauses]
+    assert order == sorted(order)  # the clauses follow MODELS
+    glm = "1 leading, 1 ignoring the rival, 1 putting the other firm at 60 too, 1 other and 1 unread"
+    assert f"GLM-5.3 5: {glm}" in line

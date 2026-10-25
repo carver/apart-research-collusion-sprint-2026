@@ -332,7 +332,7 @@ def test_the_second_ladder_counts_answers_above_nash():
     assert grid_line(report.above(rows, "haiku"), "no repeat mentioned, after 30s")[4] == "2/4"
 
 
-def test_the_sixties_line_splits_leaders_from_firms_that_ignore_the_rival():
+def test_the_sixties_line_splits_the_answers_at_60_by_readback():
     rows = [row("mind_informed_unsaid_none", 60, sample=s, reply=f"sixty {s}") for s in range(4)]
     rows += [row("mind_informed_unsaid_none", 40, sample=4, reply="nash")]
     rows += [row("mind_informed_unsaid_none_s48", 60, sample=5, reply="a forecast of 60")]
@@ -354,7 +354,7 @@ def test_the_sixties_line_splits_leaders_from_firms_that_ignore_the_rival():
         (readback.Readback(30, 40), "leading"),  # a leader: the other firm follows at 30
         (readback.Readback(0, 70), "ignoring"),  # the price with no other firm
         (readback.Readback(60, 70), "other"),  # a price that doesn't fit the other firm's output
-        (readback.Readback(60, 10), "both"),  # the other firm at 60 too
+        (readback.Readback(60, 10), "at_sixty"),  # the other firm at 60 too
         (readback.Readback(40, 50), "other"),  # Nash's other firm and price
         (readback.Readback(60, None), "other"),  # at 60 too, with no price to confirm it
         (readback.Readback(None, 40), "unread"),  # no OTHER line

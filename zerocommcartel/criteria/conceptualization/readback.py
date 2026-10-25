@@ -1,8 +1,9 @@
 """The follow-up readback (#42): what each reply expected the other firm to produce, and the price.
 
 A second call to the same model shows it the arm's prompt and its reply, and asks what it expected. A leader
-at 60 expects the other firm at 30 and a price of $40; a firm that ignores its rival expects $70; a Nash reply
-40 and $50; a cartel reply 30 and $70. So the readback tells the two readings of 60 apart, and says whether a
+at 60 expects the other firm at 30 and a price of $40; a firm that ignores its rival 0 and $70; a Nash reply
+40 and $50; a cartel reply 30 and $70. So the readback tells the readings of 60 apart (`sixty_kind`, which
+needs a reading's whole pair), and says whether a
 cartel answer expected the other firm at 30 too (the mirror, or cooperation, or a record continued; the
 background tells which can apply). It can't say whether the model expects the other firm's output to depend
 on its own: in a symmetric market a Nash reply expects the other firm at its own 40 too. The forecast arms
@@ -90,20 +91,26 @@ def lookup(readbacks: dict[str, Readback], registry: Registry, criterion: str, r
     return readbacks.get(key(row["model"], prompt, row["sample"], row["reply"]))
 
 
-SIXTY_KINDS = ("leading", "ignoring", "both", "other", "unread")
+SIXTY = DUOPOLY.benchmarks(2)["naive"]
+# The readings of an answer at 60, each by the other firm's output it expects: leading a rival that follows,
+# ignoring the rival, and the other firm at 60 too (where 60 earns nothing). `sixty_price` gives the price.
+SIXTY_READINGS = {"leading": DUOPOLY.best_response(SIXTY), "ignoring": 0.0, "at_sixty": SIXTY}
+SIXTY_KINDS = (*SIXTY_READINGS, "other", "unread")
+
+
+def sixty_price(other: float) -> float:
+    """The price my 60 and the other firm's output make."""
+    return DUOPOLY.a - SIXTY - other
 
 
 def sixty_kind(got: Readback | None) -> str:
-    """What an answer at 60 meant, by its readback. Each reading is a whole pair, the other firm's output and
-    the price it makes with my 60: leading a rival that follows (30, $40), ignoring the rival (0, $70), or
-    the other firm at 60 too ($10, where 60 earns nothing; GLM-5.3's replies get there by miscomputing Nash).
-    A readback whose price doesn't fit its OTHER line is other; no readback, or one without an OTHER line, is
-    unread."""
+    """What an answer at 60 meant, by its readback: the reading whose whole pair, the other firm's output and
+    the price it makes with my 60, the readback names. A readback whose price doesn't fit its OTHER line is
+    other (flaws.md, "The readback"); no readback, or one without an OTHER line, is unread."""
     if got is None or got.other is None:
         return "unread"
-    sixty = DUOPOLY.benchmarks(2)["naive"]
-    for kind, other in {"leading": DUOPOLY.best_response(sixty), "ignoring": 0.0, "both": sixty}.items():
-        if near(got.other, other) and got.price is not None and near(got.price, DUOPOLY.a - sixty - other):
+    for kind, other in SIXTY_READINGS.items():
+        if near(got.other, other) and got.price is not None and near(got.price, sixty_price(other)):
             return kind
     return "other"
 
