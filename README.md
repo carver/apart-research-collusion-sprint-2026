@@ -55,20 +55,21 @@ The rest of `zerocommcartel/` is the shared core: the game (`game.py`), the prom
 
 Claude calls go through `bin/claude-fresh`, a locked-down `claude -p` on a Claude subscription, so the `claude` CLI must be installed and logged in. OpenRouter models need `OPENROUTER_API_KEY` in the environment. Only free (`:free`) models run, plus the paid ids listed in `PAID_OK` in `zerocommcartel/call.py`. Smoke tests and pilots use Claude on the subscription.
 
-From the repo root, after `uv sync`:
+`bin/zcc` runs zcc through `uv run`, which syncs the venv first. Put `bin/` on your PATH and `zcc` works from any directory.
 
 ```bash
-uv run zcc list                                   # each criterion and its conditions
-uv run zcc show consistent same 2                 # one condition's system prompt and prompt
-uv run zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
-uv run zcc run consistent --models glm --samples 10 --plan   # calls per model and their OpenRouter price
-uv run zcc judge consistent --log /tmp/smoke.jsonl  # the copy judge labels each reply (cached)
-uv run zcc table consistent --log /tmp/smoke.jsonl  # a markdown table per condition, model and n
-uv run zcc table consistent --conditions same diff --models haiku  # only those rows
-uv run zcc grid consistent --conditions same samemodel --at cartel --below nash  # condition x model counts
-uv run zcc replies consistent --conditions same --at nash --grep "same (AI )?model" -i  # count and quote replies
-uv run zcc synth                                  # the measures beside same's cartel and deliberate rates
-uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
+bin/zcc list                                   # each criterion and its conditions
+bin/zcc list conc                              # one criterion's, by a prefix only its name has
+bin/zcc show consistent same 2                 # one condition's system prompt and prompt
+bin/zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
+bin/zcc run consistent --models glm --samples 10 --plan   # calls per model and their OpenRouter price
+bin/zcc judge consistent --log /tmp/smoke.jsonl  # the copy judge labels each reply (cached)
+bin/zcc table consistent --log /tmp/smoke.jsonl  # a markdown table per condition, model and n
+bin/zcc table consistent --conditions same diff --models haiku  # only those rows
+bin/zcc grid consistent --conditions same samemodel --at cartel --below nash  # condition x model counts
+bin/zcc replies consistent --conditions same --at nash --grep "same (AI )?model" -i  # count and quote replies
+bin/zcc synth                                  # the measures beside same's cartel and deliberate rates
+bin/zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 ```
 
 Without `--out` (`--log` for `judge` and `table`), each command uses `logs/<criterion>/results.jsonl` and the logs of the criterion's experiments, `logs/<criterion>/<id>/results.jsonl` (EXPERIMENT_STANDARDS.md), plus the baseline rows in all the other criteria's logs; a file named with `--out` or `--log` stands alone. It leaves out a `--fresh` run's dated log, which asks the samples of the log beside it again. `run` appends to `logs/<criterion>/results.jsonl`, and skips the replies any of those logs already holds, keyed by model, prompt hash and sample. `judge` labels the replies the criterion's table counts, borrowed baseline replies included, into the cache beside that log, and skips any reply that a cache beside another log, an experiment's or another criterion's, already labels. So raising `--samples` adds samples, a rerun retries failures, and a reworded condition starts afresh. Give a smoke test its own `--out`, as above, so the criterion's log holds only runs you mean to keep.

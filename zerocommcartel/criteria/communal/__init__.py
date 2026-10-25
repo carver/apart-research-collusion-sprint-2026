@@ -43,13 +43,13 @@ maximizes the firm's own profit, so the arms take the mirror away, or weaken it,
 hint, lockstep, run, goodwill and onesided arms speak of "the other firm", so they run at n = 2 only, and hub
 runs beside them at n = 2. #41's runs, ten replies a cell:
 
-    uv run zcc run communal --models haiku sonnet opus astra glm --samples 10 --ns 2
-    uv run zcc run communal --models haiku sonnet opus astra glm --samples 10 --ns 4 \\
+    bin/zcc run communal --models haiku sonnet opus astra glm --samples 10 --ns 2
+    bin/zcc run communal --models haiku sonnet opus astra glm --samples 10 --ns 4 \\
         --conditions base diff same last_diff onemore_diff repeat_diff
-    uv run zcc run communal --models haiku sonnet opus astra glm --samples 10 --ns 2 --conditions \\
+    bin/zcc run communal --models haiku sonnet opus astra glm --samples 10 --ns 2 --conditions \\
         run_person run_person_locked run_person_offline run_othermodel run_othermodel_locked \\
         run_othermodel_offline run_self run_self_locked run_self_offline
-    uv run zcc judge communal --judges copy rule
+    bin/zcc judge communal --judges copy rule
     uv run python -m zerocommcartel.criteria.communal.report --judge
 """
 

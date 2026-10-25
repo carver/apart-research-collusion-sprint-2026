@@ -65,26 +65,26 @@ alone doesn't make them collude. onemore_same then tells the two readings left a
 about as often as samerep, the repeat sentence licenses the copy computation; at Nash, the open-ended future
 does the work, repeated-game reasoning that the same-model sentence coordinates.
 
-    uv run zcc run consistent --models haiku sonnet opus astra glm --samples 10 \\
+    bin/zcc run consistent --models haiku sonnet opus astra glm --samples 10 \\
         --conditions anyai samemodel
-    uv run zcc run consistent --models haiku sonnet opus astra glm --samples 10 --ns 2 \\
+    bin/zcc run consistent --models haiku sonnet opus astra glm --samples 10 --ns 2 \\
         --conditions suppose30_diff suppose45_diff suppose30_samemodel suppose45_samemodel \\
         suppose30_same suppose45_same hist30_same hist40_same hist30_diff hist40_diff \\
         hist30_lockstep hist40_lockstep
-    uv run zcc run consistent --models haiku sonnet opus nemotron dots luna --samples 10 \\
+    bin/zcc run consistent --models haiku sonnet opus nemotron dots luna --samples 10 \\
         --conditions same samerep rep onemore_same
-    uv run zcc run consistent --models haiku sonnet opus astra glm --samples 10 \\
+    bin/zcc run consistent --models haiku sonnet opus astra glm --samples 10 \\
         --conditions last_same last_samemodel
-    uv run zcc run consistent --models haiku sonnet opus astra glm --samples 10 --ns 2 \\
+    bin/zcc run consistent --models haiku sonnet opus astra glm --samples 10 --ns 2 \\
         --conditions goodwill_last_same nash_last_same goodwill_last_samemodel nash_last_samemodel \\
         nash_repeat_diff twin twin_informed
-    uv run zcc run consistent --models haiku sonnet opus astra glm --samples 10 --ns 4 \\
+    bin/zcc run consistent --models haiku sonnet opus astra glm --samples 10 --ns 4 \\
         --conditions most k1of4 k2of4 k3of4 k4of4 diff samemodel
-    uv run zcc run consistent --models haiku sonnet opus astra glm --samples 10 \\
+    bin/zcc run consistent --models haiku sonnet opus astra glm --samples 10 \\
         --conditions tool same_numonly diff_numonly
-    uv run zcc run consistent --models haiku sonnet opus astra glm --samples 10 --ns 2 \\
+    bin/zcc run consistent --models haiku sonnet opus astra glm --samples 10 --ns 2 \\
         --conditions forecast_base forecast_diff forecast_samemodel forecast_same
-    uv run zcc judge consistent
+    bin/zcc judge consistent
 """
 
 from functools import partial

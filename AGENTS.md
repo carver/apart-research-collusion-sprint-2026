@@ -34,11 +34,11 @@ Red/green: write the stubs first (the new names and empty methods), then a test 
 
 ## Pilots
 
-Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `uv run zcc run <criterion> --models haiku --out /tmp/smoke.jsonl`. Without `--out` the replies go into `logs/<criterion>/`, which should hold only runs you mean to keep. Commit a log you keep on its own (see Git).
+Smoke tests and pilots of an experiment run on the Claude subscription, never OpenRouter: `bin/zcc run <criterion> --models haiku --out /tmp/smoke.jsonl`. Without `--out` the replies go into `logs/<criterion>/`, which should hold only runs you mean to keep. Commit a log you keep on its own (see Git).
 
 ## Criteria
 
-Jason and Thomas each own one of the four criteria at a time (README, "The four criteria"; the owner is on the criterion's sub-issue of #38). Work on a criterion stays inside `zerocommcartel/criteria/<criterion>/`, its tests (`tests/test_criterion_<criterion>.py`) and `logs/<criterion>/`. Anything else in `zerocommcartel/` is the shared core. Change it only when a criterion can't do its job without the change, and put the change in a commit of its own, where the other owner reviews it in the git log. `uv run zcc hashes`, diffed from before and after, shows which logs a change leaves stale. A new or reworded condition, judge or monitor goes through `arm-check` (`.claude/skills/arm-check/SKILL.md`) before its code.
+Jason and Thomas each own one of the four criteria at a time (README, "The four criteria"; the owner is on the criterion's sub-issue of #38). Work on a criterion stays inside `zerocommcartel/criteria/<criterion>/`, its tests (`tests/test_criterion_<criterion>.py`) and `logs/<criterion>/`. Anything else in `zerocommcartel/` is the shared core. Change it only when a criterion can't do its job without the change, and put the change in a commit of its own, where the other owner reviews it in the git log. `bin/zcc hashes`, diffed from before and after, shows which logs a change leaves stale. A new or reworded condition, judge or monitor goes through `arm-check` (`.claude/skills/arm-check/SKILL.md`) before its code.
 
 `flaws.md` records the known weaknesses of every experiment that has run: an arm check's accepted caveats, a review's findings, a write-up's caveats. Add each one there when you find it; the paper's claims plan decides for each whether to drop the experiment, acknowledge the flaw or rerun.
 

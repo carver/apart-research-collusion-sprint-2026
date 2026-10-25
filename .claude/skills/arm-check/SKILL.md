@@ -11,7 +11,7 @@ Find every way an arm's answers could be misread while the arm is still a senten
 
 1. **Readings.** List each way a model might reason here and compute the number each gives in this arm: own profit, the pair's profit, the rival's alone, the buyers' or total welfare, a copy rule, matching a number the prompt states, Nash, naive. Done when every reading has a number and the hypothesis says which number means what.
 2. **Collisions.** Every reading the arm tests sits at least a unit from every other reading and from the game's own focal points (nash, cartel, naive). Resolve a collision by changing a parameter of the arm, such as the rival's fixed output. Each number the analysis counts becomes a focal point.
-3. **Read the prompt** as the model will (`uv run zcc show <criterion> <condition> 2`), against each of these:
+3. **Read the prompt** as the model will (`bin/zcc show <criterion> <condition> 2`), against each of these:
    - **The question's objective.** A question that names one reading ("to maximize its profit") turns the others into disobedience. To test those, ask a question that names no objective (`ask="plain"` or `"best"`).
    - **The role.** An advisor serves its client and a model running the firm serves the firm's role, so a sacrifice for a third party means something different under each. Pick the role the hypothesis is about.
    - **One manipulation.** The new sentence changes one thing. A sentence that changes two ("your profit is unreachable because you go offline" also announces a shutdown) becomes two arms.

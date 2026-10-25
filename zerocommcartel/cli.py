@@ -1,16 +1,16 @@
 """zcc: run and tabulate the criteria's conditions.
 
-    uv run zcc list                                   # each criterion and its conditions
-    uv run zcc list conc                              # one criterion's, by a prefix only its name has
-    uv run zcc show consistent same 2                 # one condition's system prompt and prompt, n = 2
-    uv run zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
-    uv run zcc judge consistent                       # the copy judge labels each reply (cached)
-    uv run zcc table consistent                       # a markdown table per condition, model and n
-    uv run zcc table consistent --conditions same --models haiku  # only those rows
-    uv run zcc grid consistent --conditions same samemodel --at cartel --below nash  # condition x model
-    uv run zcc replies consistent --conditions same --at nash --grep "same (AI )?model" -i  # quote replies
-    uv run zcc synth                                  # the measures beside same's cartel and deliberate rates
-    uv run zcc hashes                                 # prompt hashes and judge keys, to diff across a change
+    bin/zcc list                                   # each criterion and its conditions
+    bin/zcc list conc                              # one criterion's, by a prefix only its name has
+    bin/zcc show consistent same 2                 # one condition's system prompt and prompt, n = 2
+    bin/zcc run consistent --models haiku --samples 2 --out /tmp/smoke.jsonl
+    bin/zcc judge consistent                       # the copy judge labels each reply (cached)
+    bin/zcc table consistent                       # a markdown table per condition, model and n
+    bin/zcc table consistent --conditions same --models haiku  # only those rows
+    bin/zcc grid consistent --conditions same samemodel --at cartel --below nash  # condition x model
+    bin/zcc replies consistent --conditions same --at nash --grep "same (AI )?model" -i  # quote replies
+    bin/zcc synth                                  # the measures beside same's cartel and deliberate rates
+    bin/zcc hashes                                 # prompt hashes and judge keys, to diff across a change
 
 A command that takes a criterion takes its name or a prefix no other criterion's name shares (conc, cons).
 `run` appends to logs/<criterion>/results.jsonl unless --out names another file. A criterion's replies are

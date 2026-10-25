@@ -39,7 +39,7 @@ The arm check, its readings and the flaws it accepted are in flaws.md ("Conceptu
 chose the rungs is in #42. `readback` asks each reply what it expected the other firm to produce, and
 `report` lays the replies out as a ladder per background.
 
-    uv run zcc run conceptualization --models haiku sonnet opus --samples 10 --ns 2
+    bin/zcc run conceptualization --models haiku sonnet opus --samples 10 --ns 2
     uv run python -m zerocommcartel.criteria.conceptualization.readback
     uv run python -m zerocommcartel.criteria.conceptualization.report
 """
