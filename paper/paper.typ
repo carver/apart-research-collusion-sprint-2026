@@ -331,6 +331,7 @@ GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback
 The communality and conceptualization levers' prompt is a business-planning request from a firm that makes industrial salt.
 Claude runs through Claude Code's command line, whose short note to the model names it.
 GPT-6 Astra runs through Codex and GLM-5.3 through OpenRouter, and neither is told which model it is.
+For the communality lever, Codex's usage limit stopped GPT-6 Astra's run partway, so the rest of its first replies and all its fresh ones went through OpenRouter: the same model and system prompt, but without Codex's setup around the model, and with no reasoning effort set where Codex had set medium.
 
 A conceptualization background is a horizon crossed with a record.
 The horizon says nothing about other quarters, says the market runs for this quarter only, or says the market repeats and the firm wants its long-run profit.
