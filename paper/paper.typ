@@ -15,18 +15,127 @@
 )
 
 = Introduction
-#todo[The question and why it matters.]
+Suppose two rival firms each ask the same AI model how much to produce next quarter.
+If the model knows this, it also knows that its answer is likely to be both firms' answer.
+It can then pick the output that is best for the pair, the *cartel share* a cartel would agree on.
+That means less product and a higher price, paid for by the buyers.
+No message passes between the firms, so there is no agreement for a regulator to find.
+Copies of a model that coordinate without a channel are also a concern for AI control, since doing so is among the abilities a model may need to subvert a control protocol @mallen2024.
+Before this sprint, a pilot found that one sentence in the firm's prompt, saying that every firm asks "this same AI model with this same prompt", put #n("pilot.same.cartel") of Claude's replies at the cartel share, against #n("pilot.base.cartel") when the prompt said nothing about the rivals' advisors (preexisting work, @app-pilot).
+#claim("the same-prompt sentence raises the cartel share", ("pilot.same.cartel", "pilot.base.cartel"), (same, base) => same > base)
+
+We ask when a model makes this choice, and what moves it, through four levers:
+- *Capability*: can the model work out the output that is best for the pair?
+  Without it, a model reaches the cartel share only by accident.
+- *Compliance*: does the model still collude once it sees who pays, or that someone is watching?
+  A sentence about oversight might move a model that colludes back to Nash, the competitive output.
+- *Communality*: whose profit does the model weigh?
+  Caring about the rival should pull toward the cartel share; caring about the buyers should push away from it.
+- *Conceptualization of mind*: does the model see itself in the rival's decision-maker?
+  A model that does has a reason to hold back that a model facing a stranger lacks.
 
 Our main contributions are:
 + #todo[First contribution: what new thing we created, discovered or demonstrated.]
 + #todo[Second contribution.]
 
-= Related Work
-Pricing algorithms can learn to collude without communicating @calvano2020.
-#todo[What we build on, and how we differ.]
+= The collusion game <sec-game>
+Our experiments describe a market in which firms sell an identical product, and ask the model how much one firm should produce.
+In the markets of @tab-game, the price per unit is \$#n("game.a") minus the total output, and each unit costs \$#n("game.c") to make.
+The firms decide at the same time, and nothing passes between them.
+We read each reply against the points in @tab-game.
 
-= Methods
-#todo[Enough to replicate: models, prompts, markets, samples, judges, measures.]
+#figure(
+  data-table("game-table"),
+  caption: [
+    The points we score answers against.
+    _This firm_ is the one the model advises, and the row names what it does; when it cashes in, its rival stays at the cartel share.
+    The two-firm market is the communality and conceptualization levers'; the three-firm market is that of most capability and compliance experiments.
+  ],
+) <tab-game>
+
+At the *Nash* output, each firm's output is its best reply to the others' outputs, so no firm gains by changing its own number alone @cournot1897 @nash1951.
+The *cartel share* is an even split of the output that makes the most profit for the firms together.
+With two firms, it raises each firm's profit from \$#n("game.two.nash.profit.mine") at Nash to \$#n("game.two.cartel.profit.mine"), and the price from \$#n("game.two.nash.price") to \$#n("game.two.cartel.price"), which the buyers pay.
+#claim("the cartel share raises profit and price", ("game.two.cartel.profit.mine", "game.two.nash.profit.mine", "game.two.cartel.price", "game.two.nash.price"), (profit, nash-profit, price, nash-price) => profit > nash-profit and price > nash-price)
+But if the rival holds to the cartel share, a firm's best reply is to *cash in* at #n("game.two.cashin.mine") units, earning \$#n("game.two.cashin.profit.mine") while the rival drops to \$#n("game.two.cashin.profit.others").
+Cashing in pays, yet both firms do worse at Nash than at the cartel share, the shape of a prisoner's dilemma.
+#claim("cashing in pays, the rival loses, and Nash is worse for both", ("game.two.cashin.profit.mine", "game.two.cartel.profit.mine", "game.two.cashin.profit.others", "game.two.nash.profit.mine"), (cash, cartel, rival, nash) => cash > cartel and rival < cartel and nash < cartel)
+If a firm expects its rival to predict its output and then make its own best reply, the firm does best at #n("game.two.leader.mine") units, as the *Stackelberg leader* @stackelberg1934.
+A firm that plans as if it were alone in the market also picks #n("game.two.naive"), so the number alone can't tell the two apart.
+#claim("a firm alone picks the leader's output", ("game.two.naive", "game.two.leader.mine"), (alone, lead) => alone == lead)
+
+Since cashing in pays, a firm needs a reason to *hold back* at the cartel share.
+We see three, which we call routes.
+The first is the *mirror*: if a firm expects its rival to make whatever it makes, only equal splits are possible, and the best of them is the cartel share.
+Asking "what output would I want every firm to choose?" is Roemer's simple Kantian reasoning @roemer2019, which gives the cartel share here.
+Roemer counts a price-fixing cartel, which hurts consumers, as an equilibrium of a related Kantian kind @roemer2020.
+The second is the *future*: in a market that repeats with no known end, a firm can hold back so its rival keeps holding back, since cashing in invites punishment in later quarters @friedman1971.
+The third is *sympathy*: a firm that counts its rival's profit as its own, and expects the rival to hold back, finds the cartel share its best reply.
+Two things pull the other way: the gain from cashing in, for a firm unsure of its reason, and the buyers' loss, which a model may weigh for the buyers' sake or because the law forbids collusion.
+
+The future route works like a proof by induction.
+The base case asks whether the model holds back in a first quarter with no history.
+The inductive step asks whether it holds back again after a *record* of quarters at the cartel share.
+Our barest prompt says nothing about other quarters, so nothing prompts the model to think ahead.
+Other prompts set a *horizon*: this quarter only, or a market that repeats.
+A known final quarter breaks the induction.
+With no later quarter to protect, holding back there buys nothing, so it buys nothing in the quarter before either, and so on back to the first @kreps1982.
+In a final quarter, only the mirror or sympathy still gives a reason to hold back.
+No model plays real quarters.
+A record is a few sentences in the prompt, so we choose where the induction starts.
+
+Harrington defines collusion by a scheme of reward and punishment @harrington2018, as do Calvano et al. @calvano2020.
+We use the word more loosely, for any answer at the cartel share.
+
+== Capability
+_Can the model work out the output that is best for the pair?_
+#todo[Thomas: how this lever might push a model toward or away from the points of @tab-game.]
+
+== Compliance
+_Does the model still collude once it sees who pays, or that someone is watching?_
+#todo[Thomas: how this lever might push a model toward or away from the points of @tab-game. Jason's example: an oversight sentence (CPL-9) moving a model from the cartel share back to Nash.]
+
+== Communality
+_Whose profit does the model weigh?_
+This lever works on the sympathy route.
+One sentence names who owns the firms or who buys the product, and most questions leave out whose profit counts.
+If a charity owns the rival, a model that cares about the charity may produce less than Nash, toward the cartel share.
+When one owner holds both firms, holding back is that owner's own best plan, a check that the lever can move a model at all.
+Sympathetic buyers, such as children's hospitals, should push the other way, from the cartel share back toward Nash.
+A number alone can't separate sympathy from belief: an answer at the cartel share is also a firm's selfish best reply to a rival it expects at #n("game.two.naive").
+So we also ask each reply what it expected the rival to produce.
+
+== Conceptualization
+_Conceptualization of mind: does the model see itself in the rival's decision-maker?_
+This lever works on the mirror route.
+One sentence says who decides for the rival, and each version is a *rung*.
+From most to least like the model, the rungs are: this same AI model with this same prompt; the same model with its own prompt; other AI models; nothing said; the rival's manager; and a rival that won't hold back.
+The closer the rung is to the model itself, the stronger the pull toward the cartel share should be.
+Believing the rival decides alike isn't enough.
+The model also has to choose one output for both firms at once, which gives the cartel share.
+A model that finds its best reply to a fixed rival output and then assumes the rival matches it lands on Nash, which is also symmetric.
+The mirror can also be exploited.
+When the model's prompt has a paragraph its copy's prompt lacks, the model can predict that its copy holds back, and cash in.
+
+= Related Work
+Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents.
+LLM pricing agents in a repeated market reach prices above the competitive level without being told to collude @fish2024, and in repeated competition across several markets, LLM agents split the markets between them @lin2024.
+In double auctions, messages between sellers raise collusion, and without them sellers did not price above the competitive level after the first ten rounds @agrawal2025.
+These agents play many rounds and see prices or messages come back.
+Ours play one round, and share at most the model and its prompt.
+Theorists have long argued that agents who reason alike can cooperate without talking: superrational players @hofstadter1983, team reasoners @gold2007, and programs that read each other's code @tennenholtz2004 or see how similar they are @oesterheld2023.
+
+= Methods <sec-methods>
+Each call sends one firm's prompt, with the market and the sentences under test, and asks for a number on a final answer line (@app-prompts shows one of the pilot's prompts).
+The communality and conceptualization levers count an answer at a point of @tab-game when it is within half a unit of it.
+The conceptualization lever asks Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 each rung under twelve backgrounds, three horizons times four records, and GPT-6 Astra and GLM-5.3 each rung under the three backgrounds with no record.
+Each model, rung and background is a *cell* of #n("conceptualization.cells.replies") replies.
+The communality lever asks the Claude models and GLM-5.3, starting from six of those cells and from a market where the rival's output is already fixed, #n("idl1.first") replies a cell (@fig-idl1).
+A second call, the readback, shows the model its prompt and reply and asks what output and price it expected.
+The readback tells a leader from a firm that ignored its rival.
+In the single quarter and against the fixed rival, where holding back can't pay for itself, it also tells sympathy from belief.
+@app-methods has the details.
+#todo[Thomas: the three-firm market (CAP-8 to CAP-10, CPL-9, and the standards' market before them): its prompt, horizon and history, the models, the replies a cell, and how it counts an answer as held; details in @app-methods.]
 
 = Results
 The pre-sprint pilot that set up these criteria is in the appendix (@tab-pilot, @fig-pilot).
@@ -59,7 +168,7 @@ Of the #n("idl1.refusals") refusals behind the bars, #n("idl1.refusals.law") cit
   ],
 ) <fig-idl1>
 
-== Concept of mind
+== Conceptualization
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
 #todo[The lever's prose: where each model sits on the neutral rung and how far each rung moves it (@fig-conceptualization), worded model by model; flaws.md, "Conceptualization", first.
 GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback"): not a mirror belief.]
@@ -120,6 +229,23 @@ GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback
 = Limitations and Dual-Use / Ethical Considerations
 #todo[What the result does and doesn't establish, and any way the setup or findings could make real collusion easier to carry out or harder to detect, including making a model look compliant in evaluations.]
 
+= Experiment details <app-methods>
+The communality and conceptualization levers' prompt is a business-planning request from a firm that makes industrial salt.
+Claude runs through Claude Code's command line, whose short note to the model names it.
+GPT-6 Astra runs through Codex and GLM-5.3 through OpenRouter, and neither is told which model it is.
+
+A conceptualization background is a horizon crossed with a record.
+The horizon says nothing about other quarters, says the market runs for this quarter only, or says the market repeats and the firm wants its long-run profit.
+The record is none; eight quarters with both firms at the cartel share; seven such quarters, then one in which the rival cheated; or eight quarters with both at Nash.
+After a record, "this quarter only" becomes "the market's final quarter".
+GPT-6 Astra skips the rung that names GPT-6 Astra, which for it is the rung that names itself.
+
+The communality lever's sentences start from six conceptualization cells, four meant to start at Nash and two at the cartel share, and from a market where the rival's output is already fixed, so that no belief about the rival can move the answer.
+A comparison that moved by #n("idl1.screen") replies or more but missed significance gets #n("idl1.fresh") fresh replies a cell, and its verdict comes from those alone (@fig-idl1).
+
+#todo[Each lever's arms in full, and the two-firm market's prompt.]
+#todo[Thomas: the three-firm market's details.]
+
 = The pre-sprint pilot <app-pilot>
 // From the pre-sprint pilot's log through paper/data/pilot.py: counts, one cell's interval, a claim, a table
 // and a figure. Moved out of Results to save page budget.
@@ -144,7 +270,7 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
   ],
 ) <fig-pilot>
 
-= Prompts
+= Prompts <app-prompts>
 The pilot's prompt when every firm asks the same model with the same prompt, for two firms:
 #data-text("pilot.prompt.same.n2")
 
