@@ -5,7 +5,8 @@ docstring gives the rule and whose constants its numbers. One panel per model wi
 per comparison, the identity's share at the cartel share minus its reference's, from the replies its verdict
 used, with Newcombe's 95% interval as a whisker. A bar that ends at 0% or 100% and is no longer than CAP is
 marked *, since the floor or the ceiling may have cut it short. The table lists every test, then the sanity
-checks (one owner over both firms against the bare start), which the correction leaves out."""
+checks (one owner over both firms against the bare start), which the correction leaves out. The ledger also
+counts the bars that refusals explain (`set_aside`) and the refusals behind the bars, for the prose."""
 
 from typing import Any, NamedTuple
 
@@ -23,9 +24,12 @@ from zerocommcartel.criteria.communal.idl1 import (
     Comparison,
     Q,
     newcombe,
+    refusals_behind,
     sanity_checks,
-    verdicts,
+    set_aside,
 )
+from zerocommcartel.criteria.communal.judge import REFUSAL
+from zerocommcartel.judge import load_labels
 
 MODELS = {"haiku": "Haiku", "sonnet": "Sonnet", "opus": "Opus", "astra": "GPT-6 Astra", "glm": "GLM-5.3"}
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e0e0e0"
@@ -139,8 +143,9 @@ def table_row(c: Comparison, sanity: bool = False) -> list[str]:
     ]
 
 
-def fill(ledger: Ledger, rows: list[dict]) -> None:
-    found = verdicts(rows)
+def fill(ledger: Ledger, rows: list[dict], labels: dict[str, dict]) -> None:
+    pairs = set_aside(rows, labels)  # raises if the refusal judge hasn't labelled a reply a test needs
+    found = [c for c, _ in pairs]
     order = list(STARTS)
     passing = sorted((c for c in found if c.passes), key=lambda c: (order.index(c.start), difference(c)))
     models = list(dict.fromkeys(c.model for c in found))
@@ -158,6 +163,18 @@ def fill(ledger: Ledger, rows: list[dict]) -> None:
         how="tests in the family: identities against controls, controls against the bare start",
     )
     ledger.value("idl1.pass", len(passing), how=f"comparisons that pass (q < {Q:g})")
+    ledger.value(
+        "idl1.aside",
+        sum(c.passes and not a.passes for c, a in pairs),
+        how="passing comparisons that miss with refusals set aside (communal.idl1.set_aside)",
+    )
+    refused, law = refusals_behind(passing, rows, labels)
+    ledger.value(
+        "idl1.refusals",
+        refused,
+        how="refusals in the replies behind the passing bars, each model, cell and stage once",
+    )
+    ledger.value("idl1.refusals.law", law, how="those refusals that give the law as a reason")
     ledger.value(
         "idl1.pass.first",
         sum(c.stage == "first" for c in passing),
@@ -190,5 +207,6 @@ def fill(ledger: Ledger, rows: list[dict]) -> None:
 @source("idl1")
 def idl1(ledger: Ledger) -> None:
     # every model in the log; verdicts keeps those with every cell's first stage complete
-    rows = cli.replies(REGISTRY, "communal", str(logs.experiment_log(FOLDER)), list(CELLS), None).rows
-    fill(ledger, rows)
+    log = logs.experiment_log(FOLDER)
+    rows = cli.replies(REGISTRY, "communal", str(log), list(CELLS), None).rows
+    fill(ledger, rows, load_labels(REFUSAL, logs.judge_path(log, REFUSAL.name)))

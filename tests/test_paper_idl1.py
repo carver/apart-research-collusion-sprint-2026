@@ -7,19 +7,24 @@ from paper.data.idl1 import capped, fill
 from paper.ledger import Ledger
 from zerocommcartel.criteria.communal.identity import CONDITIONS
 from zerocommcartel.criteria.communal.idl1 import Comparison
+from zerocommcartel.criteria.communal.judge import REFUSAL
+
+NASH = "QUANTITY: 40"  # every fixture reply off the cartel share, unless it refuses
+LABELS = {REFUSAL.key(NASH): {"declines": False, "law": False, "harm": False, "instability": False}}
 
 
-def rows_for(model, cartel=None, fresh=None):
+def rows_for(model, cartel=None, fresh=None, refusing=None):
     """Every IDL-1 cell at 10 first-stage replies at Nash, except `cartel` ({cell: replies at 30 of 10});
-    `fresh` adds samples 10-39 ({cell: replies at 30 of 30})."""
-    cartel, fresh = cartel or {}, fresh or {}
+    `fresh` adds samples 10-39 ({cell: replies at 30 of 30}); `refusing` ({cell: reply}) gives a cell's first
+    stage one reply text off the cartel share, numbered by sample."""
+    cartel, fresh, refusing = cartel or {}, fresh or {}, refusing or {}
     found = [
         {
             "model": model,
             "condition": name,
             "sample": s,
             "value": 30.0 if s < cartel.get(name, 0) else 40.0,
-            "reply": "QUANTITY: 40",
+            "reply": f"{refusing[name]} {s}\n{NASH}" if name in refusing else NASH,
         }
         for name in CONDITIONS
         for s in range(10)
@@ -30,7 +35,7 @@ def rows_for(model, cartel=None, fresh=None):
             "condition": name,
             "sample": s,
             "value": 30.0 if s - 10 < hits else 40.0,
-            "reply": "QUANTITY: 40",
+            "reply": NASH,
         }
         for name, hits in fresh.items()
         for s in range(10, 40)
@@ -47,7 +52,7 @@ ROWS = rows_for(
 
 def test_fill_draws_only_the_comparisons_that_pass_and_names_the_models_with_none(tmp_path):
     ledger = Ledger(tmp_path)
-    fill(ledger, ROWS)
+    fill(ledger, ROWS, LABELS)
     entries = ledger.entries
     assert entries["idl1-figure"]["kind"] == "figure"
     drawn = (tmp_path / "idl1-figure.svg").read_text()
@@ -63,7 +68,7 @@ def test_fill_draws_only_the_comparisons_that_pass_and_names_the_models_with_non
 
 def test_every_model_with_a_passing_comparison_leaves_the_caption_note_empty(tmp_path):
     ledger = Ledger(tmp_path)
-    fill(ledger, rows_for("opus", cartel={"id_open_rival_charity": 9}))
+    fill(ledger, rows_for("opus", cartel={"id_open_rival_charity": 9}), LABELS)
     assert ledger.entries["idl1.caption.none"]["value"] == ""
 
 
@@ -100,8 +105,34 @@ def test_a_bar_is_capped_when_it_ends_at_the_floor_or_ceiling_within_50_points(c
 
 def test_fill_draws_an_empty_figure_and_fills_every_key_when_nothing_passes(tmp_path):
     ledger = Ledger(tmp_path)
-    fill(ledger, rows_for("glm"))
+    fill(ledger, rows_for("glm"), LABELS)
     entries = ledger.entries
     assert entries["idl1-figure"]["kind"] == "figure"
     assert entries["idl1.caption.none"]["value"] == "No comparison passes for GLM-5.3."
     assert (entries["idl1.pass"]["value"], entries["idl1.tests"]["value"]) == (0, 42)
+    assert (entries["idl1.aside"]["value"], entries["idl1.refusals"]["value"]) == (0, 0)
+
+
+def test_fill_counts_the_bars_refusals_explain_and_the_refusals_behind_them_once(tmp_path):
+    rows = rows_for(
+        "opus",
+        cartel={"id_open_rival_charity": 9, "id_open_rival_pe": 9, "id_mirror_buyers_distributors": 4},
+        fresh={"id_mirror_buyers_distributors": 11, "id_mirror_buyers_pe": 0},
+        refusing={"id_open_rival_holding": "Illegal.", "id_mirror_harm": "Illegal."},
+    )  # the holding company's refusals sit behind two bars: charity and private equity against it
+    labels = LABELS | {
+        REFUSAL.key(r["reply"]): {
+            "declines": True,
+            "law": r["sample"] != 0,  # one refusal gives harm alone
+            "harm": r["sample"] == 0,
+            "instability": False,
+        }
+        for r in rows
+        if r["reply"].startswith("Illegal.")
+    }
+    ledger = Ledger(tmp_path)
+    fill(ledger, rows, labels)
+    entries = ledger.entries
+    assert entries["idl1.pass"]["value"] == 3
+    assert entries["idl1.aside"]["value"] == 2  # both against the holding company; the buyers' bar holds
+    assert (entries["idl1.refusals"]["value"], entries["idl1.refusals.law"]["value"]) == (10, 9)

@@ -44,6 +44,9 @@ The pre-sprint pilot that set up these criteria is in the appendix (@tab-pilot, 
 #todo[The lever's prose: which identities move which model, and how far (@fig-idl1), worded model by model; flaws.md, Communal, "The identity lever", first.]
 
 Of #n("idl1.tests") comparisons, #n("idl1.pass") pass (@fig-idl1).
+A Haiku judge reads each reply off the cartel share and counts it as a refusal when it names a lower output, such as the two firms' joint optimum, and turns it down as illegal or as harmful to buyers or the public.
+Run on the answers that aren't refusals, the same test misses for #n("idl1.aside") of the #n("idl1.pass") passing comparisons.
+Of the #n("idl1.refusals") refusals behind the bars, #n("idl1.refusals.law") cite antitrust or legal risk.
 
 #figure(
   data-figure("idl1-figure", width: 100%),
@@ -95,6 +98,7 @@ GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback
 
 == Limitations
 #todo[What the results don't establish.]
+#todo[The refusal judge: only its author has read its labels, on 22 replies; and with refusals set aside the identity lever's test has little power where refusals dominate (flaws.md, Communal, "The refusal judge").]
 
 == Future Work
 #todo[What we'd do next.]
