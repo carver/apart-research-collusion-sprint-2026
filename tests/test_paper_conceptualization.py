@@ -13,6 +13,7 @@ from paper.data.conceptualization import (
     FigureData,
     Style,
     exploits,
+    extra_splits,
     fill,
     fill_extra,
     points,
@@ -216,3 +217,35 @@ def test_the_extra_chance_figure_shows_the_arms_and_backgrounds_its_style_names(
     assert "extra chance" in drawn and "asymmetry only" not in drawn
     assert "no repeat mentioned" in drawn and "one quarter only" not in drawn
     assert ledger.entries["conceptualization.extra.caption.backgrounds"]["value"] == "no repeat mentioned"
+
+
+def test_the_extra_chance_bars_count_cartel_answers_and_exploits():
+    undo = extra_row(arm="same", value=40.0, sample=2)  # expects the copy at 30 but answers Nash
+    splits = extra_splits([*EXTRA_ROWS, undo], read)
+    assert splits[("opus", "base", "unsaid")] == (1, 0, 1)
+    assert splits[("opus", "same", "unsaid")] == (0, 1, 2)
+    assert splits[("opus", "asym", "unsaid")] == (0, 1, 1)
+    assert splits[("opus", "both", "unsaid")] == (1, 0, 1)
+    assert splits[("sonnet", "same", "unsaid")] == (0, 0, 1)  # Nash, with no readback: other
+
+
+def test_the_extra_chance_caption_names_the_arms_its_style_shows(tmp_path):
+    ledger, _ = extra_svg(tmp_path, EXTRA_STYLE)
+    arms = ledger.entries["conceptualization.extra.caption.arms"]["value"]
+    assert arms.startswith("the copy’s own prompt (this same AI model with this same prompt)")
+    assert "this extra chance to make the best choice" in arms and "the placebo: no asymmetry" in arms
+    ledger, _ = extra_svg(tmp_path, ExtraStyle(arms=("base", "same")))
+    trimmed = ledger.entries["conceptualization.extra.caption.arms"]["value"]
+    assert "placebo" not in trimmed and "asymmetry stated" not in trimmed
+
+
+def test_the_extra_chance_replies_count_only_the_bars_shown(tmp_path):
+    rows = [*EXTRA_ROWS, *(extra_row(arm="same", horizon="open", value=45.0, sample=s) for s in range(1, 4))]
+    ledger = Ledger(tmp_path)
+    fill_extra(ledger, rows, read, ExtraStyle(backgrounds=("unsaid",)))
+    assert ledger.entries["conceptualization.extra.replies"]["value"] == "1"
+
+
+def test_the_extra_chance_arms_come_in_the_order_the_style_names(tmp_path):
+    _, drawn = extra_svg(tmp_path, ExtraStyle(arms=("both", "base")))
+    assert drawn.index("both get it") < drawn.index("copy’s prompt")

@@ -330,6 +330,18 @@ def named_list(items: list[str]) -> str:
     return items[0] if len(items) == 1 else ", ".join(items[:-1]) + " and " + items[-1]
 
 
+ARM_PHRASES = {  # how the caption names each arm
+    "base": "the copy’s own prompt (this same AI model with this same prompt)",
+    "same": "only my firm gets “this extra chance to make the best choice”",
+    "asym": "the asymmetry stated without the extra chance",
+    "both": "both firms get the extra chance (the placebo: no asymmetry)",
+}
+
+
+def caption_arms(style: ExtraStyle) -> str:
+    return named_list([ARM_PHRASES[arm] for arm in style.arms])
+
+
 def fill_extra(
     ledger: Ledger, rows: list[dict], read: Callable[[dict], Any], style: ExtraStyle = EXTRA_STYLE
 ) -> None:
@@ -340,10 +352,14 @@ def fill_extra(
         "its readback expected, below Nash"
     )
     ledger.figure("conceptualization-extra-figure", draw_extra, ExtraData(splits, style), how=how, size=size)
-    fewest, most = min(s.n for s in splits.values()), max(s.n for s in splits.values())
+    shown = [s.n for (_, arm, h), s in splits.items() if arm in style.arms and h in style.backgrounds]
+    fewest, most = min(shown), max(shown)
     replies = str(most) if fewest == most else f"{fewest} to {most}"
     ledger.value(
         "conceptualization.extra.replies", replies, how="parsed answers a bar in the extra-chance figure"
+    )
+    ledger.value(
+        "conceptualization.extra.caption.arms", caption_arms(style), how="the arms, from EXTRA_STYLE"
     )
     backgrounds = named_list([HORIZON_LABELS[h] for h in style.backgrounds])
     ledger.value(
