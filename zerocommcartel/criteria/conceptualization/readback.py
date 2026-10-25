@@ -8,7 +8,8 @@ background tells which can apply). It can't say whether the model expects the ot
 on its own: in a symmetric market a Nash reply expects the other firm at its own 40 too. The forecast arms
 (`<arm>_s48`, `<arm>_s26`) ask that.
 
-By default it reads back the own-number arms only (`OWN`): its question doesn't fit a forecast.
+By default it reads back the own-number arms and the extra-chance arms (`OWN`, `EXTRA_ARMS`): its question
+doesn't fit a forecast.
 
 It reads reasoned replies only. On a bare number it reconstructs an answer from the prompt, and under `same`
 Haiku's readback drifts toward the prompt's reading (flaws.md, "Conceptualization"). The arm check also

@@ -10,7 +10,10 @@ cooperate; the lines are the twelve backgrounds. Per model:
 - with the readback's cache beside the log, the cartel answers whose readback expected the other firm at the
   cartel share too, and a line splitting the answers at 60 into leaders (other firm at 30, price $40) and
   firms that ignore the other firm (price $70);
-- the forecast arms' slope: how far the forecast of the other firm moves between the supposed 48 and 26.
+- the forecast arms' slope: how far the forecast of the other firm moves between the supposed 48 and 26, and
+  how many forecasts land on the mirror's and the follower's numbers;
+- each extra-chance arm beside its base arm (answers at 45 and at 30), with the readback its exploits and
+  undos, and how many of its replies mention the extra paragraph.
 
     uv run python -m zerocommcartel.criteria.conceptualization.report
     uv run python -m zerocommcartel.criteria.conceptualization.report --at "cash in" --models haiku
@@ -185,8 +188,12 @@ def forecast_counts(rows: list[dict], model: str) -> str:
 
 
 EXTRA_COLUMNS = tuple(f"extra_{kind}" for kind in EXTRA)
-BESIDE_BASE = ("same", *EXTRA_COLUMNS[:3], "none", EXTRA_COLUMNS[3])  # each extra arm after its base arm
-assert [EXTRA[column.removeprefix("extra_")][0] for column in BESIDE_BASE[1:4]] == ["same"] * 3
+BASES = tuple(dict.fromkeys(chance.rung for chance in EXTRA.values()))  # the rungs the extra arms extend
+BESIDE_BASE = tuple(  # each base rung, then the extra arms that extend it
+    column
+    for base in BASES
+    for column in (base, *(f"extra_{kind}" for kind, chance in EXTRA.items() if chance.rung == base))
+)
 
 
 def column_arm(column: str, horizon: str, record: str) -> str:

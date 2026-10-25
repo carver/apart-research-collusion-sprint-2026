@@ -459,8 +459,8 @@ def test_the_readback_asks_the_own_number_and_extra_chance_arms_by_default(tmp_p
         return "OTHER: 40\nPRICE: 50", {}
 
     readback.main(["--log", str(log)], REGISTRY, call)
-    assert sorted("QUANTITY: 40" in text for text in asked) == [False, True]
-    assert any("QUANTITY: 41" in text for text in asked)
+    assert not any("RIVAL: 40" in text for text in asked)
+    assert sorted(text.split("Your reply:\n")[1][:12] for text in asked) == ["QUANTITY: 40", "QUANTITY: 41"]
     assert len(readback.load(tmp_path / "readback.jsonl")) == 2
 
 
