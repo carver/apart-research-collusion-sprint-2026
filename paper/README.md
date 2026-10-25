@@ -5,6 +5,7 @@
 ```bash
 bin/build-paper           # the draft: paper/build/DRAFT-paper.pdf, and paper/build/pages/page-NN.png
 bin/build-paper --final   # the submission: paper/zerocommcartel.pdf, only when every check passes
+bin/build-paper watch     # the draft now, then again each time HEAD moves (a commit, merge or rebase)
 ```
 
 `uv sync` installs everything it needs, the Typst compiler included. The font, Old Standard TT, is in `fonts/`.

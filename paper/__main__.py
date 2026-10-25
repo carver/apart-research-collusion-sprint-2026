@@ -8,6 +8,7 @@ from pathlib import Path
 from paper.build import FINAL_NAME, BuildError, Report, build
 from paper.checks import ABSTRACT_WORDS, MAX_BYTES, PAGE_CAP
 from paper.data import Source
+from paper.watch import main as watch_main
 
 PAPER = Path(__file__).resolve().parent
 SHOWN_CHANGES = 12  # build/changes.md lists them all
@@ -57,11 +58,15 @@ def status(report: Report, final: bool) -> str:
 def main(
     argv: list[str] | None = None, paper_dir: Path = PAPER, sources: Mapping[str, Source] | None = None
 ) -> int:
+    argv = sys.argv[1:] if argv is None else argv
+    if argv[:1] == ["watch"]:
+        return watch_main(argv[1:], paper_dir)
     parser = argparse.ArgumentParser(
         prog="build-paper",
         description="Build paper/paper.typ: fill in its numbers, tables and figures from the logs, compile "
         "it, and check it against the sprint's rules. Writes paper/build/DRAFT-paper.pdf, a PNG of each page "
-        "in paper/build/pages/, and the ledger in paper/build/numbers.json and numbers.md (paper/README.md).",
+        "in paper/build/pages/, and the ledger in paper/build/numbers.json and numbers.md (paper/README.md). "
+        "`build-paper watch` rebuilds the draft each time the repo's HEAD moves (`build-paper watch -h`).",
     )
     parser.add_argument(
         "--final",

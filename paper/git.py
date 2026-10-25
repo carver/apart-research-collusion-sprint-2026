@@ -29,7 +29,9 @@ class Repo:
         return run(list(args), self.root)
 
     def head(self) -> str:
-        return self.git("rev-parse", "HEAD").stdout.strip()
+        """The commit HEAD names, or "" with none yet (git echoes the unresolved "HEAD" then)."""
+        found = self.git("rev-parse", "HEAD")
+        return found.stdout.strip() if found.returncode == 0 else ""
 
     def dirty(self) -> list[str]:
         """The paths with uncommitted changes, untracked ones included."""
