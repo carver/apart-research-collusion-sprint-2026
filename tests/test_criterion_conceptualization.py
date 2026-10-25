@@ -39,6 +39,8 @@ RECORD_TEXT = {
     "nash": "In each of the eight quarters so far, both firms produced 40 units.",
 }
 NAMES = [f"mind_{r}_{h}_{c}" for r in RUNGS for h in HORIZONS for c in RECORDS]
+SUPPOSED = (48, 26)
+FORECASTS = [f"{name}_s{x}" for name in NAMES for x in SUPPOSED]
 
 
 def user(name, n=2, model="the model"):
@@ -50,13 +52,13 @@ def market(name, model="the model"):
     return user(name, model=model).split("\n\n")[2]
 
 
-def test_every_rung_runs_in_every_background():
+def test_every_rung_runs_in_every_background_with_two_forecasts():
     conditions = REGISTRY.criteria["conceptualization"].conditions
-    assert sorted(conditions) == sorted(NAMES)
-    assert len(NAMES) == 120
+    assert sorted(conditions) == sorted(NAMES + FORECASTS)
+    assert (len(NAMES), len(FORECASTS)) == (120, 240)
 
 
-@pytest.mark.parametrize("name", NAMES)
+@pytest.mark.parametrize("name", NAMES + FORECASTS)
 def test_every_arm_takes_two_firms_only(name):
     user(name)
     with pytest.raises(ValueError, match="two firms"):
@@ -339,3 +341,39 @@ def test_every_condition_renders_its_rung_its_horizon_and_its_record(rung, horiz
     tail = " ".join(s for s in (rung_sentence(rung), horizon_sentence(horizon, record)) if s)
     assert paragraphs[2].endswith("every firm knows all of the above. " + tail)
     assert paragraphs[-2] == RECORD_TEXT.get(record, paragraphs[2])
+
+
+# The conditional forecast: does the model expect the other firm's output to follow its own?
+
+
+@pytest.mark.parametrize("x", SUPPOSED)
+@pytest.mark.parametrize("record", RECORDS)
+def test_the_forecast_arm_supposes_my_number_then_asks_for_the_other_firms(x, record):
+    own, forecast = (user(f"mind_samemodel_open_{record}"), user(f"mind_samemodel_open_{record}_s{x}"))
+    *start, supposition, question = forecast.split("\n\n")
+    assert start == own.split("\n\n")[:-1]
+    assert (
+        supposition
+        == f"Suppose this AI model tells my firm to produce {x} units this quarter, and my firm does."
+    )
+    assert question.startswith("How many units do you expect the other firm to produce this quarter?")
+    assert question.endswith("RIVAL: <number>")
+
+
+@pytest.mark.parametrize(
+    "name, extra",
+    [
+        ("mind_samemodel_unsaid_none_s48", {"mirror": 48, "follower": 36, "joint": 12, "rationalize": 24}),
+        ("mind_samemodel_unsaid_none_s26", {"mirror": 26, "follower": 47, "joint": 34, "rationalize": 68}),
+        (
+            "mind_human_open_coop_s48",
+            {"mirror": 48, "follower": 36, "joint": 12, "rationalize": 24, "cash in": 45},
+        ),
+        (
+            "mind_nevercoop_single_cheat_s26",
+            {"mirror": 26, "follower": 47, "joint": 34, "rationalize": 68, "cash in": 45, "cheat again": 50},
+        ),
+    ],
+)
+def test_each_forecast_arm_has_the_forecasts_focal_points(name, extra):
+    assert {k: v for k, v in focal(name).items() if k not in ("nash", "cartel", "naive")} == extra
