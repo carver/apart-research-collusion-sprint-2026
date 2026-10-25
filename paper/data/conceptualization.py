@@ -372,10 +372,10 @@ def caption_weak(splits: dict[tuple[str, str, str], Split], style: ExtraStyle) -
         by_model[model].append(HORIZON_LABELS[horizon])
     if not by_model:
         return ""
-    panels = named_list([f"{MODELS[m]} in {named_list(hs)}" for m, hs in by_model.items()])
+    panels = "; ".join(f"{MODELS[m]} in {named_list(hs)}" for m, hs in by_model.items())
     return (
         f"Outlined: the copy’s own prompt reaches the cartel share in fewer than {round(WEAK_BELOW * 10)} "
-        f"of 10 replies, where the copy colludes too seldom to read much into a lack of exploits ({panels})."
+        f"of 10 replies, so a bar there says less about defection either way ({panels})."
     )
 
 

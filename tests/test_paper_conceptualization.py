@@ -260,8 +260,19 @@ def test_the_caption_names_the_panels_where_the_copy_colludes_too_seldom(tmp_pat
     fill_extra(ledger, rows, read, ExtraStyle(backgrounds=("unsaid",)))
     weak = ledger.entries["conceptualization.extra.caption.weak"]["value"]
     assert "Opus in no repeat mentioned" in weak and "Sonnet" not in weak
-    assert "fewer than 8 of 10" in weak
-    assert "stroke: #0b0b0b" in (tmp_path / "conceptualization-extra-figure.svg").read_text()
+    assert "fewer than 8 of 10" in weak and "says less about defection either way" in weak
+    assert (tmp_path / "conceptualization-extra-figure.svg").read_text().count("stroke: #0b0b0b") == 1
+
+
+def test_the_weak_panels_are_listed_model_by_model(tmp_path):
+    rows = []
+    for horizon in ("unsaid", "open"):  # Opus's copy is weak in both
+        rows += [extra_row(arm="base", horizon=horizon, value=40.0, sample=s) for s in range(10)]
+    rows += [extra_row(model="sonnet", arm="base", value=40.0, sample=s) for s in range(10)]
+    ledger = Ledger(tmp_path)
+    fill_extra(ledger, rows, read, ExtraStyle(backgrounds=("unsaid", "open")))
+    weak = ledger.entries["conceptualization.extra.caption.weak"]["value"]
+    assert "(Sonnet in no repeat mentioned; Opus in no repeat mentioned and repeats)" in weak
 
 
 def test_no_weak_panel_means_no_sentence_and_no_outline(tmp_path):
