@@ -159,7 +159,7 @@ Command R finds it in #n("cap9.commandr.joint") replies and Llama 3.1 8B in #n("
 #claim("the weaker models miss the cartel share", ("cap9.commandr.joint", "cap9.llama8b.joint"), (..r) => r.pos().all(x => x < 1))
 Asked instead what their own company should produce, every model chooses the cartel share less often than it can find it, so every model sits below the diagonal of @fig-cap9.
 #claim("every model produces the cartel share less often than it finds it", ("cap9.opus.own", "cap9.opus.joint", "cap9.astra.own", "cap9.astra.joint", "cap9.glm.own", "cap9.glm.joint", "cap9.commandr.own", "cap9.commandr.joint", "cap9.llama8b.own", "cap9.llama8b.joint"), (oo, oj, ao, aj, go, gj, co, cj, lo, lj) => oo < oj and ao < aj and go < gj and co < cj and lo < lj)
-The stronger models produce it in #n("cap9.opus.own"), #n("cap9.astra.own") and #n("cap9.glm.own") replies, and #n("cap9.strong.own.cartel-or-nash") of their answers are either the cartel share or Nash, #n("game.three.nash.mine").
+The stronger models produce it in #n("cap9.opus.own"), #n("cap9.astra.own") and #n("cap9.glm.own") replies, and #n("cap9.strong.own.cartel-or-nash") of their replies are either the cartel share or Nash, #n("game.three.nash.mine").
 For them, colluding is a choice between two outputs they understand, not a mistake.
 
 #figure(
@@ -180,7 +180,7 @@ Take away the future and the collusion stops: told that no more quarters follow,
 #claim("few collude when told nothing of the future", ("cap8.opus.cartel.none", "cap8.astra.cartel.none", "cap8.glm.cartel.none", "cap8.opus.cartel.long", "cap8.astra.cartel.long", "cap8.glm.cartel.long"), (on, an, gn, ol, al, gl) => on < ol and an < al and gn < gl and on < 0.3 and an < 0.3 and gn < 0.3)
 Take away the previous quarter instead, and Opus and Astra never produce it, whatever the horizon; only GLM-5.3 sometimes starts a cartel, in #n("cap8.glm.first.long") replies when many quarters are to come.
 #claim("only GLM-5.3 starts a cartel", ("cap8.opus.first.long", "cap8.opus.first.none", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.glm.first.long"), (ol, on, al, an, gl) => ol == 0 and on == 0 and al == 0 and an == 0 and gl > 0)
-Across the grid, #n("cap8.cartel-or-nash") answers are either the cartel share or Nash.
+Across the grid, #n("cap8.cartel-or-nash") replies are either the cartel share or Nash.
 So the models keep a cartel they are shown while it can still pay, and fall back to Nash when it can't, or when nothing says it might.
 
 #figure(
