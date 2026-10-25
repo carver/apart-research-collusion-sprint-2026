@@ -63,9 +63,13 @@ class Experiment:
     report: Callable[[Replies], str]  # the experiment's tables, from its replies
     compare: tuple[str, ...] = ()  # folders in logs/ ("capable/baselines") whose replies the report shows too
     sizes: dict[str, tuple[int, ...]] = field(default_factory=dict)  # a condition's own market sizes
+    samples_for: dict[str, int] = field(default_factory=dict)  # a condition's own calls per cell
 
     def ns_of(self, condition: str) -> tuple[int, ...]:
         return self.sizes.get(condition, self.ns)
+
+    def samples_of(self, condition: str) -> int:
+        return self.samples_for.get(condition, self.samples)
 
     @property
     def cells(self) -> int:
@@ -74,7 +78,17 @@ class Experiment:
 
     @property
     def calls(self) -> int:
-        return len(self.models) * self.cells * self.samples
+        return len(self.models) * sum(len(self.ns_of(c)) * self.samples_of(c) for c in self.conditions)
+
+    @property
+    def samples_note(self) -> str:
+        """The cells whose samples differ from the experiment's, as " (30 for 10 cells)"; empty if none do."""
+        cells: dict[int, int] = {}
+        for c in self.conditions:
+            if self.samples_of(c) != self.samples:
+                cells[self.samples_of(c)] = cells.get(self.samples_of(c), 0) + len(self.ns_of(c))
+        notes = [f"{k} for {plural(count, 'cell')}" for k, count in sorted(cells.items())]
+        return f" ({', '.join(notes)})" if notes else ""
 
     @property
     def folder(self) -> str:
@@ -94,14 +108,14 @@ class Experiment:
         return cond in self.conditions and row["model"] in self.models and row["n"] in self.ns_of(cond)
 
     def plan(self, registry: Registry, done: set) -> list:
-        """The calls the log lacks, condition by condition at its own market sizes."""
-        groups: dict[tuple[int, ...], list[str]] = {}
+        """The calls the log lacks, condition by condition at its own market sizes and samples."""
+        groups: dict[tuple[tuple[int, ...], int], list[str]] = {}
         for cond in self.conditions:
-            groups.setdefault(self.ns_of(cond), []).append(cond)
+            groups.setdefault((self.ns_of(cond), self.samples_of(cond)), []).append(cond)
         return [
             task
-            for ns, names in groups.items()
-            for task in plan(registry, self.criterion, names, self.models, ns, self.samples, done)
+            for (ns, samples), names in groups.items()
+            for task in plan(registry, self.criterion, names, self.models, ns, samples, done)
         ]
 
 
@@ -137,7 +151,7 @@ def main(
     tasks = e.plan(registry, done_keys(logs.load_rows(log)))
     print(
         f"{e.id} {e.name}: {plural(len(e.models), 'model')} x {plural(e.cells, 'cell')} x "
-        f"{plural(e.samples, 'sample')} = {e.calls} calls; {len(tasks)} to make, into {log}"
+        f"{plural(e.samples, 'sample')}{e.samples_note} = {e.calls} calls; {len(tasks)} to make, into {log}"
     )
     routes = {m: route(m) for m in e.models}
     print("routes: " + ", ".join(f"{m} {model_id} ({backend})" for m, (backend, model_id) in routes.items()))

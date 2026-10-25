@@ -174,6 +174,30 @@ def test_a_condition_can_have_market_sizes_of_its_own(tmp_path, capsys):
     ]
 
 
+def test_a_condition_can_have_samples_of_its_own(tmp_path, capsys):
+    more = Experiment(**{**EXP.__dict__, "models": ("opus",), "samples": 1, "samples_for": {"joint": 3}})
+    assert more.calls == 4
+    log = tmp_path / "r.jsonl"
+    main(more, ["--log", str(log)], call=model, judge_call=judge)
+    assert "1 model x 2 cells x 1 sample (3 for 1 cell) = 4 calls" in capsys.readouterr().out
+    assert sorted((r["condition"], r["sample"]) for r in load_rows(log)) == [
+        ("joint", 0),
+        ("joint", 1),
+        ("joint", 2),
+        ("joint_default", 0),
+    ]
+
+
+def test_raising_a_conditions_samples_adds_to_the_ones_it_has(tmp_path, capsys):
+    log = tmp_path / "r.jsonl"
+    few = Experiment(**{**EXP.__dict__, "models": ("opus",), "samples": 1})
+    main(few, ["--log", str(log)], call=model, judge_call=judge)
+    capsys.readouterr()
+    more = Experiment(**{**few.__dict__, "samples_for": {"joint": 3}})
+    main(more, ["--dry-run", "--log", str(log)])
+    assert "2 to make" in capsys.readouterr().out
+
+
 def test_an_experiment_judges_the_rows_it_reads_into_its_own_folder(tmp_path, monkeypatch):
     monkeypatch.setattr("zerocommcartel.logs.LOGS", tmp_path)
     base = Experiment(**{**EXP.__dict__, "id": "BASELINES", "conditions": ("joint_default",), "judges": ()})
