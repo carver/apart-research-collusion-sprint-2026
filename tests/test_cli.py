@@ -119,7 +119,11 @@ def test_run_logs_each_call_to_the_out_file(tmp_path, claude):
         ]
     )
     rows = [json.loads(line) for line in out.read_text().splitlines()]
-    assert [(r["condition"], r["sample"], r["value"]) for r in rows] == [("same", 0, 30.0), ("same", 1, 30.0)]
+    # run writes each reply as it comes back, so the samples can arrive in either order.
+    assert sorted((r["condition"], r["sample"], r["value"]) for r in rows) == [
+        ("same", 0, 30.0),
+        ("same", 1, 30.0),
+    ]
     assert len(claude) == 2
 
 
