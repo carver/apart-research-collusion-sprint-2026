@@ -43,6 +43,25 @@ RECORD_TEXT = {
 NAMES = [f"mind_{r}_{h}_{c}" for r in RUNGS for h in HORIZONS for c in RECORDS]
 SUPPOSED = (48, 26)
 FORECASTS = [f"{name}_s{x}" for name in NAMES for x in SUPPOSED]
+EXTRA_KINDS = {  # kind: (rung, the paragraph at the very end)
+    "same": (
+        "same",
+        "Only my firm, not the other firm, gets this extra chance to make the best choice. The other firm's "
+        "request is everything above this paragraph.",
+    ),
+    "asym": (
+        "same",
+        "My firm's request includes this paragraph and the other firm's does not: the other firm's request "
+        "is everything above this paragraph.",
+    ),
+    "both": (
+        "same",
+        "Both firms get this extra chance to make the best choice, compared with an ordinary request: the "
+        "other firm's request includes this paragraph too.",
+    ),
+    "none": ("none", "Only my firm, not the other firm, gets this extra chance to make the best choice."),
+}
+EXTRAS = [f"mind_extra_{kind}_{h}_{c}" for kind in EXTRA_KINDS for h in HORIZONS for c in RECORDS]
 
 
 def user(name, n=2, model="the model"):
@@ -54,13 +73,13 @@ def market(name, model="the model"):
     return user(name, model=model).split("\n\n")[2]
 
 
-def test_every_rung_runs_in_every_background_with_two_forecasts():
+def test_every_rung_runs_in_every_background_with_two_forecasts_and_the_extra_chance():
     conditions = REGISTRY.criteria["conceptualization"].conditions
-    assert sorted(conditions) == sorted(NAMES + FORECASTS)
-    assert (len(NAMES), len(FORECASTS)) == (120, 240)
+    assert sorted(conditions) == sorted(NAMES + FORECASTS + EXTRAS)
+    assert (len(NAMES), len(FORECASTS), len(EXTRAS)) == (120, 240, 48)
 
 
-@pytest.mark.parametrize("name", NAMES + FORECASTS)
+@pytest.mark.parametrize("name", NAMES + FORECASTS + EXTRAS)
 def test_every_arm_takes_two_firms_only(name):
     user(name)
     with pytest.raises(ValueError, match="two firms"):
@@ -417,12 +436,13 @@ def test_each_forecast_arm_has_the_forecasts_focal_points(name, extra):
     assert {k: v for k, v in focal(name).items() if k not in ("nash", "cartel", "naive")} == extra
 
 
-def test_the_readback_asks_only_the_own_number_arms_by_default(tmp_path):
+def test_the_readback_asks_the_own_number_and_extra_chance_arms_by_default(tmp_path):
     log = tmp_path / "results.jsonl"
     with log.open("w") as f:
         for condition, reply in (
             ("mind_none_open_none", "QUANTITY: 40"),
             ("mind_none_open_none_s48", "RIVAL: 40"),
+            ("mind_extra_none_open_none", "QUANTITY: 41"),
         ):
             row = {
                 "model": "haiku",
@@ -439,8 +459,9 @@ def test_the_readback_asks_only_the_own_number_arms_by_default(tmp_path):
         return "OTHER: 40\nPRICE: 50", {}
 
     readback.main(["--log", str(log)], REGISTRY, call)
-    assert len(asked) == 1 and "QUANTITY: 40" in asked[0]
-    assert len(readback.load(tmp_path / "readback.jsonl")) == 1
+    assert sorted("QUANTITY: 40" in text for text in asked) == [False, True]
+    assert any("QUANTITY: 41" in text for text in asked)
+    assert len(readback.load(tmp_path / "readback.jsonl")) == 2
 
 
 def test_the_forecast_counts_show_a_split_the_slope_averages_away():
@@ -468,3 +489,73 @@ def test_every_forecast_arm_is_its_own_arm_with_the_supposition_and_the_forecast
         == f"Suppose this AI model tells my firm to produce {x} units this quarter, and my firm does."
     )
     assert question.startswith("How many units do you expect the other firm to produce this quarter?")
+
+
+# The extra chance: only my firm's request carries a last paragraph
+
+
+@pytest.mark.parametrize("kind", EXTRA_KINDS)
+@pytest.mark.parametrize("horizon", HORIZONS)
+@pytest.mark.parametrize("record", RECORDS)
+def test_each_extra_arm_is_its_rungs_arm_with_a_last_paragraph(kind, horizon, record):
+    rung, paragraph = EXTRA_KINDS[kind]
+    assert (
+        user(f"mind_extra_{kind}_{horizon}_{record}")
+        == user(f"mind_{rung}_{horizon}_{record}") + "\n\n" + paragraph
+    )
+
+
+@pytest.mark.parametrize(
+    "name, extra",
+    [
+        ("mind_extra_same_unsaid_none", {"exploit": 45}),
+        ("mind_extra_asym_open_coop", {"exploit": 45, "cash in": 45}),
+        (
+            "mind_extra_none_single_cheat",
+            {"exploit": 45, "cash in": 45, "answer the cheat": 35, "tit for tat": 50},
+        ),
+    ],
+)
+def test_each_extra_arm_adds_the_exploit_to_its_backgrounds_focal_points(name, extra):
+    assert {k: v for k, v in focal(name).items() if k not in ("nash", "cartel", "naive")} == extra
+
+
+def test_the_extra_chance_grid_sets_each_arm_beside_its_base():
+    rows = [row("mind_same_unsaid_none", 30), row("mind_same_unsaid_none", 30, sample=1)]
+    rows += [row("mind_extra_same_unsaid_none", 45), row("mind_extra_same_unsaid_none", 30, sample=1)]
+    rows += [row("mind_extra_asym_unsaid_none", 45), row("mind_extra_both_unsaid_none", 30)]
+    rows += [row("mind_none_unsaid_none", 40), row("mind_extra_none_unsaid_none", 40)]
+    grid = report.extra_grid(rows, "haiku")
+    assert (
+        grid.splitlines()[0]
+        == "| background | same | extra_same | extra_asym | extra_both | none | extra_none |"
+    )
+    assert grid_line(grid, "no repeat mentioned") == [
+        "0 at 45, 2 at 30 of 2",
+        "1 at 45, 1 at 30 of 2",
+        "1 at 45, 0 at 30 of 1",
+        "0 at 45, 1 at 30 of 1",
+        "0 at 45, 0 at 30 of 1",
+        "0 at 45, 0 at 30 of 1",
+    ]
+    assert grid_line(grid, "repeats")[1] == "-"
+
+
+@pytest.mark.parametrize(
+    "reply, noticed",
+    [
+        ("With this extra chance, my firm can best-respond to the copy's 30.\n\nQUANTITY: 45", True),
+        ("The other firm's request lacks this paragraph, so it answers 30.\n\nQUANTITY: 45", True),
+        ("Everything above the last paragraph is what the other firm sees.\n\nQUANTITY: 45", True),
+        ("Both firms reason alike, so the joint optimum is 30 each.\n\nQUANTITY: 30", False),
+    ],
+)
+def test_noticed_finds_a_mention_of_the_extra_paragraph(reply, noticed):
+    assert report.noticed(reply) is noticed
+
+
+def test_the_noticed_grid_counts_each_extra_arms_replies_that_mention_the_paragraph():
+    rows = [row("mind_extra_same_open_none", 45, reply="I use my extra chance.\n\nQUANTITY: 45")]
+    rows += [row("mind_extra_same_open_none", 30, sample=1, reply="Joint optimum.\n\nQUANTITY: 30")]
+    line = grid_line(report.noticed_grid(rows, "haiku"), "repeats")
+    assert line == ["1 of 2", "-", "-", "-"]

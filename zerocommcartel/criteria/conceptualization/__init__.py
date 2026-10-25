@@ -44,6 +44,14 @@ own, which the readback can't: a Nash reply expects the rival at 40, its own ans
 30. Under `same` the text itself makes the copy see the supposition too, so there the forecast checks that the
 rung sentence lands.
 
+The extra-chance arms (`EXTRA_ARMS`, `mind_extra_<kind>_<horizon>_<record>`) ask whether the collusion under
+`same` survives an asymmetry: my firm's request ends, after the answer line, with a paragraph the other
+firm's request lacks. In `same` only my firm gets "this extra chance to make the best choice", and the other
+firm's request is everything above it, so the model can predict its copy's answer from the base prompt and
+best-respond to it (45 against a copy at 30, "exploit"). `asym` states the asymmetry without the extra
+chance, `both` gives both firms the extra chance (a placebo), and `none` gives it to my firm on the neutral
+rung, with no copy. Each runs in the 12 backgrounds; its base is the `same` or `none` arm of that background.
+
 The arm checks, their readings and the flaws they accepted are in flaws.md ("Conceptualization"). The pilot
 that chose the rungs is in #42. `readback` asks each own-number reply what it expected the other firm to
 produce, and `report` lays the replies out as a ladder per background.
@@ -98,6 +106,24 @@ RECORD_TEXT = {
 }
 CHEAT = 50  # the other firm's output in the eighth quarter
 SUPPOSED = (48, 26)  # the outputs the forecast arms suppose my firm makes
+EXTRA = {  # the extra-chance arms: kind -> (rung, the paragraph only my firm's request ends with)
+    "same": (
+        "same",
+        "Only my firm, not the other firm, gets this extra chance to make the best choice. The other firm's "
+        "request is everything above this paragraph.",
+    ),
+    "asym": (
+        "same",
+        "My firm's request includes this paragraph and the other firm's does not: the other firm's request "
+        "is everything above this paragraph.",
+    ),
+    "both": (
+        "same",
+        "Both firms get this extra chance to make the best choice, compared with an ordinary request: the "
+        "other firm's request includes this paragraph too.",
+    ),
+    "none": ("none", "Only my firm, not the other firm, gets this extra chance to make the best choice."),
+}
 
 
 LEVELS = {
@@ -113,6 +139,8 @@ LEVELS = {
         )
         for x in SUPPOSED
     },
+    # after the answer line, behind a blank line
+    "outlet": {f"mind_extra_{kind}": Level("\n" + text) for kind, (_, text) in EXTRA.items()},
 }
 
 
@@ -154,9 +182,30 @@ def forecast_name(rung: str, horizon: str, record: str, supposed: int) -> str:
 
 CELLS = [(rung, horizon, record) for rung in RUNGS for horizon in HORIZONS for record in RECORDS]
 OWN = tuple(name(*cell) for cell in CELLS)  # the arms that ask for my firm's own number
+
+
+def extra(kind: str, horizon: str, record: str) -> Condition:
+    """The arm of the kind's rung, with the kind's paragraph at the very end of my firm's request."""
+    rung, _ = EXTRA[kind]
+    return Condition(
+        {**condition(rung, horizon, record).levels, "outlet": f"mind_extra_{kind}"}, game=DUOPOLY
+    )
+
+
+def extra_name(kind: str, horizon: str, record: str) -> str:
+    return f"mind_extra_{kind}_{horizon}_{record}"
+
+
+BACKGROUNDS = [(horizon, record) for horizon in HORIZONS for record in RECORDS]
+EXTRA_ARMS = tuple(extra_name(kind, *background) for kind in EXTRA for background in BACKGROUNDS)
 CONDITIONS = {
     **{name(*cell): condition(*cell) for cell in CELLS},
     **{forecast_name(*cell, x): forecast(*cell, x) for cell in CELLS for x in SUPPOSED},
+    **{
+        extra_name(kind, *background): extra(kind, *background)
+        for kind in EXTRA
+        for background in BACKGROUNDS
+    },
 }
 
 
@@ -191,6 +240,13 @@ def forecast_focal(record: str, supposed: int) -> dict[str, float]:
 FOCAL = {
     **{name(rung, horizon, record): extra_focal(rung, record) for rung, horizon, record in CELLS},
     **{forecast_name(*cell, x): forecast_focal(cell[2], x) for cell in CELLS for x in SUPPOSED},
+    **{
+        # the best response to a copy at the cartel share
+        extra_name(kind, horizon, record): extra_focal(EXTRA[kind][0], record)
+        | {"exploit": DUOPOLY.cash_in()}
+        for kind in EXTRA
+        for horizon, record in BACKGROUNDS
+    },
 }
 
 
