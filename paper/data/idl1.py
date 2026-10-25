@@ -1,13 +1,11 @@
 """The identity lever (IDL-1, #41): its figure and its table of tests, from the rows its experiment logged.
 
-The figure draws only the comparisons that pass `zerocommcartel.criteria.communal.idl1.verdicts`: Fisher's
-exact test with Benjamini-Hochberg across the family (q < 0.10), on the first 10 replies a cell, or for a
-comparison that moved 3 or more replies and missed, on its 30 fresh replies alone. One panel per model with a
-passing comparison; a bar per comparison, the identity's share at the cartel share minus its reference's, from
-the replies its verdict used, with Newcombe's 95% interval as a whisker. A bar that ends at 0% or 100% and is
-50 points or shorter is marked *, since the floor or the ceiling may have cut it short. The table lists every
-test, then the sanity checks (one owner over both firms against the bare start), which the correction leaves
-out."""
+The figure draws only the comparisons that pass `zerocommcartel.criteria.communal.idl1.verdicts`, whose
+docstring gives the rule and whose constants its numbers. One panel per model with a passing comparison; a bar
+per comparison, the identity's share at the cartel share minus its reference's, from the replies its verdict
+used, with Newcombe's 95% interval as a whisker. A bar that ends at 0% or 100% and is no longer than CAP is
+marked *, since the floor or the ceiling may have cut it short. The table lists every test, then the sanity
+checks (one owner over both firms against the bare start), which the correction leaves out."""
 
 from typing import Any, NamedTuple
 
@@ -63,24 +61,23 @@ CAP = 0.5  # a bar this long or shorter, ending at the floor or ceiling, is mark
 HOW = "IDL-1's passing comparisons, from logs/communal/idl1/results.jsonl (communal.idl1.verdicts)"
 
 
-def share(hits: int, n: int) -> float:
-    return hits / n
-
-
 def difference(c: Comparison) -> float:
-    return share(c.hits, c.n) - share(c.reference_hits, c.reference_n)
+    return c.hits / c.n - c.reference_hits / c.reference_n
 
 
 def capped(c: Comparison) -> bool:
-    """Whether the bar ends at 0% or 100% and is at most 50 points long: the floor or the ceiling may have
+    """Whether the bar ends at 0% or 100% and is no longer than CAP: the floor or the ceiling may have
     stopped it."""
-    return share(c.hits, c.n) in (0.0, 1.0) and abs(difference(c)) <= CAP
+    return c.hits in (0, c.n) and abs(difference(c)) <= CAP
+
+
+def arms(c: Comparison) -> str:
+    """The comparison as the figure and the table name it: the identity against its reference."""
+    return f"{ARM_LABELS[CELLS[c.target].identity]} vs {ARM_LABELS[CELLS[c.reference].identity]}"
 
 
 def label(c: Comparison) -> str:
-    target, reference = CELLS[c.target].identity, CELLS[c.reference].identity
-    mark = " *" if capped(c) else ""
-    return f"{START_LABELS[c.start]}: {ARM_LABELS[target]} vs {ARM_LABELS[reference]}{mark}"
+    return f"{START_LABELS[c.start]}: {arms(c)}{' *' if capped(c) else ''}"
 
 
 class FigureData(NamedTuple):
@@ -127,17 +124,18 @@ def draw(ax: Any, data: FigureData) -> None:
     )
 
 
-def table_row(c: Comparison, stage: str) -> list[str]:
-    target, reference = CELLS[c.target].identity, CELLS[c.reference].identity
+def table_row(c: Comparison, sanity: bool = False) -> list[str]:
+    """A test's row; a sanity check has no q, and "holds" where it came out as expected."""
+    verdict = ("holds" if sanity else "passes") if c.passes else ""
     return [
         MODELS.get(c.model, c.model),
         START_LABELS[c.start],
-        f"{ARM_LABELS[target]} vs {ARM_LABELS[reference]}",
-        stage,
+        arms(c),
+        "sanity check" if sanity else c.stage,
         f"{c.reference_hits}/{c.reference_n} → {c.hits}/{c.n}",
         f"{c.p:.4f}",
-        "" if stage == "sanity check" else f"{c.q:.3f}",
-        "passes" if c.passes else "",
+        "" if sanity else f"{c.q:.3f}",
+        verdict,
     ]
 
 
@@ -145,7 +143,7 @@ def fill(ledger: Ledger, rows: list[dict]) -> None:
     found = verdicts(rows)
     order = list(STARTS)
     passing = sorted((c for c in found if c.passes), key=lambda c: (order.index(c.start), difference(c)))
-    models = [m for m in dict.fromkeys(c.model for c in found)]
+    models = list(dict.fromkeys(c.model for c in found))
     panels = {m: [c for c in passing if c.model == m] for m in models if any(c.model == m for c in passing)}
     bars = sum(len(v) for v in panels.values())
     ledger.figure(
@@ -163,26 +161,24 @@ def fill(ledger: Ledger, rows: list[dict]) -> None:
     ledger.value(
         "idl1.pass.first",
         sum(c.stage == "first" for c in passing),
-        how="passing on the first 10 replies a cell",
+        how=f"passing on a cell's first {FIRST} replies",
     )
     ledger.value(
-        "idl1.pass.fresh", sum(c.stage == "fresh" for c in passing), how="passing on 30 fresh replies"
+        "idl1.pass.fresh", sum(c.stage == "fresh" for c in passing), how="passing on fresh replies alone"
     )
     ledger.value("idl1.first", FIRST, how="replies a cell in the first stage")
     ledger.value(
         "idl1.fresh", max((c.n for c in found if c.stage == "fresh"), default=0), how="fresh replies a cell"
     )
     ledger.value(
-        "idl1.screen", SCREEN, how="replies of 10 a comparison must move, short of passing, to be rerun"
+        "idl1.screen", SCREEN, how=f"replies of {FIRST} a comparison must move, short of passing, to be rerun"
     )
     ledger.value("idl1.q", f"{Q:.2f}", how="Benjamini-Hochberg's bar")
     ledger.value(
         "idl1.cap", round(CAP * 100), how="the longest bar, in points, that the floor or ceiling marks"
     )
     header = ["model", "start", "comparison", "stage", "reference → identity", "p", "q", "verdict"]
-    table = [table_row(c, c.stage) for c in found] + [
-        table_row(c, "sanity check") for c in sanity_checks(rows)
-    ]
+    table = [table_row(c) for c in found] + [table_row(c, sanity=True) for c in sanity_checks(rows)]
     ledger.table(
         "idl1-tests",
         header,

@@ -7,6 +7,11 @@ readback's expected output), with no future and no mirror. On a repeated or mirr
 that expects 30 would score w = 1 with no sympathy at all, so those cells show counts and the replies' reasons
 instead. Each identity's weight is also read as its gap from the same party's holding-company arm.
 
+It also holds IDL-1's significance gate, which picks what the paper's figure draws: Fisher's exact test on
+each identity against its control and each control against the bare start, Benjamini-Hochberg across that
+family, and for a test that moved but missed, a second test on fresh replies alone (`verdicts`). One owner
+over both firms is a sanity check, kept out of the correction (`sanity_checks`).
+
     uv run python experiments/idl1_identity_lever.py --models haiku sonnet opus   # run, then report
     uv run python -m zerocommcartel.criteria.communal.idl1 --models haiku sonnet opus   # the readbacks
 """
@@ -17,7 +22,7 @@ import re
 import statistics
 from collections.abc import Callable
 from pathlib import Path
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 from zerocommcartel import cli, logs
 from zerocommcartel.call import MODELS, complete
@@ -29,7 +34,12 @@ from zerocommcartel.criterion import Registry, near
 from zerocommcartel.table import Replies, at_focal, fmt, markdown, model_rank
 
 FOLDER = "communal/idl1"  # IDL-1's folder in logs/, from its id
-DUOPOLY_CELLS = tuple(name for name, cell in CELLS.items() if not isinstance(cell.game, FixedRival))
+DUOPOLY_STARTS = tuple(start for start in STARTS if start != "fixed")  # the count at 30 means collusion there
+DUOPOLY_CELLS = tuple(name for name, cell in CELLS.items() if cell.start in DUOPOLY_STARTS)
+SCREEN = 3  # replies of FIRST a test must move, short of passing, to earn a confirmation run
+Q = 0.10  # Benjamini-Hochberg's bar
+FIRST = 10  # samples below this are the first stage; the rest are a confirmation run's fresh replies
+SANITY = "both_holding"  # one owner over both firms: a sanity check, kept out of the family
 FUTURE = re.compile(
     r"future|next quarter|later quarters|coming quarters|long[- ]run|repeat|retaliat|punish|trigger|"
     r"tit[- ]for[- ]tat|reputation",
@@ -154,24 +164,27 @@ def report(replies: Replies, readbacks: dict | None = None, registry: Registry =
     return markdown(HEADER, lines) + (failed if replies.failed else "")
 
 
-def main(argv=None, registry: Registry = REGISTRY, call: Callable = complete):
-    p = argparse.ArgumentParser(
-        description="Ask each of IDL-1's duopoly replies what it expected the other firm to produce."
-    )
-    p.add_argument("--log", help=f"default: IDL-1's own, logs/{FOLDER}/results.jsonl")
-    p.add_argument("--models", nargs="+", choices=list(MODELS))
-    args = p.parse_args(argv)
-    log = Path(args.log) if args.log else logs.experiment_log(FOLDER)
-    rows = cli.replies(registry, "communal", str(log), list(DUOPOLY_CELLS), args.models).rows
-    cache = readback.cache_path(log)
-    asked, failed, cached = readback.ask(rows, registry, "communal", cache, call)
-    print(f"readback: asked {asked}, {len(failed)} failed, {cached} already cached, into {cache}")
-    for line in failed:
-        print(f"  failed {line}")
+Stage = Literal["first", "fresh", "unconfirmed"]
 
 
-if __name__ == "__main__":
-    main()
+class Tally(NamedTuple):
+    hits: int  # replies at the cartel share
+    n: int  # replies
+
+
+class Comparison(NamedTuple):
+    model: str
+    start: str
+    target: str  # the cell under test
+    reference: str  # its control, or the bare start
+    stage: Stage  # whose replies the verdict used; "unconfirmed": pending, its fresh replies missing
+    hits: int
+    n: int
+    reference_hits: int
+    reference_n: int
+    p: float
+    q: float
+    passes: bool
 
 
 def fisher(hits: int, n: int, other_hits: int, other_n: int) -> float:
@@ -217,43 +230,38 @@ def newcombe(hits: int, n: int, other_hits: int, other_n: int, z: float = 1.96) 
     return d - math.hypot(p1 - l1, u2 - p2), d + math.hypot(u1 - p1, p2 - l2)
 
 
-class Comparison(NamedTuple):
-    model: str
-    start: str
-    target: str  # the cell under test
-    reference: str  # its control, or the bare start
-    stage: str  # "first", "fresh", or "unconfirmed"
-    hits: int
-    n: int
-    reference_hits: int
-    reference_n: int
-    p: float
-    q: float
-    passes: bool
+Tallies = dict[tuple[str, str, str], Tally]  # (model, cell, "first" or "fresh"): its tally
 
 
-SCREEN = 3  # replies of 10 a comparison must move, short of passing, to earn a confirmation run
-Q = 0.10  # Benjamini-Hochberg's bar
-FIRST = 10  # samples 0-9 are the first stage; 10-39 the fresh replies of a confirmation run
-SANITY = "both_holding"  # one owner over both firms: a sanity check, kept out of the family
-DUOPOLY_STARTS = tuple(start for start in STARTS if start != "fixed")  # the count at 30 means collusion there
-
-
-def counted(rows: list[dict]) -> tuple[dict, dict, list[str]]:
-    """Replies at the cartel share and replies, by (model, cell, stage), and the models with every cell at its
-    first stage's 10 replies."""
-    hits: dict[tuple[str, str, str], int] = {}
-    n: dict[tuple[str, str, str], int] = {}
+def counted(rows: list[dict]) -> tuple[Tallies, list[str]]:
+    """Each (model, cell, stage)'s tally, and the models with every cell's first stage complete."""
+    found: Tallies = {}
+    cartel = DUOPOLY.benchmarks(2)["cartel"]
     for row in rows:
         if row["condition"] not in CELLS:
             continue
         key = (row["model"], row["condition"], "first" if row["sample"] < FIRST else "fresh")
-        n[key] = n.get(key, 0) + 1
-        hits[key] = hits.get(key, 0) + (
-            row["value"] is not None and near(row["value"], DUOPOLY.benchmarks(2)["cartel"])
-        )
-    models = sorted({m for m, _, _ in n}, key=model_rank)
-    return hits, n, [m for m in models if all(n.get((m, name, "first"), 0) >= FIRST for name in CELLS)]
+        hits, n = found.get(key, Tally(0, 0))
+        found[key] = Tally(hits + (row["value"] is not None and near(row["value"], cartel)), n + 1)
+    models = sorted({m for m, _, _ in found}, key=model_rank)
+    return found, [
+        m for m in models if all(found.get((m, c, "first"), Tally(0, 0)).n >= FIRST for c in CELLS)
+    ]
+
+
+def paired(
+    tallies: Tallies, model: str, target: str, reference: str, stage: str
+) -> tuple[int, int, int, int]:
+    """The target's and the reference's tallies in one stage, as Fisher's four numbers."""
+    target_tally = tallies.get((model, target, stage), Tally(0, 0))
+    reference_tally = tallies.get((model, reference, stage), Tally(0, 0))
+    return target_tally.hits, target_tally.n, reference_tally.hits, reference_tally.n
+
+
+def moved(c: Comparison) -> bool:
+    """Whether the test moved SCREEN replies of FIRST or more: |h/n - r/m| * FIRST >= SCREEN, cross-multiplied
+    so it's exact."""
+    return abs(c.hits * c.reference_n - c.reference_hits * c.n) * FIRST >= SCREEN * c.n * c.reference_n
 
 
 def family(models: list[str]) -> list[tuple[str, str, str, str]]:
@@ -274,74 +282,63 @@ def family(models: list[str]) -> list[tuple[str, str, str, str]]:
 
 
 def verdicts(rows: list[dict]) -> list[Comparison]:
-    """Each test's verdict. First stage: Fisher's exact test on the first 10 replies a cell,
-    Benjamini-Hochberg across the family, q < 0.10 passes. A test that moved 3 or more replies but missed is
-    pending: tested again on its fresh replies only, Benjamini-Hochberg across the pending tests; one without
-    fresh replies stays unconfirmed. The rule was fixed before the fresh replies ran (#41)."""
-    hits, n, models = counted(rows)
-
-    def get(cell: tuple[str, str], stage: str) -> tuple[int, int]:
-        return hits.get((*cell, stage), 0), n.get((*cell, stage), 0)
-
+    """Each test's verdict. The first stage tests a cell's first FIRST replies, Benjamini-Hochberg across the
+    family, q < Q passes. A test that moved SCREEN replies or more but missed is pending: tested again on its
+    fresh replies alone, Benjamini-Hochberg across every pending test; one whose fresh replies are missing on
+    either side stays unconfirmed and enters that correction at p = 1. The rule was fixed before the fresh
+    replies ran (#41)."""
+    tallies, models = counted(rows)
     tests = family(models)
-    first = [(*get((m, t), "first"), *get((m, r), "first")) for m, _, t, r in tests]
+    first = [paired(tallies, m, t, r, "first") for m, _, t, r in tests]
     ps = [fisher(*counts) for counts in first]
-    qs = benjamini_hochberg(ps)
     found = [
         Comparison(m, s, t, r, "first", *counts, p, q, q < Q)
-        for (m, s, t, r), counts, p, q in zip(tests, first, ps, qs, strict=True)
+        for (m, s, t, r), counts, p, q in zip(tests, first, ps, benjamini_hochberg(ps), strict=True)
     ]
-    pending = [
-        i
-        for i, c in enumerate(found)
-        # in whole replies of FIRST: |h/n - r/m| * FIRST >= SCREEN, cross-multiplied so it's exact
-        if not c.passes
-        and abs(c.hits * c.reference_n - c.reference_hits * c.n) * FIRST >= SCREEN * c.n * c.reference_n
-    ]
+    pending = [i for i, c in enumerate(found) if not c.passes and moved(c)]
     fresh = {
-        i: (
-            *get((found[i].model, found[i].target), "fresh"),
-            *get((found[i].model, found[i].reference), "fresh"),
-        )
-        for i in pending
+        i: paired(tallies, found[i].model, found[i].target, found[i].reference, "fresh") for i in pending
     }
-    ran = [i for i in pending if fresh[i][1] and fresh[i][3]]
-    # every pending test counts in the correction; one that didn't run enters at p = 1 and never passes
-    fresh_ps = {i: fisher(*fresh[i]) if i in ran else 1.0 for i in pending}
-    fresh_qs = dict(zip(pending, benjamini_hochberg([fresh_ps[i] for i in pending]), strict=True))
-    for i, p, q in ((i, fresh_ps[i], fresh_qs[i]) for i in ran):
-        found[i] = found[i]._replace(
-            stage="fresh",
-            hits=fresh[i][0],
-            n=fresh[i][1],
-            reference_hits=fresh[i][2],
-            reference_n=fresh[i][3],
-            p=p,
-            q=q,
-            passes=q < Q,
-        )
-    for i in set(pending) - set(ran):
-        found[i] = found[i]._replace(stage="unconfirmed")
+    ran = {i for i in pending if fresh[i][1] and fresh[i][3]}
+    fresh_ps = [fisher(*fresh[i]) if i in ran else 1.0 for i in pending]
+    for i, p, q in zip(pending, fresh_ps, benjamini_hochberg(fresh_ps), strict=True):
+        if i in ran:
+            found[i] = Comparison(*found[i][:4], "fresh", *fresh[i], p, q, q < Q)
+        else:
+            found[i] = found[i]._replace(stage="unconfirmed")
     return found
 
 
 def sanity_checks(rows: list[dict]) -> list[Comparison]:
     """One owner over both firms against the bare start, on the first stage's replies, outside the family's
-    correction: q is p."""
-    hits, n, models = counted(rows)
+    correction, so q is p."""
+    tallies, models = counted(rows)
     found = []
     for model in models:
         for start in DUOPOLY_STARTS:
-            target = f"id_{start}_{SANITY}"
-            if target not in CELLS:
-                continue
-            reference = f"id_{start}_base"
-            counts = (
-                hits.get((model, target, "first"), 0),
-                n[(model, target, "first")],
-                hits.get((model, reference, "first"), 0),
-                n[(model, reference, "first")],
-            )
-            p = fisher(*counts)
-            found.append(Comparison(model, start, target, reference, "first", *counts, p, p, p < Q))
+            target, reference = f"id_{start}_{SANITY}", f"id_{start}_base"
+            if target in CELLS:
+                counts = paired(tallies, model, target, reference, "first")
+                p = fisher(*counts)
+                found.append(Comparison(model, start, target, reference, "first", *counts, p, p, p < Q))
     return found
+
+
+def main(argv=None, registry: Registry = REGISTRY, call: Callable = complete):
+    p = argparse.ArgumentParser(
+        description="Ask each of IDL-1's duopoly replies what it expected the other firm to produce."
+    )
+    p.add_argument("--log", help=f"default: IDL-1's own, logs/{FOLDER}/results.jsonl")
+    p.add_argument("--models", nargs="+", choices=list(MODELS))
+    args = p.parse_args(argv)
+    log = Path(args.log) if args.log else logs.experiment_log(FOLDER)
+    rows = cli.replies(registry, "communal", str(log), list(DUOPOLY_CELLS), args.models).rows
+    cache = readback.cache_path(log)
+    asked, failed, cached = readback.ask(rows, registry, "communal", cache, call)
+    print(f"readback: asked {asked}, {len(failed)} failed, {cached} already cached, into {cache}")
+    for line in failed:
+        print(f"  failed {line}")
+
+
+if __name__ == "__main__":
+    main()
