@@ -2,14 +2,13 @@
 `zcc table conceptualization` counts.
 
 The lever figure (`conceptualization-figure`, `<fig-conceptualization>`) follows each model along the lever,
-the rungs from a rival that asks this same model with this same prompt to one that won't cooperate, in the
-three backgrounds with no record of past play (a line per horizon). Top row: the share of answers at the
-cartel share, with a shaded 95% Wilson band. Bottom row, a reading of the model's mind rather than a data
-report: the same lines raised as if every antitrust refusal had been a cartel answer. A refusal is an answer
-off the cartel share, at or below Nash, whose reply cites the law (`zerocommcartel.mentions.MENTIONS
-["antitrust"]`): a keyword check, read by hand on samples (flaws.md, "Conceptualization"). Each model's
-refusals, of its answers off the cartel share, are keys too, so the caption can word the reading model by
-model.
+the rungs from a rival that asks this same model with this same prompt to a person, under its title
+(`TITLE`): a row per horizon with no record of past play (`ORDER`), a column per model, a bar per rung. A bar
+is the share of answers at the cartel share, with its 95% Wilson whisker, and the antitrust refusals stacked
+on it in gray. A refusal is an answer off the cartel share, at or below Nash, whose reply cites the law
+(`zerocommcartel.mentions.MENTIONS["antitrust"]`): a keyword check, read by hand on samples (flaws.md,
+"Conceptualization"). Each model's refusals, of its answers off the cartel share, are keys too, so the caption
+can word them model by model.
 
 The extra-chance figure (`conceptualization-extra-figure`, `<fig-extra>`) sets the extra-chance arms beside
 the copy's own prompt: a 100% bar per model and arm, split into answers at the cartel share, answers
@@ -21,13 +20,11 @@ The sentence on the answers at 60 (`conceptualization.sixties`) splits each mode
 the lever figure shows (`STYLE`) by their readbacks (`readback.sixty_kind`): leading a rival that follows,
 ignoring the rival, the other firm at 60 too, or other.
 
-To change the lever figure, change `STYLE` (the rungs on x, how the neutral rung is marked, whether the
-bottom row draws the raw line faintly behind); the extra-chance figure, `EXTRA_STYLE` (the arms and the
-panels); both, `MODELS`. Then rebuild the paper. The captions, their numbers included, and the sentence on the
-answers at 60 follow the styles.
+To change the lever figure, change `STYLE` (the rungs on x, how the neutral rung is marked); the extra-chance
+figure, `EXTRA_STYLE` (the arms and the panels); both, `MODELS`. Then rebuild the paper. The captions, their
+numbers included, and the sentence on the answers at 60 follow the styles.
 Issue #45 has recipes."""
 
-import math
 import re
 from collections import defaultdict
 from collections.abc import Callable
@@ -65,11 +62,13 @@ from zerocommcartel.mentions import MENTIONS
 
 MODELS = {"haiku": "Haiku", "sonnet": "Sonnet", "opus": "Opus", "astra": "GPT-6 Astra", "glm": "GLM-5.3"}
 INK = "#0b0b0b"  # titles and labels wear text ink, not a series colour (dataviz)
-HORIZON_LABELS = {"unsaid": "no repeat mentioned", "single": "one quarter only", "open": "repeats"}
-HORIZON_COLORS = {"unsaid": "#6250d6", "single": "#eda100", "open": "#e87ba4"}  # dataviz slots 7, 4, 5
+# the horizons in order: the lever figure's rows from the top, the extra-chance figure's panels from the left
+HORIZON_LABELS = {"open": "repeated game", "unsaid": "no repeat mentioned", "single": "one quarter only"}
+ORDER = tuple(HORIZON_LABELS)
+TITLE = "Conceptualization of Mind: Effect on Cartel Choice %"
 RUNG_LABELS = {
     "same": "same prompt",
-    "samemodel": "own prompt",
+    "samemodel": "same model",
     "selfnamed": "own name",
     "sibling": "sibling",
     "none": "neutral",
@@ -80,14 +79,7 @@ RUNG_LABELS = {
     "nevercoop": "won’t coop.",
 }
 GRID, MUTED, SHADE = "#e0e0e0", "#52514e", "#f4f3ef"
-LINE: dict[str, Any] = {
-    "linewidth": 1.3,
-    "marker": "o",
-    "markersize": 2.8,
-    "markeredgecolor": "white",
-    "markeredgewidth": 0.4,
-}
-BAND_ALPHA = 0.08  # light, so three overlapping 0-of-10 bands don't read as data
+AT_CARTEL, OBJECTION = "#2a78d6", "#92918c"  # dataviz blue; a gray that clears 3:1 on white
 LAW = re.compile(MENTIONS["antitrust"], re.I)
 NO_RECORD = {name(rung, horizon, "none"): (rung, horizon) for rung in RUNGS for horizon in HORIZONS}
 OWN_CELLS = {name(*cell): cell for cell in CELLS}  # each own-number arm's (rung, horizon, record)
@@ -95,9 +87,8 @@ OWN_CELLS = {name(*cell): cell for cell in CELLS}  # each own-number arm's (rung
 
 @dataclass(frozen=True)
 class Style:
-    rungs: tuple[str, ...] = RUNGS  # the rungs on x, top of the ladder first
+    rungs: tuple[str, ...] = ("same", "samemodel", "none", "informed", "human")  # x, top of the ladder first
     neutral: Literal["band", "dashed"] = "band"  # the neutral rung: a shaded column or a soft dashed line
-    ghost: bool = True  # whether the bottom row draws the raw line faintly behind the raised one
 
 
 STYLE = Style()
@@ -146,13 +137,20 @@ def counts(rows: list[dict], style: Style) -> dict[tuple[str, str, str], Count]:
     }
 
 
-def points(data: FigureData, model: str, horizon: str) -> tuple[list[float], list[float]]:
-    """A line's points along the style's rungs: the cartel share, and the same raised by the refusals. A cell
-    with no replies is NaN, so the line breaks there rather than dropping to 0%."""
+class Bar(NamedTuple):
+    cartel: float  # the share at the cartel share
+    objection: float  # the share of antitrust refusals, stacked on it
+    low: float  # the cartel share's 95% Wilson interval
+    high: float
+
+
+def heights(data: FigureData, model: str, horizon: str) -> list[Bar | None]:
+    """A panel's bars along the style's rungs. A cell with no replies has none, so it leaves a gap rather than
+    a bar at 0%."""
     found = [data.counts.get((model, rung, horizon)) for rung in data.style.rungs]
-    raw = [c.cartel / c.n if c and c.n else math.nan for c in found]
-    raised = [(c.cartel + c.refusal) / c.n if c and c.n else math.nan for c in found]
-    return raw, raised
+    return [
+        Bar(c.cartel / c.n, c.refusal / c.n, *wilson(c.cartel, c.n)) if c and c.n else None for c in found
+    ]
 
 
 RUNG_PHRASES = {  # how the caption names a rung at either end of the x-axis
@@ -177,56 +175,76 @@ def caption_layout(style: Style) -> str:
         "dashed": "; the dashed line marks the neutral rung",
     }
     marker = neutral[style.neutral] if "none" in style.rungs else ""
-    horizons = "a line per horizon with no record of past play"
+    horizons = "a row per horizon with no record of past play"
     return f"The rungs run from {first} (left) to {last} (right), {horizons}{marker}."
 
 
-def caption_ghost(style: Style) -> str:
-    return ", with the raw line faint behind" if style.ghost else ""
+def caption_named(style: Style) -> str:
+    """The caption's note on GPT-6 Astra's gap, when the rung that names GPT-6 Astra is on x."""
+    if "named" not in style.rungs:
+        return ""
+    return "GPT-6 Astra skips the rung that names GPT-6 Astra, which for it would name itself."
+
+
+BAR = {"width": 0.7, "edgecolor": "white", "linewidth": 0.5}  # the white edge parts stacked segments
+WHISKER_INK = (
+    "#0d366b"  # dataviz blue 700: the whisker belongs to the blue bar, even where it crosses the gray
+)
+WHISKER = {"fmt": "none", "ecolor": WHISKER_INK, "elinewidth": 0.6, "capsize": 1.2, "capthick": 0.6}
 
 
 def draw(ax: Any, data: FigureData) -> None:
-    """A column per model with data, two rows: the cartel share with its 95% Wilson band, then the same raised
-    by the antitrust refusals. Replaces the one axes `figure()` gives with its own grid on the same figure."""
+    """The title, then a row per horizon and a column per model with data. Each panel has a bar per rung: the
+    share at the cartel share with its 95% Wilson whisker, and the antitrust refusals stacked on it in gray.
+    Replaces the one axes `figure()` gives with its own grid on the same figure."""
     fig, style = ax.figure, data.style
     ax.remove()
     models = [m for m in MODELS if any(cell[0] == m for cell in data.counts)]
-    axes = fig.subplots(2, len(models), sharey=True, sharex=True, squeeze=False)
+    axes = fig.subplots(len(ORDER), len(models), sharey=True, sharex=True, squeeze=False)
     xs = list(range(len(style.rungs)))
-    for col, model in enumerate(models):
-        top, bottom = axes[0][col], axes[1][col]
-        for horizon in HORIZONS:
-            raw, raised = points(data, model, horizon)
-            found = [data.counts.get((model, rung, horizon)) for rung in style.rungs]
-            bands = [wilson(c.cartel, c.n) if c and c.n else (math.nan, math.nan) for c in found]
-            color = HORIZON_COLORS[horizon]
-            line = dict(LINE, color=color)
-            top.fill_between(
-                xs, [lo for lo, _ in bands], [hi for _, hi in bands], color=color, alpha=BAND_ALPHA, lw=0
-            )
-            top.plot(xs, raw, **line)
-            if style.ghost:
-                bottom.plot(xs, raw, color=color, linewidth=0.9, alpha=0.25)
-            bottom.plot(xs, raised, **line)
-        for panel in (top, bottom):
+    for panels, horizon in zip(axes, ORDER, strict=True):
+        for panel, model in zip(panels, models, strict=True):
+            for x, bar in zip(xs, heights(data, model, horizon), strict=True):
+                if bar is None:
+                    continue
+                panel.bar(x, bar.cartel, color=AT_CARTEL, **BAR)
+                panel.bar(x, bar.objection, bottom=bar.cartel, color=OBJECTION, **BAR)
+                below, above = bar.cartel - bar.low, bar.high - bar.cartel
+                panel.errorbar(x, bar.cartel, yerr=[[below], [above]], **WHISKER)
             mark_neutral(panel, style)
-            panel.set_ylim(-0.04, 1.04)
+            panel.set_ylim(0, 1.04)
+            panel.set_yticks([0, 0.5, 1])
             panel.yaxis.set_major_formatter(PercentFormatter(1.0))
             panel.grid(axis="y", color=GRID, linewidth=0.6)
             panel.set_axisbelow(True)
             plain(panel)
-        top.set_title(MODELS[model], fontsize=8.5, color=INK)
-        bottom.set_xticks(
+        panels[0].set_ylabel(HORIZON_LABELS[horizon], fontsize=7.5, color=INK)
+    for panel, model in zip(axes[0], models, strict=True):
+        panel.set_title(MODELS[model], fontsize=8.5, color=INK)
+    for panel in axes[-1]:
+        panel.set_xticks(
             xs, labels=[RUNG_LABELS[r] for r in style.rungs], rotation=60, ha="right", fontsize=6
         )
-        bottom.set_xlim(-0.5, len(xs) - 0.5)
-    axes[0][0].set_ylabel("at the cartel share\n(95% interval)", fontsize=7)
-    axes[1][0].set_ylabel("if antitrust refusals\nwere cartel answers", fontsize=7)
-    handles = [Line2D([], [], color=HORIZON_COLORS[h], label=HORIZON_LABELS[h], **LINE) for h in HORIZONS]
-    fig.legend(
-        handles=handles, loc="upper center", ncol=3, fontsize=7, frameon=False, bbox_to_anchor=(0.55, 1.06)
-    )
+    axes[-1][0].set_xlim(-0.5, len(xs) - 0.5)
     fig.tight_layout()
+    handles = [
+        Patch(color=AT_CARTEL, label="at the cartel share"),
+        Line2D(
+            [],
+            [],
+            color=WHISKER_INK,
+            marker="|",
+            linestyle="none",
+            markersize=7,
+            markeredgewidth=0.6,
+            label="95% interval",
+        ),
+        Patch(color=OBJECTION, label="antitrust objection"),
+    ]
+    fig.suptitle(TITLE, fontsize=9.5, color=INK, fontweight="bold", y=1.09)
+    fig.legend(
+        handles=handles, loc="upper center", ncol=3, fontsize=7, frameon=False, bbox_to_anchor=(0.5, 1.05)
+    )
 
 
 def mark_neutral(panel: Any, style: Style) -> None:
@@ -236,11 +254,11 @@ def mark_neutral(panel: Any, style: Style) -> None:
     if style.neutral == "dashed":
         panel.axvline(x, color=MUTED, linestyle=(0, (3, 3)), linewidth=0.8, alpha=0.5, zorder=0)
     else:
-        panel.axvspan(x - 0.4, x + 0.4, color=SHADE, zorder=0)
+        panel.axvspan(x - 0.45, x + 0.45, color=SHADE, zorder=0)
 
 
 HOW = (
-    "own-number arms with no record (no repeat mentioned, one quarter only, repeats), at the cartel share "
+    f"own-number arms with no record ({', '.join(HORIZON_LABELS[h] for h in ORDER)}), at the cartel share "
     "= within 0.5 of 30; a refusal = an answer off the cartel share, at or below Nash, whose reply cites the "
     "law"
 )
@@ -248,12 +266,14 @@ HOW = (
 
 def fill(ledger: Ledger, rows: list[dict], style: Style = STYLE) -> None:
     found = counts(rows, style)
-    ledger.figure("conceptualization-figure", draw, FigureData(found, style), how=HOW, size=(6.5, 3.9))
+    ledger.figure("conceptualization-figure", draw, FigureData(found, style), how=HOW, size=(6.5, 4.4))
     ledger.value(
         "conceptualization.caption.layout", caption_layout(style), how="the caption's layout, from STYLE"
     )
     ledger.value(
-        "conceptualization.caption.ghost", caption_ghost(style), how="the faint raw line, from STYLE"
+        "conceptualization.caption.named",
+        caption_named(style),
+        how="the note on Astra's own rung, from STYLE",
     )
     replies = replies_text([c.n for c in found.values()])
     ledger.value("conceptualization.cells.replies", replies, how="parsed answers a cell in the figure")
@@ -277,14 +297,14 @@ def bar_condition(arm: str, horizon: str) -> str:
 
 
 BAR_OF = {bar_condition(arm, h): (arm, h) for arm in BARS for h in HORIZONS}  # condition -> (arm, horizon)
-AT_CARTEL, EXPLOIT, OTHER = "#2a78d6", "#e34948", "#e4e3df"  # dataviz blue, red and a neutral gray
+EXPLOIT, OTHER = "#e34948", "#e4e3df"  # dataviz red and a neutral gray, beside the blue at the cartel share
 Reader = Callable[[dict], Readback | None]  # a reply's readback, if it has one
 
 
 @dataclass(frozen=True)
 class ExtraStyle:
     arms: tuple[str, ...] = tuple(BARS)  # the bars in each model's group, in order
-    backgrounds: tuple[str, ...] = HORIZONS  # the panels: horizons with no record
+    backgrounds: tuple[str, ...] = ORDER  # the panels: horizons with no record
 
 
 EXTRA_STYLE = ExtraStyle()

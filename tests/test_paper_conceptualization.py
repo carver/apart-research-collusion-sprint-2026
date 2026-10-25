@@ -1,8 +1,6 @@
 """The paper's conceptualization source, on fixture rows (no test reads the real logs): what counts as an
 antitrust refusal, the ledger it fills, and the figure under each style."""
 
-import math
-
 import pytest
 
 from paper.data.conceptualization import (
@@ -18,7 +16,7 @@ from paper.data.conceptualization import (
     fill_coverage,
     fill_extra,
     fill_sixties,
-    points,
+    heights,
     refuses,
 )
 from paper.ledger import Ledger
@@ -107,19 +105,23 @@ def svg(tmp_path, style):
     return (tmp_path / "conceptualization-figure.svg").read_text()
 
 
-def test_the_default_figure_has_a_column_per_model_a_neutral_band_and_the_faint_raw_line(tmp_path):
+def test_the_default_figure_has_its_title_a_row_per_horizon_and_a_column_per_model(tmp_path):
     drawn = svg(tmp_path, STYLE)
+    assert "Conceptualization of Mind: Effect on Cartel Choice %" in drawn
+    assert drawn.index("repeated game") < drawn.index("no repeat mentioned") < drawn.index("one quarter only")
     assert "Opus" in drawn and "GLM" in drawn and "Haiku" not in drawn  # only models with replies
-    assert "stroke-dasharray" not in drawn
-    assert "stroke-opacity: 0.25" in drawn
+    assert "stroke-dasharray" not in drawn  # the neutral rung is a shaded column
+
+
+def test_the_default_figure_shows_five_rungs(tmp_path):
+    drawn = svg(tmp_path, STYLE)
+    for label in ("same prompt", "same model", "neutral", "both know", "person"):
+        assert label in drawn
+    assert "own prompt" not in drawn and "sibling" not in drawn and "won’t coop." not in drawn
 
 
 def test_the_neutral_rung_can_be_a_soft_dashed_line(tmp_path):
     assert "stroke-dasharray" in svg(tmp_path, Style(neutral="dashed"))
-
-
-def test_the_faint_raw_line_can_go(tmp_path):
-    assert "stroke-opacity: 0.25" not in svg(tmp_path, Style(ghost=False))
 
 
 def test_the_rungs_on_x_can_be_chosen(tmp_path):
@@ -133,12 +135,12 @@ def caption(tmp_path, style, part):
     return ledger.entries[f"conceptualization.caption.{part}"]["value"]
 
 
-def test_the_caption_names_the_ladders_ends_and_the_neutral_band(tmp_path):
+def test_the_caption_names_the_ladders_ends_the_rows_and_the_neutral_band(tmp_path):
     layout = caption(tmp_path, STYLE, "layout")
     assert layout.startswith(
         "The rungs run from a rival that asks this same AI model with this same prompt (left)"
     )
-    assert "to a rival that won’t cooperate (right)" in layout
+    assert "to a person (right), a row per horizon with no record of past play" in layout
     assert layout.endswith("; the shaded column is the neutral rung.")
 
 
@@ -149,15 +151,22 @@ def test_the_caption_follows_the_style(tmp_path):
     trimmed = caption(tmp_path, Style(rungs=("samemodel", "human")), "layout")
     assert "this same AI model with its own prompt (left)" in trimmed and "a person (right)" in trimmed
     assert "neutral" not in trimmed
-    assert caption(tmp_path, STYLE, "ghost") == ", with the raw line faint behind"
-    assert caption(tmp_path, Style(ghost=False), "ghost") == ""
 
 
-def test_a_cell_without_replies_leaves_a_gap_not_a_zero():
-    found = {("opus", "same", "unsaid"): Count(10, 0, 10), ("opus", "none", "unsaid"): Count(0, 3, 10)}
-    raw, raised = points(FigureData(found, Style(rungs=("same", "sibling", "none"))), "opus", "unsaid")
-    assert raw[0] == 1.0 and math.isnan(raw[1]) and raw[2] == 0.0
-    assert raised[2] == 0.3 and math.isnan(raised[1])
+def test_the_caption_explains_astras_missing_bar_only_when_its_named_rung_is_shown(tmp_path):
+    assert caption(tmp_path, STYLE, "named") == ""
+    named = caption(tmp_path, Style(rungs=("samemodel", "named")), "named")  # the own-name rung isn't shown
+    assert named == "GPT-6 Astra skips the rung that names GPT-6 Astra, which for it would name itself."
+
+
+def test_a_bar_stacks_the_objections_on_the_cartel_share_whose_interval_it_carries():
+    found = {("opus", "same", "open"): Count(10, 0, 10), ("opus", "none", "open"): Count(0, 3, 10)}
+    same, gap, none = heights(FigureData(found, Style(rungs=("same", "sibling", "none"))), "opus", "open")
+    assert gap is None  # a cell without replies leaves a gap, not a zero
+    assert (same.cartel, same.objection, same.high) == (1.0, 0.0, 1.0)
+    assert same.low == pytest.approx(0.7225, abs=1e-4)  # Wilson 95% for 10 of 10
+    assert (none.cartel, none.objection, none.low) == (0.0, 0.3, 0.0)
+    assert none.high == pytest.approx(0.2775, abs=1e-4)
 
 
 # The extra-chance figure
@@ -220,8 +229,9 @@ def test_the_extra_chance_figure_has_a_bar_per_model_and_arm_and_its_caption_key
     assert "Opus" in drawn and "Sonnet" in drawn and "asymmetry only" in drawn
     assert ledger.entries["conceptualization.extra.replies"]["value"] == "1"
     assert ledger.entries["conceptualization.extra.caption.backgrounds"]["value"] == (
-        "no repeat mentioned, one quarter only and repeats"
+        "repeated game, no repeat mentioned and one quarter only"
     )
+    assert drawn.index("repeated game") < drawn.index("no repeat mentioned") < drawn.index("one quarter only")
 
 
 def test_the_extra_chance_figure_shows_the_arms_and_backgrounds_its_style_names(tmp_path):
@@ -284,7 +294,7 @@ def test_the_weak_panels_are_listed_model_by_model(tmp_path):
     ledger = Ledger(tmp_path)
     fill_extra(ledger, rows, read, ExtraStyle(backgrounds=("unsaid", "open")))
     weak = ledger.entries["conceptualization.extra.caption.weak"]["value"]
-    assert "(Sonnet in no repeat mentioned; Opus in no repeat mentioned and repeats)" in weak
+    assert "(Sonnet in no repeat mentioned; Opus in no repeat mentioned and repeated game)" in weak
 
 
 def test_no_weak_panel_means_no_sentence_and_no_outline(tmp_path):
