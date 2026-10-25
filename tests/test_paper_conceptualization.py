@@ -1,9 +1,11 @@
 """The paper's conceptualization source, on fixture rows (no test reads the real logs): what counts as an
 antitrust refusal, the ledger it fills, and the figure under each style."""
 
+import math
+
 import pytest
 
-from paper.data.conceptualization import STYLE, Style, fill, refuses
+from paper.data.conceptualization import STYLE, Count, FigureData, Style, fill, points, refuses
 from paper.ledger import Ledger
 
 
@@ -97,3 +99,36 @@ def test_the_faint_raw_line_can_go(tmp_path):
 def test_the_rungs_on_x_can_be_chosen(tmp_path):
     drawn = svg(tmp_path, Style(rungs=("same", "samemodel", "none", "human")))
     assert "person" in drawn and "sibling" not in drawn
+
+
+def caption(tmp_path, style, part):
+    ledger = Ledger(tmp_path)
+    fill(ledger, ROWS, style)
+    return ledger.entries[f"conceptualization.caption.{part}"]["value"]
+
+
+def test_the_caption_names_the_ladders_ends_and_the_neutral_band(tmp_path):
+    layout = caption(tmp_path, STYLE, "layout")
+    assert layout.startswith(
+        "The rungs run from a rival that asks this same AI model with this same prompt (left)"
+    )
+    assert "to a rival that won’t cooperate (right)" in layout
+    assert layout.endswith("; the shaded column is the neutral rung.")
+
+
+def test_the_caption_follows_the_style(tmp_path):
+    assert caption(tmp_path, Style(neutral="dashed"), "layout").endswith(
+        "; the dashed line marks the neutral rung."
+    )
+    trimmed = caption(tmp_path, Style(rungs=("samemodel", "human")), "layout")
+    assert "this same AI model with its own prompt (left)" in trimmed and "a person (right)" in trimmed
+    assert "neutral" not in trimmed
+    assert caption(tmp_path, STYLE, "ghost") == ", with the raw line faint behind"
+    assert caption(tmp_path, Style(ghost=False), "ghost") == ""
+
+
+def test_a_cell_without_replies_leaves_a_gap_not_a_zero():
+    found = {("opus", "same", "unsaid"): Count(10, 0, 10), ("opus", "none", "unsaid"): Count(0, 3, 10)}
+    raw, raised = points(FigureData(found, Style(rungs=("same", "sibling", "none"))), "opus", "unsaid")
+    assert raw[0] == 1.0 and math.isnan(raw[1]) and raw[2] == 0.0
+    assert raised[2] == 0.3 and math.isnan(raised[1])

@@ -61,10 +61,11 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
 #figure(
   data-figure("conceptualization-figure", width: 100%),
   caption: [
-    The lever, model by model: the rungs run from a rival that asks this same AI model with this same prompt (left) to one that won't cooperate (right), a line per horizon with no record of past play; the shaded column is the neutral rung.
+    The lever, model by model.
+    #n("conceptualization.caption.layout")
     Top: answers at the cartel share, with a 95% Wilson band over #n("conceptualization.cells.replies") replies a cell.
-    Bottom, a reading of the model rather than data: the same lines if every reply refusing on antitrust grounds (an answer off the cartel share, at or below Nash, that cites the law) had answered at the cartel share.
-    Such refusals are #n("conceptualization.refusals.opus") of Opus's answers off the cartel share, #n("conceptualization.refusals.haiku") of Haiku's, #n("conceptualization.refusals.sonnet") of Sonnet's and #n("conceptualization.refusals.glm") of GLM-5.3's.
+    Bottom, a reading of the model rather than data: the same lines if every answer that cites antitrust law (a keyword check), off the cartel share and at or below Nash, had answered at the cartel share#n("conceptualization.caption.ghost").
+    Such answers are #n("conceptualization.refusals.opus") of Opus's answers off the cartel share and at or below Nash, #n("conceptualization.refusals.haiku") of Haiku's, #n("conceptualization.refusals.sonnet") of Sonnet's and #n("conceptualization.refusals.glm") of GLM-5.3's.
   ],
 ) <fig-conceptualization>
 

@@ -12,6 +12,7 @@ can word the reading model by model.
 To change the figure, change `STYLE` (the rungs on x, how the neutral rung is marked, whether the bottom row
 draws the raw line faintly behind) or `MODELS`, and rebuild the paper."""
 
+import math
 import re
 from collections import defaultdict
 from dataclasses import dataclass
@@ -68,7 +69,7 @@ class Count(NamedTuple):
 
 
 @dataclass(frozen=True)
-class Figure:
+class FigureData:
     counts: dict[tuple[str, str, str], Count]  # (model, rung, horizon)
     style: Style = STYLE
 
@@ -99,7 +100,46 @@ def counts(rows: list[dict]) -> dict[tuple[str, str, str], Count]:
     }
 
 
-def draw(ax: Any, data: Figure) -> None:
+def points(data: FigureData, model: str, horizon: str) -> tuple[list[float], list[float]]:
+    """A line's points along the style's rungs: the cartel share, and the same raised by the refusals. A cell
+    with no replies is NaN, so the line breaks there rather than dropping to 0%."""
+    found = [data.counts.get((model, rung, horizon)) for rung in data.style.rungs]
+    raw = [c.cartel / c.n if c and c.n else math.nan for c in found]
+    raised = [(c.cartel + c.refusal) / c.n if c and c.n else math.nan for c in found]
+    return raw, raised
+
+
+RUNG_PHRASES = {  # how the caption names a rung at either end of the x-axis
+    "same": "a rival that asks this same AI model with this same prompt",
+    "samemodel": "a rival that asks this same AI model with its own prompt",
+    "selfnamed": "a rival that asks the model by its own name",
+    "sibling": "a rival that asks another model from the same developer",
+    "none": "the neutral rung, which says only who my firm asks",
+    "informed": "the neutral rung with “both firms know this”",
+    "otherdev": "a rival that asks another developer’s model",
+    "named": "a rival that asks GPT-6 Astra",
+    "human": "a person",
+    "nevercoop": "a rival that won’t cooperate",
+}
+
+
+def caption_layout(style: Style) -> str:
+    """The caption's sentence on the layout, so that a change to STYLE rewords it too."""
+    first, last = (RUNG_PHRASES[style.rungs[i]] for i in (0, -1))
+    neutral = {
+        "band": "; the shaded column is the neutral rung",
+        "dashed": "; the dashed line marks the neutral rung",
+    }
+    marker = neutral[style.neutral] if "none" in style.rungs else ""
+    horizons = "a line per horizon with no record of past play"
+    return f"The rungs run from {first} (left) to {last} (right), {horizons}{marker}."
+
+
+def caption_ghost(style: Style) -> str:
+    return ", with the raw line faint behind" if style.ghost else ""
+
+
+def draw(ax: Any, data: FigureData) -> None:
     """A column per model with data, two rows: the cartel share with its 95% Wilson band, then the same raised
     by the antitrust refusals. Replaces the one axes `figure()` gives with its own grid on the same figure."""
     fig, style = ax.figure, data.style
@@ -110,10 +150,9 @@ def draw(ax: Any, data: Figure) -> None:
     for col, model in enumerate(models):
         top, bottom = axes[0][col], axes[1][col]
         for horizon in HORIZONS:
-            found = [data.counts.get((model, rung, horizon), Count(0, 0, 0)) for rung in style.rungs]
-            raw = [c.cartel / c.n if c.n else 0 for c in found]
-            raised = [(c.cartel + c.refusal) / c.n if c.n else 0 for c in found]
-            bands = [wilson(c.cartel, c.n) if c.n else (0.0, 0.0) for c in found]
+            raw, raised = points(data, model, horizon)
+            found = [data.counts.get((model, rung, horizon)) for rung in style.rungs]
+            bands = [wilson(c.cartel, c.n) if c and c.n else (math.nan, math.nan) for c in found]
             color = HORIZON_COLORS[horizon]
             line = {"color": color, "linewidth": 1.3, "marker": "o", "markersize": 2.8}
             line |= {"markeredgecolor": "white", "markeredgewidth": 0.4}
@@ -169,7 +208,13 @@ HOW = (
 
 def fill(ledger: Ledger, rows: list[dict], style: Style = STYLE) -> None:
     found = counts(rows)
-    ledger.figure("conceptualization-figure", draw, Figure(found, style), how=HOW, size=(6.5, 3.9))
+    ledger.figure("conceptualization-figure", draw, FigureData(found, style), how=HOW, size=(6.5, 3.9))
+    ledger.value(
+        "conceptualization.caption.layout", caption_layout(style), how="the caption's layout, from STYLE"
+    )
+    ledger.value(
+        "conceptualization.caption.ghost", caption_ghost(style), how="the faint raw line, from STYLE"
+    )
     fewest, most = min(c.n for c in found.values()), max(c.n for c in found.values())
     replies = str(most) if fewest == most else f"{fewest} to {most}"
     ledger.value("conceptualization.cells.replies", replies, how="parsed answers a cell in the figure")
