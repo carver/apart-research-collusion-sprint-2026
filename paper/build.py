@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -33,7 +34,7 @@ from paper.git import Repo
 from paper.ledger import DuplicateKey, Ledger, Provenance, display
 from paper.typeset import BuildError, typeset
 
-__all__ = ["DRAFT_NAME", "FINAL_NAME", "BuildError", "Problem", "Report", "build"]
+__all__ = ["DRAFT_NAME", "FINAL_NAME", "BuildError", "Problem", "Report", "build", "stamp", "write_atomic"]
 
 DRAFT_NAME = "DRAFT-paper"
 FINAL_NAME = "zerocommcartel"  # the submission: <paper dir>/zerocommcartel.pdf and its ledger
@@ -130,6 +131,21 @@ def _row(cells: list[str]) -> str:
     return "| " + " | ".join(cell.replace("|", "\\|").replace("\n", " ") for cell in cells) + " |"
 
 
+def write_atomic(path: Path, data: bytes) -> None:
+    """Writes `path` through a temporary file beside it, so a reader (a PDF viewer) never sees half of it."""
+    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=f".{path.name}.", delete=False) as temp:
+        try:
+            temp.write(data)
+            temp.flush()
+            umask = os.umask(0)
+            os.umask(umask)
+            os.chmod(temp.name, 0o666 & ~umask)  # a temporary file is private; the PDF isn't
+            os.replace(temp.name, path)
+        except BaseException:
+            os.unlink(temp.name)
+            raise
+
+
 def stamp(repo: Repo | None) -> str:
     """The draft footer's line: the commit, and when the build ran."""
     built = datetime.now().astimezone().strftime("%Y-%m-%d %H:%M %Z")
@@ -183,7 +199,7 @@ def build(paper_dir: Path, sources: Mapping[str, Source] | None = None, final: b
         pdf = paper_dir / f"{FINAL_NAME}.pdf"
         shutil.copy(numbers, paper_dir / f"{FINAL_NAME}-numbers.json")
     if pdf:
-        pdf.write_bytes(page.pdf)
+        write_atomic(pdf, page.pdf)
     return Report(
         pdf=pdf,
         pages=write_pages(out / "pages", page.pngs),

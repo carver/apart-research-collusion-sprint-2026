@@ -5,10 +5,12 @@
 ```bash
 bin/build-paper           # the draft: paper/build/DRAFT-paper.pdf, and paper/build/pages/page-NN.png
 bin/build-paper --final   # the submission: paper/zerocommcartel.pdf, only when every check passes
-bin/build-paper watch     # the draft now, then again each time HEAD moves (a commit, merge or rebase)
+bin/build-paper watch     # the draft now, recompiled on each save and rebuilt on each commit (below)
 ```
 
 `uv sync` installs everything it needs, the Typst compiler included. The font, Old Standard TT, is in `fonts/`.
+
+`watch` keeps `build/DRAFT-paper.pdf` current while you write. A save of any `.typ` or `.bib` here recompiles it within a second or two, from the numbers and figures of the last full build, and prints Typst's error when it can't. A full build runs in the background each time HEAD moves, and when the text cites a key the ledger lacks, once the text has been still for five seconds (`--settle`). Open the PDF in a viewer that reloads a changed file, such as Skim or VS Code; macOS Preview doesn't.
 
 ## Writing
 

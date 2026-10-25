@@ -1,54 +1,265 @@
-"""bin/build-paper watch, through `watch` with a scripted HEAD and no real build: it builds at the start and
-after each move, once for moves that land mid-build, and never for an unreadable HEAD."""
+"""bin/build-paper watch. Its schedule goes through `Watch` with a scripted HEAD, sources, clock, live compile
+and full build: a full build at the start, after each HEAD move and for a newly missing key once the text
+settles; a live compile after each edit, and again after a full build that ran over newer text. The live
+compile itself runs Typst on a tiny paper."""
 
+import json
+import shutil
 import subprocess
+from pathlib import Path
 
 import pytest
 
 from paper.__main__ import main
 from paper.git import Repo
-from paper.watch import watch
+from paper.watch import LiveCompile, Watch, live_compile
+
+PAPER = Path(__file__).resolve().parent.parent / "paper"
+SETTLE = 5.0
 
 
-class Stop(Exception):
-    pass
+class Script:
+    """The world a `Watch` sees: what each poll reads, and what it did."""
+
+    def __init__(self) -> None:
+        self.head = "a"
+        self.text = 0  # bump it to edit the sources
+        self.t = 0.0
+        self.result = LiveCompile()
+        self.building = False
+        self.builds = 0
+        self.compiles = 0
+        self.said: list[str] = []
+        self.watch = Watch(
+            head=lambda: self.head,
+            sources=lambda: self.text,
+            live=self.live,
+            full=self,
+            now=lambda: self.t,
+            settle=SETTLE,
+            say=self.said.append,
+        )
+
+    def live(self) -> LiveCompile:
+        self.compiles += 1
+        return self.result
+
+    def start(self) -> None:
+        assert not self.building, "a full build started while one ran"
+        self.builds += 1
+        self.building = True
+
+    def running(self) -> bool:
+        return self.building
+
+    def poll(self, seconds: float = 1.0) -> None:
+        self.t += seconds
+        self.watch.poll()
+
+    def finish(self) -> None:
+        """The running full build ends; the next poll sees it."""
+        self.building = False
+        self.poll()
 
 
-def run(heads_per_poll: list[str], heads_after_build: dict[int, str] | None = None) -> list[str]:
-    """The commits `watch` builds while HEAD reads `heads_per_poll` in turn, one per poll; a build numbered
-    in `heads_after_build` moves HEAD to its commit while that build runs."""
-    polls = iter(heads_per_poll)
-    current = next(polls)
-    built: list[str] = []
-
-    def rebuild(commit: str) -> None:
-        nonlocal current
-        built.append(commit)
-        if heads_after_build and len(built) in heads_after_build:
-            current = heads_after_build[len(built)]
-
-    def wait() -> None:
-        nonlocal current
-        try:
-            current = next(polls)
-        except StopIteration:  # the script has run out: stop watching
-            raise Stop from None
-
-    with pytest.raises(Stop):
-        watch(lambda: current, rebuild, wait)
-    return built
+def test_the_start_brings_a_full_build_and_a_live_compile():
+    s = Script()
+    s.poll()
+    assert (s.builds, s.compiles) == (1, 1)
 
 
-def test_it_builds_at_the_start_and_after_each_move():
-    assert run(["a", "a", "b", "b", "b", "c", "a"]) == ["a", "b", "c", "a"]
+def test_an_edit_brings_a_live_compile_and_quiet_brings_none():
+    s = Script()
+    s.poll()
+    s.finish()
+    s.poll()
+    assert s.compiles == 1
+    s.text += 1
+    s.poll()
+    s.poll()
+    assert (s.builds, s.compiles) == (1, 2)
 
 
-def test_a_move_during_a_build_brings_one_more_build_right_after():
-    assert run(["a", "c", "c"], heads_after_build={1: "b"}) == ["a", "b", "c"]
+def test_head_moves_during_a_build_bring_one_more_after_it():
+    s = Script()
+    s.poll()
+    s.head = "b"
+    s.poll()
+    s.head = "c"
+    s.poll()
+    assert s.builds == 1
+    s.finish()
+    assert s.builds == 2
+    s.finish()
+    s.poll()
+    assert s.builds == 2
 
 
 def test_an_unreadable_head_builds_nothing():
-    assert run(["", "a", "", "a", "b"]) == ["a", "b"]
+    s = Script()
+    s.head = ""
+    s.poll()
+    assert s.builds == 0
+    s.head = "a"
+    s.poll()
+    s.finish()
+    s.head = ""
+    s.poll()
+    s.head = "a"
+    s.poll()
+    assert s.builds == 1
+
+
+def test_an_error_while_idle_is_reported():
+    s = Script()
+    s.poll()
+    s.finish()
+    s.result = LiveCompile(error="error: unclosed delimiter\n  paper.typ:12")
+    s.text += 1
+    s.poll()
+    assert any("paper.typ:12" in line for line in s.said)
+
+
+def test_an_error_during_a_full_build_waits_for_it_and_then_recompiles():
+    s = Script()
+    s.result = LiveCompile(error="error: file not found (build/figures/x.png)")
+    s.poll()
+    s.text += 1
+    s.poll()
+    assert not any("file not found" in line for line in s.said)
+    compiles = s.compiles
+    s.result = LiveCompile()
+    s.finish()
+    assert s.compiles == compiles + 1
+
+
+def test_an_edit_during_a_full_build_is_recompiled_after_it():
+    s = Script()
+    s.poll()
+    s.text += 1
+    s.poll()
+    compiles = s.compiles
+    s.finish()
+    assert s.compiles == compiles + 1
+
+
+def test_a_build_over_unchanged_text_brings_no_live_compile_after_it():
+    s = Script()
+    s.poll()
+    compiles = s.compiles
+    s.finish()
+    assert s.compiles == compiles
+
+
+def test_a_newly_missing_key_brings_a_full_build_once_the_text_settles():
+    s = Script()
+    s.poll()
+    s.finish()
+    s.result = LiveCompile(missing=frozenset({"new.key"}))
+    s.text += 1
+    s.poll()
+    s.poll(SETTLE - 2)
+    assert s.builds == 1
+    s.poll(2)
+    assert s.builds == 2
+
+
+def test_an_edit_restarts_the_settle_wait():
+    s = Script()
+    s.poll()
+    s.finish()
+    s.result = LiveCompile(missing=frozenset({"new"}))
+    s.text += 1
+    s.poll()
+    s.poll(SETTLE - 1)
+    s.text += 1
+    s.poll()
+    s.poll(SETTLE - 1)
+    assert s.builds == 1
+    s.poll(1)
+    assert s.builds == 2
+
+
+def test_a_key_missing_during_a_full_build_is_left_to_that_build():
+    s = Script()
+    s.result = LiveCompile(missing=frozenset({"new"}))
+    s.poll()
+    s.text += 1
+    s.poll()
+    s.finish()
+    s.text += 1
+    s.poll(SETTLE)
+    s.poll(SETTLE)
+    assert s.builds == 1
+
+
+def test_a_key_still_settling_when_head_moves_is_left_to_that_build():
+    s = Script()
+    s.poll()
+    s.finish()
+    s.result = LiveCompile(missing=frozenset({"new"}))
+    s.text += 1
+    s.poll()
+    s.head = "b"
+    s.poll()
+    s.finish()
+    s.poll(SETTLE)
+    assert s.builds == 2
+
+
+def test_a_key_brings_one_full_build_and_a_head_build_over_it_counts_as_that_one():
+    s = Script()
+    s.poll()
+    s.finish()
+    s.result = LiveCompile(missing=frozenset({"gone"}))
+    s.text += 1
+    s.poll(SETTLE)
+    s.poll(SETTLE)
+    assert s.builds == 2
+    s.finish()
+    s.text += 1
+    s.poll(SETTLE)
+    s.poll(SETTLE)
+    assert s.builds == 2
+    s.head = "b"
+    s.poll()
+    s.finish()
+    s.text += 1
+    s.poll(SETTLE)
+    s.poll(SETTLE)
+    assert s.builds == 3
+
+
+@pytest.fixture
+def paper_dir(tmp_path):
+    for name in ("apart.typ", "lib.typ", "refs.bib"):
+        shutil.copy(PAPER / name, tmp_path / name)
+    (tmp_path / "build").mkdir()
+    (tmp_path / "build" / "numbers.json").write_text("{}")
+    return tmp_path
+
+
+def test_a_live_compile_writes_the_draft_and_reads_back_its_missing_keys(paper_dir):
+    (paper_dir / "paper.typ").write_text(
+        '#import "lib.typ": *\n#show: apart.with(abstract: [x])\n#n("a.b")\n'
+    )
+    assert live_compile(paper_dir, None) == LiveCompile(missing=frozenset({"a.b"}))
+    assert (paper_dir / "build" / "DRAFT-paper.pdf").read_bytes().startswith(b"%PDF")
+
+
+def test_a_key_the_ledger_holds_as_a_pooled_count_is_not_missing_for_a_build(paper_dir):
+    pooled = {"kind": "pooled", "k": 3, "n": 4, "rate": 0.75, "cells": 2, "how": "", "source": {}}
+    (paper_dir / "build" / "numbers.json").write_text(json.dumps({"p": pooled}))
+    (paper_dir / "paper.typ").write_text('#import "lib.typ": *\n#show: apart.with(abstract: [x])\n#ci("p")\n')
+    assert live_compile(paper_dir, None) == LiveCompile()
+
+
+def test_a_live_compile_that_fails_keeps_the_last_draft(paper_dir):
+    (paper_dir / "build" / "DRAFT-paper.pdf").write_bytes(b"the last good one")
+    (paper_dir / "paper.typ").write_text('#import "lib.typ": *\n#nonsense\n')
+    result = live_compile(paper_dir, None)
+    assert "nonsense" in result.error
+    assert (paper_dir / "build" / "DRAFT-paper.pdf").read_bytes() == b"the last good one"
 
 
 def test_a_repo_with_no_commit_yet_reads_as_no_head(tmp_path):

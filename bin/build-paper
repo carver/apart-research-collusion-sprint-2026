@@ -3,6 +3,6 @@
 # compiles it and checks it against the sprint's rules.
 #   bin/build-paper           # the draft: paper/build/DRAFT-paper.pdf, and a PNG of each page
 #   bin/build-paper --final   # the submission: paper/zerocommcartel.pdf, only when every check passes
-#   bin/build-paper watch     # the draft now, then again each time HEAD moves; Ctrl-C stops it
+#   bin/build-paper watch     # the draft now, recompiled on each save and rebuilt each time HEAD moves
 #   bin/build-paper -h
 cd "$(dirname "${BASH_SOURCE[0]}")/.." && exec uv run -q python -m paper "$@"

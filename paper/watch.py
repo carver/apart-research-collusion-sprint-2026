@@ -1,52 +1,203 @@
-"""bin/build-paper watch: rebuilds the draft whenever the repo's HEAD moves."""
+"""bin/build-paper watch: recompiles the draft from the last build's ledger each time the paper's text
+changes, and rebuilds it in full each time the repo's HEAD moves or the text cites a key the ledger lacks."""
 
 import argparse
+import contextlib
+import json
 import subprocess
 import sys
 import time
-from collections.abc import Callable
+import traceback
+from collections.abc import Callable, Hashable
+from dataclasses import dataclass
 from pathlib import Path
-from typing import NoReturn
+from typing import Protocol
 
+import typst
+
+from paper.build import DRAFT_NAME, stamp, write_atomic
 from paper.git import Repo
+from paper.typeset import paper_compiler
+
+ABSENT = "not in the ledger"  # paper/lib.typ's reason for a key the ledger has no entry under
 
 
-def watch(head: Callable[[], str], rebuild: Callable[[str], None], wait: Callable[[], None]) -> NoReturn:
-    """Builds for the commit `head()` names, then again each time it names another; `wait()` between polls."""
-    built = ""
-    while True:
-        commit = head()
-        if commit and commit != built:
-            built = commit
-            rebuild(commit)
-        else:
-            wait()
+@dataclass(frozen=True)
+class LiveCompile:
+    """One live compile: the keys the text cites and the ledger lacks, or Typst's error (no PDF then)."""
+
+    missing: frozenset[str] = frozenset()
+    error: str = ""
 
 
-def rebuild_draft(repo: Repo, commit: str) -> None:
-    """One draft build in a fresh process, so a commit that changes the paper's code takes effect."""
-    subject = repo.git("log", "-1", "--format=%s", commit).stdout.strip()
-    print(f"\n=== {time.strftime('%H:%M:%S')} HEAD {commit[:7]} {subject}: building", flush=True)
-    code = subprocess.run([sys.executable, "-m", "paper"], cwd=repo.root).returncode
-    if code:
-        print(f"=== build failed (exit {code}); still watching", flush=True)
+class FullBuild(Protocol):
+    """Full draft builds in the background, one at a time."""
+
+    def start(self) -> None: ...
+    def running(self) -> bool: ...
+
+
+class Watch:
+    """One `poll()` per tick: starts full builds and runs live compiles as HEAD and the sources move."""
+
+    def __init__(
+        self,
+        head: Callable[[], str],
+        sources: Callable[[], Hashable],
+        live: Callable[[], LiveCompile],
+        full: FullBuild,
+        now: Callable[[], float],
+        settle: float,
+        say: Callable[[str], None],
+    ) -> None:
+        self.head = head
+        self.sources = sources
+        self.live = live
+        self.full = full
+        self.now = now
+        self.settle = settle
+        self.say = say
+        self.commit = ""  # the HEAD the last full build was asked for
+        self.wanted = False  # a full build to start once none runs
+        self.building = False
+        self.built_over: Hashable = None  # the sources when the running full build started
+        # the sources the last live compile read; None: compile at the next poll
+        self.compiled: Hashable = None
+        self.retry = False  # a live compile failed during the running full build
+        self.seen: Hashable = None  # the sources at the last poll
+        self.edited = 0.0  # when the sources last changed
+        self.missing: frozenset[str] = frozenset()  # the keys the last live compile found missing
+        self.tried: set[str] = set()  # keys a full build ran over while the text cited them
+
+    def poll(self) -> None:
+        commit = self.head()
+        if commit and commit != self.commit:
+            self.commit, self.wanted = commit, True
+            self.tried.clear()
+        sources = self.sources()
+        if sources != self.seen:
+            self.seen, self.edited = sources, self.now()
+        if self.building and not self.full.running():
+            self.building = False
+            if self.retry or sources != self.built_over:
+                self.compiled = None  # the build typeset older text than the last live compile
+            self.retry = False
+        if self.missing - self.tried and self.now() - self.edited >= self.settle:
+            self.wanted = True
+        if self.wanted and not self.building:
+            self.wanted, self.building, self.built_over = False, True, sources
+            self.tried |= self.missing  # this build tries them
+            self.full.start()
+        if sources != self.compiled:
+            self.compile(sources)
+
+    def compile(self, sources: Hashable) -> None:
+        self.compiled = sources
+        result = self.live()
+        if result.error and self.building:
+            self.retry = True  # the build is rewriting the ledger and figures
+            return
+        if result.error:
+            self.say(f"live compile failed; the PDF keeps the last good one:\n{result.error}")
+            return
+        if self.building:
+            self.tried |= result.missing  # the running build tries every key the ledger can hold
+        self.missing = result.missing
+        shown = f": {', '.join(sorted(result.missing))}" if result.missing else ""
+        self.say(f"live: recompiled, {len(result.missing)} missing{shown}")
+
+
+def live_compile(paper_dir: Path, repo: Repo | None) -> LiveCompile:
+    """Compiles paper.typ against the ledger and figures the last full build left, and writes the draft."""
+    inputs = {"draft": "true", "stamp": f"{stamp(repo)} · live", "commit": repo.head() if repo else ""}
+    compiler = paper_compiler(paper_dir, inputs)
+    try:
+        pdf = compiler.compile(format="pdf")
+        missing = json.loads(compiler.query("<missing>", format="json"))
+    except typst.TypstError as error:
+        return LiveCompile(error=error.diagnostic or error.message)
+    if not isinstance(pdf, bytes):
+        return LiveCompile(error="Typst returned no PDF")
+    write_atomic(paper_dir / "build" / f"{DRAFT_NAME}.pdf", pdf)
+    # Only a key the ledger lacks can come from a build: a #ci on a pooled count is marked too
+    return LiveCompile(missing=frozenset(m["value"]["key"] for m in missing if m["value"]["why"] == ABSENT))
+
+
+class DraftBuilds:
+    """Full draft builds, each in a fresh process, so a commit that changes the paper's code takes effect."""
+
+    def __init__(self, repo: Repo, say: Callable[[str], None]) -> None:
+        self.repo = repo
+        self.say = say
+        self.process: subprocess.Popen[bytes] | None = None
+
+    def start(self) -> None:
+        subject = self.repo.git("log", "-1", "--format=%h %s").stdout.strip()
+        self.say(f"full build at HEAD {subject}")
+        self.process = subprocess.Popen([sys.executable, "-m", "paper"], cwd=self.repo.root)
+
+    def running(self) -> bool:
+        if self.process is None or self.process.poll() is None:
+            return self.process is not None
+        if self.process.returncode:
+            self.say(f"full build failed (exit {self.process.returncode}); still watching")
+        self.process = None
+        return False
+
+
+def source_stamps(paper_dir: Path) -> tuple[tuple[str, int], ...]:
+    """The files a live compile reads outside build/, with when each last changed."""
+    stamps = []
+    for file in sorted([*paper_dir.glob("*.typ"), *paper_dir.glob("*.bib")]):
+        with contextlib.suppress(FileNotFoundError):  # a save can replace a file between glob and stat
+            stamps.append((file.name, file.stat().st_mtime_ns))
+    return tuple(stamps)
+
+
+def say(line: str) -> None:
+    print(f"=== {time.strftime('%H:%M:%S')} {line}", flush=True)
 
 
 def main(argv: list[str], paper_dir: Path) -> int:
     parser = argparse.ArgumentParser(
         prog="build-paper watch",
-        description="Build the draft now, then again each time the repo's HEAD moves (a commit, checkout, "
-        "merge or rebase). A move during a build brings one more build after it. Ctrl-C stops it.",
+        description="Build the draft now, and keep paper/build/DRAFT-paper.pdf up to date. Each save of "
+        "paper.typ (or another .typ or .bib in paper/) recompiles it within a second or two, from the "
+        "numbers and figures of the last full build. A full build runs again each time the repo's HEAD "
+        "moves (a commit, checkout, merge or rebase), and when the text cites a key the ledger lacks, once "
+        "the text has been still for --settle seconds. Open the PDF in a viewer that reloads a changed "
+        "file (Skim, VS Code, Zathura; macOS Preview doesn't). Ctrl-C stops it.",
     )
     parser.add_argument(
-        "--interval", type=float, default=2.0, metavar="SECONDS", help="how often to read HEAD (default 2)"
+        "--interval", type=float, default=1.0, metavar="SECONDS", help="how often to look (default 1)"
+    )
+    parser.add_argument(
+        "--settle",
+        type=float,
+        default=5.0,
+        metavar="SECONDS",
+        help="how long the text must be still before a missing key brings a full build (default 5)",
     )
     args = parser.parse_args(argv)
     repo = Repo.of(paper_dir)
     if repo is None:
         print(f"build-paper watch: {paper_dir} is not in a git repository", file=sys.stderr)
         return 1
+    watch = Watch(
+        head=repo.head,
+        sources=lambda: source_stamps(paper_dir),
+        live=lambda: live_compile(paper_dir, repo),
+        full=DraftBuilds(repo, say),
+        now=time.monotonic,
+        settle=args.settle,
+        say=say,
+    )
     try:
-        watch(repo.head, lambda commit: rebuild_draft(repo, commit), lambda: time.sleep(args.interval))
+        while True:
+            try:
+                watch.poll()
+            except Exception:  # a watcher left running for hours outlives a full disk or a Typst panic
+                say(f"watch hit an error; still watching:\n{traceback.format_exc()}")
+            time.sleep(args.interval)
     except KeyboardInterrupt:
         return 0

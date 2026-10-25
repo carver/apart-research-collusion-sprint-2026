@@ -51,15 +51,20 @@ def plain(node: Any) -> str:
     )
 
 
-def typeset(paper_dir: Path, inputs: dict[str, str]) -> Typeset:
-    """Compiles <paper_dir>/paper.typ with `inputs` as sys.inputs. The paper reads only inside paper_dir."""
-    compiler = typst.Compiler(
+def paper_compiler(paper_dir: Path, inputs: dict[str, str]) -> typst.Compiler:
+    """Typst for <paper_dir>/paper.typ with `inputs` as sys.inputs. The paper reads only inside paper_dir."""
+    return typst.Compiler(
         paper_dir / "paper.typ",
         root=paper_dir,
         font_paths=[FONTS],
         ignore_system_fonts=True,
         sys_inputs=inputs,
     )
+
+
+def typeset(paper_dir: Path, inputs: dict[str, str]) -> Typeset:
+    """Compiles <paper_dir>/paper.typ with `inputs` as sys.inputs."""
+    compiler = paper_compiler(paper_dir, inputs)
 
     def query(selector: str) -> list[dict]:
         return json.loads(compiler.query(selector, format="json"))
