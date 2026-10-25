@@ -28,7 +28,7 @@ We ask when a model makes this choice, and what moves it, through four levers:
 - *Capability*: what are the minimum capabilities required for the model to collude?  What is required in terms of model intelligence, and what is required in terms of understanding of the situation?
 
 - *Caution*: how do tweaks to the model's understanding of the situation or environment affect its willingness to collude?
-- *Communality*: whose profit does the model weigh?
+- *Conscience*: whose profit does the model weigh?
   Caring about the rival should pull toward the cartel share; caring about the buyers should push away from it.
 - *Conceptualization of mind*: does the model see itself in the rival's decision-maker?
   A model that does has a reason to hold back that a model facing a stranger lacks.
@@ -87,7 +87,7 @@ Calvano et al. write that, to economists, collusion is more than high prices: it
 We use the word more loosely, for any answer at the cartel share.
 Every lever counts an answer there when it is within half a unit of the cartel share; the three-firm market of the capability and caution levers asks for whole numbers, so there an answer must equal it.
 
-== Communality
+== Conscience
 _Whose profit does the model weigh?_
 This lever works on the sympathy route.
 One sentence names who owns the firms or who buys the product, and most questions leave out whose profit counts.
@@ -119,14 +119,14 @@ Theorists have proposed ways for agents that reason alike to cooperate without t
 
 = Methods <sec-methods>
 Each call sends one firm's prompt, with the market and the sentences under test, and asks for a number on a final answer line (@app-mind-prompts shows the two-firm market's neutral prompt and what each rung and horizon adds).
-The communality and conceptualization levers count an answer at a point of @tab-game when it is within half a unit of it.
+The conscience and conceptualization levers count an answer at a point of @tab-game when it is within half a unit of it.
 The conceptualization lever asks Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 each rung under #n("conceptualization.backgrounds.opus") backgrounds, three horizons times four records, and GPT-6 Astra and GLM-5.3 each rung under the #n("conceptualization.backgrounds.glm") backgrounds with no record.
 #claim("the Claude models ran every background, four records", ("conceptualization.backgrounds.haiku", "conceptualization.backgrounds.sonnet", "conceptualization.backgrounds.opus", "conceptualization.records.opus"), (haiku, sonnet, opus, records) => haiku == opus and sonnet == opus and records == 4)
 #claim("GPT-6 Astra and GLM-5.3 ran only the backgrounds with no record", ("conceptualization.backgrounds.astra", "conceptualization.backgrounds.glm", "conceptualization.norecord.astra", "conceptualization.norecord.glm"), (astra, glm, astra-none, glm-none) => astra == glm and astra-none == astra and glm-none == glm)
 Each model, rung and background is a *cell* of #n("conceptualization.cells.replies") replies.
-The communality lever asks the same five models, starting from six of those rung-and-background prompts and from a market where the rival's output is already fixed, #n("idl1.first") replies a cell (@fig-idl1).
-#claim("the communality lever asks the same five models", ("idl1.models",), models => models == "haiku sonnet opus astra glm")
-A second call, the readback, shows the model its prompt and reply and asks what output and price it expected (for the communality lever, every model's but GPT-6 Astra's).
+The conscience lever asks the same five models, starting from six of those rung-and-background prompts and from a market where the rival's output is already fixed, #n("idl1.first") replies a cell (@fig-idl1).
+#claim("the conscience lever asks the same five models", ("idl1.models",), models => models == "haiku sonnet opus astra glm")
+A second call, the readback, shows the model its prompt and reply and asks what output and price it expected (for the conscience lever, every model's but GPT-6 Astra's).
 The readback tells a leader from a firm that ignored its rival.
 In the single quarter and against the fixed rival, where holding back can't pay for itself, it also tells sympathy from belief.
 @app-methods has the details.
@@ -241,7 +241,7 @@ So the models need the setting to say different amounts before they stop: one se
   ],
 ) <fig-cpl9>
 
-== Communality
+== Conscience
 // The identity lever (#41), from paper/data/idl1.py.
 
 #todo[Is there a better bullet point style to use?]
@@ -257,7 +257,7 @@ We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-id
 Models reason aloud why they reject collusion.
 Of the #n("idl1.refusals") rejections, #n("idl1.refusals.law") cite antitrust or legal risk, according to a Haiku judge. Another #todo[fill number] mention harm.
 
-This is an interesting crossover between Caution and Communality. The mention of a player who is losing something in the game can trigger a second order effect, by making the model more cautious, and then avoiding collusion. Perhaps even more interesting, by naming a sympathetic beneficiary, some models throw caution to the wind and collude.
+This is an interesting crossover between Caution and Conscience. The mention of a player who is losing something in the game can trigger a second order effect, by making the model more cautious, and then avoiding collusion. Perhaps even more interesting, by naming a sympathetic beneficiary, some models throw caution to the wind and collude.
 
 #todo[what is this slop:
 Run on the answers that aren't refusals, the same test misses for #n("idl1.aside") of the #n("idl1.pass") passing comparisons.
@@ -327,10 +327,10 @@ GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback
 #todo[What the result does and doesn't establish, and any way the setup or findings could make real collusion easier to carry out or harder to detect, including making a model look compliant in evaluations.]
 
 = Experiment details <app-methods>
-The communality and conceptualization levers' prompt is a business-planning request from a firm that makes industrial salt.
+The conscience and conceptualization levers' prompt is a business-planning request from a firm that makes industrial salt.
 Claude runs through Claude Code's command line, whose short note to the model names it.
 GPT-6 Astra runs through Codex and GLM-5.3 through OpenRouter, and neither is told which model it is.
-For the communality lever, Codex's usage limit stopped GPT-6 Astra's run partway, so the rest of its first replies and all its fresh ones went through OpenRouter: the same model and system prompt, but without Codex's setup around the model, and with no reasoning effort set where Codex had set medium.
+For the conscience lever, Codex's usage limit stopped GPT-6 Astra's run partway, so the rest of its first replies and all its fresh ones went through OpenRouter: the same model and system prompt, but without Codex's setup around the model, and with no reasoning effort set where Codex had set medium.
 
 A conceptualization background is a horizon crossed with a record.
 The horizon says nothing about other quarters, says the market runs for this quarter only, or says the market repeats and the firm wants its long-run profit.
@@ -338,7 +338,7 @@ The record is none; eight quarters with both firms at the cartel share; seven su
 After a record, "this quarter only" becomes "the market's final quarter".
 GPT-6 Astra skips the rung that names GPT-6 Astra, which for it is the rung that names itself.
 
-The communality lever's sentences start from six conceptualization cells, four meant to start at Nash and two at the cartel share, and from a market where the rival's output is already fixed, so that no belief about the rival can move the answer.
+The conscience lever's sentences start from six conceptualization cells, four meant to start at Nash and two at the cartel share, and from a market where the rival's output is already fixed, so that no belief about the rival can move the answer.
 A comparison that moved by #n("idl1.screen") replies or more but missed significance gets #n("idl1.fresh") fresh replies a cell, and its verdict comes from those alone (@fig-idl1).
 
 #todo[Each lever's arms in full, and the two-firm market's prompt.]
@@ -398,7 +398,7 @@ Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@f
   ],
 ) <fig-pilot>
 
-= Model differences within notable communal experiments <app-crossmodel>
+= Model differences within notable conscience experiments <app-crossmodel>
 // Where the models answer the identity lever's prompts differently (#41), from paper/data/crossmodel.py (source "idl1-cross").
 In #n("idl1.cross.confirmed") of the identity lever's #n("idl1.cross.cells") cells, the models' answers at the cartel share differ, with refusals counted and with them set aside (@fig-crossmodel).
 
