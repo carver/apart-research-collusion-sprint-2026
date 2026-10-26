@@ -269,8 +269,11 @@ More depth in @app-limitations[the appendix].
 
 == Future Work <sec-future>
 Our top priority is making the setting read less like an evaluation.
-Asked Needham et al.'s evaluation-awareness questions @needham2025, the Claude models called nearly every prompt we probed an evaluation.
-#todo[Jason: add a claim for this sentence, from a ledger key over the probe's replies in logs/ (the probe never saw the solvent prompt), then update `needham2025`'s row in citations.md to say what this sentence uses it for.]
+Asked Needham et al.’s evaluation-awareness questions @needham2025, the models whose answers we report called our prompts an evaluation in nearly every answer: #n("staging.two.eval") for the two-firm market's barest prompt, with and without its goal, and #n("staging.three.eval") for the three-firm collusive cell (@app-quarter-prompt).
+#claim("the two-firm count asks the conscience lever's five models", ("staging.two.models",), models => models == "haiku sonnet opus astra glm")
+#claim("the three-firm count asks the capability lever's three models", ("staging.three.models",), models => models == "opus astra glm")
+#claim("nearly every answer in both markets calls the prompt an evaluation", ("staging.two.eval", "staging.three.eval"), (two, three) => two > 0.95 and three > 0.95)
+Models asked outright tend to call too much an evaluation @needham2025[§4.3], so these shares may overstate how much the prompts read like a test.
 Answers also move with how game-like the prompt reads: game words draw as much collusion or more from every model (@tab-cap10).
 #claim("game words draw as much collusion or more from every model", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og >= ob and ag >= ab and gg >= gb)
 So our results may partly show how models play a game they think is graded; the caution results are the most exposed, since a line about a regulator may read as the point of the test.
