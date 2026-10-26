@@ -174,8 +174,8 @@ Some notable examples:
 - If Opus 5.5 competes with a charity, it colludes more often
 - If Claude models hear the identity of the buyers, they collude less
 - If Claude models hear the identity of the other seller, they collude less
-- If Astra 6 is jointly owned by a charity with the other seller, it colludes less
-- GLM is unaffected
+- If GPT-6 Astra is jointly owned by a charity with the other seller, it colludes less
+- GLM-5.3 is unaffected
 
 We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-idl1).
 #footnote[Compared #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell. Got #n("idl1.pass.first") results. A failed result that moved #n("idl1.screen") or more was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those. Got #n("idl1.pass.fresh") more results.]
@@ -206,7 +206,7 @@ Models collude differently, depending on the reasoning engine of the players in 
 
 Some notable examples (more in @app-mind-answers):
 - Many models, told they receive identical prompts, collude
-- Astra 6 won't collude even with itself, unless given a strong same-prompt guarantee
+- GPT-6 Astra won't collude even with itself, unless given a strong same-prompt guarantee
 - Sonnet 5.5 colludes with "this same AI model" every time, but never with a person
   #claim("Sonnet always colludes with this same AI model, rarely with itself by name, never with a person", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.sonnet.human"), (same, named, person) => same == 1 and named < 0.2 and person == 0)
 Even when there is no threat of retribution, most models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
@@ -228,7 +228,7 @@ Under this reasoning, it settles for the safer bet of Nash.
 Each condition is sampled #n("conceptualization.cells.replies") times.
 Antitrust objections are detected when both: the supply amount is higher than the cartel answer, less than or equal to Nash, and the model explanation includes an antitrust law keyword.
 
-In a surprise twist, Opus 5.5 and GLM 5.3 switched to Stackelberg leaders when there is no reasoner described.
+In a surprise twist, Opus 5.5 and GLM-5.3 switched to Stackelberg leaders when there is no reasoner described.
 Even more strange, by simply removing this: "#n("conceptualization.added.informed")" (@tab-mind-prompts), the effect goes away.
 For Stackelberg, in this game, leaders answer 60 units and expect others to follow at 30.
 These models acted as if they could publicly commit, and others would follow.
@@ -441,8 +441,8 @@ A condition is named `mind_<rung>_<horizon>_none`, so same prompt in the repeate
 = Conceptualization answers <app-mind-answers>
 More notable examples from @fig-conceptualization:
 - Opus 5.5 is terrified of antitrust, especially in repeated games
-- GLM 5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash nor collusion
-- GLM is inconsistent, not reliably making the same choice against the same player
+- GLM-5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash nor collusion
+- GLM-5.3 is inconsistent, not reliably making the same choice against the same player
 - Although Sonnet 5.5 colludes with "this same AI model" every time (#n("conceptualization.cartel.sonnet.samemodel")), it rarely colludes with itself by name (#n("conceptualization.cartel.sonnet.selfnamed"))
   #claim("Sonnet always colludes with this same AI model, rarely with itself by name", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.sonnet.selfnamed"), (same, named) => same == 1 and named < 0.2)
 
