@@ -33,9 +33,9 @@ We explore when a model chooses the cartel share, and what moves it, through fou
   What is required in terms of model intelligence, and what is required in terms of understanding of the situation?
 - *Caution*: how do tweaks to the model's understanding of the situation or environment affect its willingness to collude?
 - *Conscience*: whose profit does the model weigh?
-  Caring about the rival should pull toward the cartel share; caring about the buyers should push away from it.
-- *Conceptualization of mind*: does the model see itself in the rival's decision-maker?
-  A model that does has a reason to hold back that a model facing a stranger lacks.
+  How does a sympathetic rival or buyer impact willingness to collude?
+- *Conceptualization of mind*: how does the model's picture of its rival's decision-maker affect its willingness to collude?
+    Does seeing the rival as a copy of itself let it collude without a history or future?
 
 Our main contributions are:
 + A cross-model analysis of four levers on collusion when an AI model advises a firm without communicating with its rivals: capability, caution, conscience and conceptualization of mind.
@@ -43,9 +43,7 @@ Our main contributions are:
   #claim("the stronger models always find the cartel share, the weaker ones often don't", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint", "cap9.commandr.joint", "cap9.llama8b.joint"), (o, a, g, c, l) => o == 1 and a == 1 and g == 1 and c < 0.75 and l < 0.75)
   #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
   #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
-+ Model families differ: Claude, GPT-6 Astra and GLM-5.3 respond to different cues.
-  #claim("the tacit-cartel label halts Opus's collusion and raises Astra's", ("cpl9.opus.none_none_cartel", "cpl9.astra.none_none_cartel", "cpl9.astra.none_none_none"), (opus, astra, control) => opus == 0 and astra > control)
-  #claim("GLM-5.3 holds under every single sentence and stops when cues stack", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => r.pos().slice(0, -1).all(x => x > 0.5) and r.pos().last() == 0)
++ Self-recognition is a back door: told its rival is a copy, a model colludes from the first round, with no history or future.
 
 = The collusion game <sec-game>
 Our experiments describe a market in which firms sell an identical product, and ask the model how much one firm should produce.
