@@ -294,6 +294,7 @@ See #link("https://github.com/carver/apart-research-collusion-sprint-2026")[gith
 - Models asked outright tend to call too much an evaluation @needham2025[§4.3], so the shares in @sec-future may overstate how much our prompts read like a test.
   Answers also move with how game-like the prompt reads: game words draw as much collusion or more from every model (@tab-cap10).
   #claim("game words draw as much collusion or more from every model", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og >= ob and ag >= ab and gg >= gb)
+- Two runs that the abstract and Conclusion cite, the game-like first version of the caution sentences and the sprint's provider line (@app-capcaution), tell the model in its system prompt that it is "taking part in a market simulation", a cue that the market isn't real which our other prompts leave out, so they may say less about a deployment.
 - The same-prompt effect appears when the prompt tells the model that its rival gets the same prompt. We did not test copies that aren't told, and we don't know how often deployed copies are, so the effect in practice may need a model that infers its rival is a copy on its own.
 
 == Dual-Use / Ethical Considerations
