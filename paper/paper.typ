@@ -355,9 +355,12 @@ In repeated multi-product Cournot competition, LLM agents divide the markets bet
 Agents that see how similar they are can sustain cooperation without talking @oesterheld2023.
 LLMs coordinate on focal points without communicating, often as well as humans, and models of one family coordinate better with each other than with models of other families @aharon2026.
 Even under different prompts, deployments of one base model make weakly correlated choices that deployments of different models don't @xu2026.
+In theory, rivals that run the same model in a repeated Kyle market can net its habits out of each other's orders and so catch cheating that noisy prices would hide, which enlarges the set of markets where tacit collusion holds compared with rivals on different models @yun2026; there the shared model works only through monitoring over repeated rounds, untested in that paper's lab, while here copies coordinate in a single round.
 Told to maximize their own points, and nothing about who the other player is, recent models defect in single-shot social dilemmas @tewolde2026.
 Copies of a model that coordinate without a channel are also a concern for AI control, since doing so is among the abilities a model may need to subvert a control protocol @mallen2024.
 Other prompts against collusion have had mixed effects: told to avoid collusion, GPT-5.4 priced at Nash while a small distilled model raised its prices, and telling the distilled pricing agents they were monitored generally lessened their collusion only marginally @riemer2026.
+In Liar's Bar, Claude Sonnet 5 accepted a neutrally worded secret channel with another player in every reply, but refused it, and a secret hint, in every reply once one sentence said an external evaluator could, or could not, inspect its decision @zeng2026; there, Claude Opus 5 accepted less under either sentence, and least when the evaluator could inspect, while GPT-5.6 Sol and GPT-5.5 ignored the sentence.
+Here, a sentence that nobody watches all but ends Opus 5.5's and GPT-6 Astra's collusion in our business wording, though not in our game-like wording.
 Collusion among LLM agents in repeated pricing also weakens when they differ, as when one is told to ignore the future or can't see its rival's past prices, though not when they differ only in size @keppo2026; there, an instruction to avoid collusion also ends it, while here a sentence that only names a competition authority all but ends Opus's and Astra's.
 
 = Experiment details <app-methods>
