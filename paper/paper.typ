@@ -204,18 +204,11 @@ The remaining #n("idl1.aside.held") are Astra and Haiku's PE experiment.
 
 Models collude differently, depending on the reasoning engine of the players in the game.
 
-Some notable examples #todo[link to appendix: maybe a new one or an existing? there are items ready to move below]:
+Some notable examples (more in @app-mind-answers):
 - Many models, told they receive identical prompts, collude
 - Astra 6 won't collude even with itself, unless given a strong same-prompt guarantee
 - Sonnet 5.5 colludes with "this same AI model" every time, but never with a person
   #claim("Sonnet always colludes with this same AI model, rarely with itself by name, never with a person", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.sonnet.human"), (same, named, person) => same == 1 and named < 0.2 and person == 0)
-
-#todo[move these to the appendix mentioned above]
-- Opus 5.5 is terrified of antitrust, especially in repeated games
-- GLM 5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash nor collusion
-- GLM is inconsistent, not reliably making the same choice against the same player
-- Although Sonnet 5.5 colludes with "this same AI model" every time (#n("conceptualization.cartel.sonnet.samemodel")), it rarely with itself by name (#n("conceptualization.cartel.sonnet.selfnamed"))
-
 Even when there is no threat of retribution, most models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
 Across the three horizons, Sonnet and GLM-5.3 also collude with "this same AI model" (#n("conceptualization.cartel.sonnet.samemodel") and #n("conceptualization.cartel.glm.samemodel") replies), but rarely when the prompt names that same rival (#n("conceptualization.cartel.sonnet.selfnamed") and #n("conceptualization.cartel.glm.selfnamed")), though GLM-5.3 may not know its own name.
 #claim("only Sonnet and GLM mostly collude with this same AI model, and both rarely do when it is named", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.glm.samemodel", "conceptualization.cartel.haiku.samemodel", "conceptualization.cartel.opus.samemodel", "conceptualization.cartel.astra.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.glm.selfnamed"), (s, g, h, o, a, sn, gn) => s > 0.5 and g > 0.5 and h < 0.5 and o < 0.5 and a < 0.5 and sn < 0.2 and gn < 0.2)
@@ -446,6 +439,13 @@ A condition is named `mind_<rung>_<horizon>_none`, so same prompt in the repeate
 ) <tab-mind-prompts>
 
 = Conceptualization answers <app-mind-answers>
+More notable examples from @fig-conceptualization:
+- Opus 5.5 is terrified of antitrust, especially in repeated games
+- GLM 5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash nor collusion
+- GLM is inconsistent, not reliably making the same choice against the same player
+- Although Sonnet 5.5 colludes with "this same AI model" every time (#n("conceptualization.cartel.sonnet.samemodel")), it rarely colludes with itself by name (#n("conceptualization.cartel.sonnet.selfnamed"))
+  #claim("Sonnet always colludes with this same AI model, rarely with itself by name", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.sonnet.selfnamed"), (same, named) => same == 1 and named < 0.2)
+
 #figure(
   data-table("conceptualization-answers-table"),
   caption: [
