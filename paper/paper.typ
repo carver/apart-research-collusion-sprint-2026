@@ -146,9 +146,9 @@ The base prompt, which leaves that sentence out too, sits apart.
 The closer the rival is to the model itself, the stronger the pull toward the cartel share should be.
 That's only true, though, if the model can reason about making its own choice and the choice of the other simultaneously.
 This circular logic trick is an important back door to kickstarting collusion in a base case, even without a shared history.
-It might alternatively reason about its best reply to the the other, and then settle into Nash, which is also a symmetric Schelling point.
+It might alternatively reason about its best reply to the other, and then settle into Nash, which is also a symmetric Schelling point.
 
-To break out of this circular logic, we can test what happens when only one model gets an extension of mutually same prompt that its rival expects.
+To break out of this circular logic, we can test what happens when only one model gets an extra line after the same prompt that its rival expects.
 Will it exploit?
 
 = Results
@@ -288,11 +288,12 @@ Some notable examples:
 - GLM is inconsistent, not reliably making the same choice against the same player
 - Many models, told they receive identical prompts, collude
 - Opus 5.5 is terrified of antitrust, especially in repeated games
-- GLM 5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash or collusion
+- GLM 5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash nor collusion
 
 Even when there is no threat of retribution, most models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
+Many even coordinate on just the promise of the same model.
 Astra though, points to the fact that the rival using the same model "does not itself establish coordination or guarantee identical answers to different prompts".
-Under this reasoning, it tends to settle for the safer bet of Nash.
+Under this reasoning, it settles for the safer bet of Nash.
 
 #figure(
   data-figure("conceptualization-figure", width: 100%),
@@ -303,7 +304,7 @@ Under this reasoning, it tends to settle for the safer bet of Nash.
 ) <fig-conceptualization>
 
 Each condition is sampled #n("conceptualization.cells.replies") times.
-Antitrust objections are detected when both: the result amount is not the cartel answer, and the model explanation includes an antitrust law keyword.
+Antitrust objections are detected when both: the supply amount is higher than the cartel answer, less than or equal to Nash, and the model explanation includes an antitrust law keyword.
 
 In a surprise twist, Opus 5.5 and GLM 5.3 switched to Stackelberg leaders when there is no reasoner described.
 Even more strange, by simply removing this: "#n("conceptualization.added.informed")" (@tab-mind-prompts), the effect goes away.
