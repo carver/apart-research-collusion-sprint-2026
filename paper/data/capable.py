@@ -11,7 +11,7 @@ where a reply with no answer is neither."""
 from collections.abc import Iterable
 from typing import Any
 
-from matplotlib.patches import Patch, Rectangle
+from matplotlib.patches import Patch
 from matplotlib.ticker import PercentFormatter
 from matplotlib.transforms import offset_copy
 
@@ -108,9 +108,9 @@ def style(ax: Any) -> None:
 
 def draw_capability(ax: Any, dots: list[dict]) -> None:
     """One dot per model: across, its share of answers at 20 to the joint question; up, to its own decision;
-    each with its 95% Wilson interval as a band. The plot and the image are square, with one scale on both
-    axes, so the two shares compare directly. Every dot sits at its shares; where dots share one across, their
-    bands up and down sit side by side."""
+    each with its 95% Wilson interval as a band. The plot is square, with one scale on both axes, so the two
+    shares compare directly. Every dot sits at its shares; where dots share one across, their bands up and
+    down sit side by side."""
     fig = ax.figure
     ax.set_position((0.15, 0.15, 0.8, 0.8))
     ax.set_aspect("equal")
@@ -170,11 +170,6 @@ def draw_capability(ax: Any, dots: list[dict]) -> None:
     ax.set_title("Knowing vs choosing cartel share", fontsize=8, color=INK, fontweight="bold")
     ax.set_xlabel("finds the cartel share when asked for the joint optimum", fontsize=7, color=MUTED)
     ax.set_ylabel("produces exactly the cartel share itself", fontsize=7, color=MUTED)
-    # the saved image is square too: an invisible square around all of it, which the tight crop keeps
-    box = ax.get_tightbbox().transformed(fig.dpi_scale_trans.inverted())
-    side = max(box.width, box.height)
-    corner = (box.x0 - (side - box.width) / 2, box.y0 - (side - box.height) / 2)
-    fig.add_artist(Rectangle(corner, side, side, transform=fig.dpi_scale_trans, fill=False, linewidth=0))
 
 
 def draw_history_horizon(ax: Any, cells: dict[tuple[str, str, str], dict]) -> None:
