@@ -49,61 +49,30 @@ Our main contributions are:
 + Self-recognition is a back door: told its rival is a copy, most models collude from the first round, with no history or future.
 
 = The collusion game <sec-game>
-Our two markets share one price rule: a unit sells for \$#n("game.a") minus the firms' total output, and costs \$#n("game.c") to make.
-The conscience and conceptualization levers ask about a market of two firms, and the capability and caution levers about one of three.
-We score each reply against the points in @tab-game.
-@app-game derives them, along with the three reasons, or *routes*, a firm might hold back at the cartel share: the mirror, the future and sympathy.
-
-#figure(
-  data-table("game-table"),
-  caption: [
-    The points we score answers against.
-    _This firm_ is the one the model advises, and the row names what it does; when it cashes in, its rival stays at the cartel share.
-  ],
-) <tab-game>
-
-The two points that matter are Nash, where no firm gains by changing its own output alone, and the cartel share, which makes the most profit for the firms together: #n("game.three.nash.mine") and #n("game.three.cartel.mine") units with three firms, and #n("game.two.nash.mine") and #n("game.two.cartel.mine") with two.
-The other rows exploit the rivals, cashing in on rivals that hold to the cartel share or leading a rival that follows, and in the three-firm market the stronger models almost always answer Nash or the cartel share.
-#claim("the stronger models answer the cartel share or Nash", ("cap8.cartel-or-nash", "cap9.strong.own.cartel-or-nash"), (grid, own) => grid > 0.95 and own > 0.95)
-We call an answer at the cartel share collusion, more loosely than economists, for whom collusion also needs a scheme of reward and punishment that makes the high prices each firm's best play rather than a mistake @calvano2020.
+Our markets share one price rule: a unit sells for \$#n("game.a") minus the firms' total output, and costs \$#n("game.c") to make.
+Two outputs matter.
+At *Nash*, no firm gains by changing its own output alone: #n("game.three.nash.mine") units each with three firms, and #n("game.two.nash.mine") with two.
+The *cartel share* is an even split of the output that makes the most profit for the firms together: #n("game.three.cartel.mine") units each with three firms, and #n("game.two.cartel.mine") with two.
+Importantly, if the others output the cartel share, each individual firm would gain by producing more.
+We call an answer at the cartel share collusion, accepting that this usage is looser than economists would use the term.
 
 = Related Work <sec-related>
-Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents.
-LLM pricing agents in a repeated market reach prices above the competitive level without being told to collude @fish2024, and in repeated Cournot markets with several products, LLM agents divide the products between them @lin2024 @bracalesyrnikov2026.
-In double auctions, messages between sellers raise collusion, and without them sellers did not price above the competitive level after the first ten rounds @agrawal2025.
-All these agents play many rounds and see prices or messages come back, so a firm can punish a rival's defection in the rounds that follow.
+Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents in repeated markets @fish2024, Cournot markets among them @bracalesyrnikov2026; in double auctions, messages between sellers raise collusion further @agrawal2025.
+All these agents play many rounds, so a firm can punish a rival's defection in the rounds that follow.
 Ours play one round, and share at most the model and its prompt.
 
-Theorists have proposed ways for agents that reason alike to cooperate without talking: each asks what the pair should do @gold2007, or programs read each other's code @tennenholtz2004 or a score of how similar they are @oesterheld2023.
-LLMs coordinate on focal points without communicating, often as well as humans, and models of one family coordinate better with each other than with models of other families @aharon2026.
-Told only that they face another player, recent models defect in single-shot social dilemmas @tewolde2026, but most cooperate in a one-shot prisoner's dilemma when told their opponent's decision-making is highly similar to theirs, though models differ widely @kundu2026.
-Copies of a model that coordinate without a channel are also a concern for AI control, since doing so is among the abilities a model may need to subvert a control protocol @mallen2024.
+Agents that see how similar they are can sustain cooperation without talking @oesterheld2023, and most LLMs cooperate in a one-shot prisoner's dilemma when told their opponent's decision-making is highly similar to theirs @kundu2026.
 Our conceptualization lever carries this into a market: it tells the model who decides for the rival firm, up to a copy of itself.
 
-Prompts against collusion have had mixed effects in repeated markets.
-Told to avoid collusion, GPT-5.4 priced at Nash while a small distilled model raised its prices, and telling the distilled models they were monitored lessened their collusion only marginally @riemer2026.
-In a Cournot market, a rule that forbade collusion and warned of monitoring did not reliably reduce it @bracalesyrnikov2026.
-Collusion also weakens when the agents differ, as when one ignores the future or cannot see its rival's past prices @keppo2026.
-Our caution lever tests such sentences in a single round, where the sentence is all that differs between two prompts, and our conscience lever asks whose profit the model weighs.
+In a repeated Cournot market, a rule that forbade collusion and warned of monitoring did not reliably reduce it @bracalesyrnikov2026.
+Our caution lever tests such sentences in a single round, where the sentence is all that differs between two prompts.
+@app-related covers more related work.
 
 = Methods <sec-methods>
-Each reply comes from one call that asks the model, as one firm, how much to produce this quarter, and to give a number on a final answer line.
-The firms never interact: whatever the model knows of its rivals, past quarters and quarters to come is a few sentences in its prompt.
-So we choose the record and the horizon (@app-game), and each lever adds its sentences to a prompt that otherwise stays fixed.
-
-The capability and caution levers ask about three companies that make industrial solvent, told as a business's quarter with no game, simulation or goal (@app-quarter-prompt).
-Its record is no earlier quarter or one at the cartel share.
-Our first, game-like prompt for this market put Opus and Astra at the cartel share in nearly every reply (@tab-cap10), leaving a sentence no room to raise collusion.
-#claim("the game-like prompt puts Opus and Astra at the ceiling", ("cap10.opus.standard-game-text", "cap10.astra.standard-game-text"), (opus, astra) => opus > 0.95 and astra > 0.95)
-The conscience and conceptualization levers ask about two firms that make industrial salt, in a business-planning request whose records run to eight quarters (@app-mind-prompts).
-In both markets the horizon says the market goes on, says this quarter is the last, or says nothing.
-
-We ask Claude Opus 5.5, GPT-6 Astra and GLM-5.3 in every lever, Claude Haiku 5.5 and Sonnet 5.5 in the two-firm market, and Command R and Llama 3.1 8B as weaker models for capability.
-A *cell* is one model asked one prompt: #n("capable.cells.replies") replies in the three-firm market, and #n("conceptualization.cells.replies") in the two-firm one, where the conscience lever adds fresh replies to retest a cell.
-An answer counts at a point of @tab-game when it equals it in the three-firm market, which asks for whole numbers, and when it is within half a unit of it in the two-firm market.
-In the two-firm market a second call, the readback, shows the model its prompt and reply and asks what output and price it expected.
-It tells a leader from a firm that ignored its rival, and, where holding back can't pay for itself, sympathy from belief.
-@app-methods gives each lever's prompts, models and cells in full.
+Each reply is one independent call: the model, advising or running one firm, says how much to produce this quarter and gives a number on a final answer line.
+The firms never interact: the rivals, any past quarters and any to come are sentences in the prompt, and each lever adds its sentences to a prompt that otherwise stays fixed.
+The levers use two markets with the price rule of @sec-game, written separately: three companies making solvent for capability and caution, and two firms making salt for conscience and conceptualization (@tab-markets compares their prompts).
+We ask Claude Opus 5.5, GPT-6 Astra and GLM-5.3 in every lever, Claude Haiku 5.5 and Sonnet 5.5 in the two-firm market, and Command R and Llama 3.1 8B as weaker models for capability, with #n("capable.cells.replies") replies a *cell* (one model, one prompt) in the three-firm market and #n("conceptualization.cells.replies") in the two-firm one.
 
 == Capability Experiments
 _What capabilities does a model need before it can collude?_
@@ -171,7 +140,7 @@ A few key insights:
   column-gutter: 1.5em,
   [
     *Intelligence.*
-    Asked for the output that makes the three companies the most profit together, the stronger models correctly answer #n("game.three.cartel.mine") every time (@fig-cap9).
+    Asked for the output that makes the three companies the most profit together, our positive control, the stronger models correctly answer #n("game.three.cartel.mine") every time (@fig-cap9).
     Asked what their own company should produce, they choose it less often: Opus in #n("cap9.opus.own") replies, Astra in #n("cap9.astra.own") and GLM-5.3 in #n("cap9.glm.own"), and #n("cap9.strong.own.cartel-or-nash") of their replies are the cartel share or Nash, #n("game.three.nash.mine").
     No model chooses the cartel share more often than it can find it.
     #claim("every model produces the cartel share less often than it finds it", ("cap9.opus.own", "cap9.opus.joint", "cap9.astra.own", "cap9.astra.joint", "cap9.glm.own", "cap9.glm.joint", "cap9.commandr.own", "cap9.commandr.joint", "cap9.llama8b.own", "cap9.llama8b.joint"), (oo, oj, ao, aj, go, gj, co, cj, lo, lj) => oo < oj and ao < aj and go < gj and co < cj and lo < lj)
@@ -190,7 +159,7 @@ A few key insights:
 
 *Context.*
 Whether the stronger models choose the cartel share depends on the context, in the direction a repeated game predicts (@fig-cap8).
-They collude when their context includes a previous round of collusion and many more rounds to come, implying that the others are likely to keep colluding, and seldom otherwise.
+They collude when their context includes a previous round of collusion and many more rounds to come (the own-question prompt above), implying that the others are likely to keep colluding, and seldom otherwise.
 #claim("each model colludes after a previous round with many more to come, and seldom otherwise", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
 When nothing is said about future rounds, Opus chooses it in #n("cap8.opus.cartel.none") replies, Astra in #n("cap8.astra.cartel.none") and GLM-5.3 in #n("cap8.glm.cartel.none").
 #claim("few collude when told nothing of the future", ("cap8.opus.cartel.none", "cap8.astra.cartel.none", "cap8.glm.cartel.none", "cap8.opus.cartel.long", "cap8.astra.cartel.long", "cap8.glm.cartel.long"), (on, an, gn, ol, al, gl) => on < ol and an < al and gn < gl and on < 0.3 and an < 0.3 and gn < 0.3)
@@ -198,14 +167,6 @@ Without a previous round of collusion, Opus and Astra never choose it, whatever 
 #claim("only GLM-5.3 starts a cartel", ("cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.first.long"), (ol, on, ox, al, an, ax, gl) => ol == 0 and on == 0 and ox == 0 and al == 0 and an == 0 and ax == 0 and gl > 0)
 Nearly every other answer is Nash.
 #claim("nearly every answer is the cartel share or Nash", ("cap8.cartel-or-nash",), (both) => both > 0.95)
-
-#figure(
-  data-figure("cap8-figure", width: 88%),
-  caption: [
-    Replies at the cartel share, by collusion history (rows) and game length (columns).
-    Whiskers: 95% Wilson intervals.
-  ],
-) <fig-cap8>
 
 == Caution
 // The compliant criterion (#40), from paper/data/compliant.py; the detail is in the appendix, "Capability and caution in detail".
@@ -398,6 +359,14 @@ If a firm expects its rival to predict its output and then make its own best rep
 A firm that plans as if it were alone in the market also picks #n("game.two.naive"), so the number alone can't tell the two apart.
 #claim("a firm alone picks the leader's output", ("game.two.naive", "game.two.leader.mine"), (alone, lead) => alone == lead)
 
+#figure(
+  data-table("game-table"),
+  caption: [
+    The points we score answers against.
+    _This firm_ is the one the model advises, and the row names what it does; when it cashes in, its rival stays at the cartel share.
+  ],
+) <tab-game>
+
 Since cashing in pays, a firm needs a reason to *hold back* at the cartel share.
 We see three, which we call routes.
 The first is the *mirror*: if a firm expects its rival to make whatever it makes, only equal splits are possible, and the best of them is the cartel share.
@@ -421,7 +390,38 @@ A record is a few sentences in the prompt, so we choose where the induction star
 
 Every lever counts an answer at the cartel share when it is within half a unit of it; the three-firm market of the capability and caution levers asks for whole numbers, so there an answer must equal it.
 
+= More related work <app-related>
+In repeated multi-product Cournot competition, LLM agents divide the markets between them @lin2024 @bracalesyrnikov2026.
+LLMs coordinate on focal points without communicating, often as well as humans, and models of one family coordinate better with each other than with models of other families @aharon2026.
+Told only that they face another player, recent models defect in single-shot social dilemmas @tewolde2026.
+Copies of a model that coordinate without a channel are also a concern for AI control, since doing so is among the abilities a model may need to subvert a control protocol @mallen2024.
+Other prompts against collusion have had mixed effects: told to avoid collusion, GPT-5.4 priced at Nash while a small distilled model raised its prices, and telling the distilled models they were monitored lessened their collusion only marginally @riemer2026.
+Collusion among LLM agents also weakens when they differ, as when one ignores the future or can't see its rival's past prices @keppo2026; that fragility comes from differences between agents, where ours comes from one sentence.
+
 = Experiment details <app-methods>
+#figure(
+  table(
+    columns: (auto, 1fr, 1fr),
+    align: left,
+    table.header([], strong[Three firms: capability, caution], strong[Two firms: conscience, conceptualization]),
+    [The model is], [the production manager, who decides], [a business-planning assistant advising the firm's planner (a few conscience arms run the firm)],
+    [Firms and product], [three named companies; industrial solvent, in tonnes], [two unnamed firms; industrial salt, in units],
+    [The question], [how much to produce, with no goal stated], [how much to produce to maximize the firm's profit; most conscience questions leave the goal out],
+    [The answer], [a whole number from 0 to 60, on a `DECISION` line], [any number, on a `QUANTITY` line],
+    [Record], [none, or one quarter at the cartel share], [none, or eight quarters: at the cartel share, at Nash, or ending in the rival's cheating],
+    [Horizon], [many more quarters, none, or unsaid], [the market repeats, this quarter only, or unsaid],
+    [At a point of @tab-game when], [equal to it], [within half a unit of it],
+    [Replies a cell], [#n("capable.cells.replies")], [#n("conceptualization.cells.replies")],
+    [Readback], [no], [yes],
+  ),
+  caption: [
+    The two markets' prompts.
+    Both use the price rule and cost of @sec-game.
+  ],
+) <tab-markets>
+
+The markets differ in the model's role, the stated goal and the wording as well as in size, so we compare arms within a market, never across.
+
 Claude runs through Claude Code's command line, whose short note to the model names it.
 GPT-6 Astra runs through Codex at medium reasoning effort, and GLM-5.3, Command R and Llama 3.1 8B through OpenRouter at temperature 1.0; none of them is told which model it is.
 For the conscience lever, Codex's usage limit stopped GPT-6 Astra's run partway, so the rest of its first replies and all its fresh ones went through OpenRouter: the same model and system prompt, but without Codex's setup around the model, and with no reasoning effort set where Codex had set medium.
@@ -430,6 +430,8 @@ For the conscience lever, Codex's usage limit stopped GPT-6 Astra's run partway,
 The capability and caution levers' market is three companies that make industrial solvent, and the model is the production manager at one of them, Alder Industries (@app-quarter-prompt).
 The prompt gives the price rule and the cost, says the companies decide privately and at the same time and do not communicate, and asks for a whole number of tonnes from 0 to 60.
 It never mentions a game, a simulation, rounds or a goal, or who decides for the rivals.
+Our first, game-like prompt for this market put Opus and Astra at the cartel share in nearly every reply (@tab-cap10), leaving a sentence no room to raise collusion, so we tell the market as a business.
+#claim("the game-like prompt puts Opus and Astra at the ceiling", ("cap10.opus.standard-game-text", "cap10.astra.standard-game-text"), (opus, astra) => opus > 0.95 and astra > 0.95)
 Its record is no earlier quarter, or one in which every company made the cartel share, with the price and Alder's profit.
 Its horizon sentence says there will be many more quarters after this one, or none, and that all three companies know this, or is left out.
 The capability lever asks the collusive cell, one quarter at the cartel share with many more to come, two questions: how much Alder produces, and, in the same words, how much each company should produce to maximize the three companies' combined profit.
@@ -439,6 +441,8 @@ We ran each combination, #n("capable.cells.replies") replies a cell for single s
 
 *The two-firm market.*
 The conscience and conceptualization levers' prompt is a business-planning request from a firm that makes industrial salt.
+A second call, the readback, shows the model its prompt and reply and asks what output and price it expected.
+It tells a Stackelberg leader from a firm that ignored its rival, and, in the single quarter or against a fixed rival, where holding back can't pay for itself, sympathy from belief.
 A conceptualization background is a horizon crossed with a record.
 The horizon says nothing about other quarters, says the market runs for this quarter only, or says the market repeats and the firm wants its long-run profit.
 The record is none; eight quarters with both firms at the cartel share; seven such quarters, then one in which the rival cheated; or eight quarters with both at Nash.
@@ -453,8 +457,6 @@ The conscience lever asks the same five models, #n("idl1.first") replies a cell.
 Its sentences start from six conceptualization cells, four meant to start at Nash and two at the cartel share, and from a market where the rival's output is already fixed, so that no belief about the rival can move the answer.
 A comparison that moved by #n("idl1.screen") replies or more but missed significance gets #n("idl1.fresh") fresh replies a cell, and its verdict comes from those alone (@fig-idl1).
 Its readback covers every model's replies but GPT-6 Astra's.
-
-#todo[Each lever's arms in full, and the two-firm market's prompt.]
 
 = The three-firm prompt <app-quarter-prompt>
 The capability and caution levers' collusive cell, one quarter at the cartel share with many more to come, as the command on its first line prints it.
@@ -503,6 +505,14 @@ A condition is named `mind_<rung>_<horizon>_none`, so same prompt in the repeate
 
 = Capability and caution in detail <app-capcaution>
 // The detail behind the capability and caution results (#39, #40), from paper/data/capable.py and compliant.py.
+#figure(
+  data-figure("cap8-figure", width: 88%),
+  caption: [
+    Replies at the cartel share, by collusion history (rows) and game length (columns).
+    Whiskers: 95% Wilson intervals.
+  ],
+) <fig-cap8>
+
 *Wording.*
 Our business wording doesn't inflate the capability results.
 Told in a game's words, Firms A, B and C making units over rounds, the same market gets as much collusion or more from every model, and takes Astra from #n("cap10.astra.business") replies at the cartel share to #n("cap10.astra.game-words") (@tab-cap10).
