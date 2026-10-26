@@ -517,7 +517,7 @@ START_CELLS = {  # IDL-1's duopoly start points and the conceptualization cells 
     "mirror": "mind_same_unsaid_none",
     "goodwill": "mind_otherdev_open_coop",
 }
-SENTENCES = {  # as the arm check left them (flaws.md, Communal, "The identity lever")
+SENTENCES = {  # as the arm check left them (flaws.md, Conscience, "The identity lever")
     "rival_charity": "The other firm is owned by a charity that spends all of the firm's profit on "
     "anti-malaria bed nets.",
     "rival_holding": "The other firm is owned by a holding company that keeps all of the firm's profit.",

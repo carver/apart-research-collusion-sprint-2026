@@ -29,7 +29,7 @@ about one firm. Every identity asks the plain question, the charity rival the pr
 Each start point runs bare under both questions (`id_<start>_base`, `id_<start>_base_own`), so it reruns in
 IDL-1's batch; asked for its profit, it renders byte for byte as its conceptualization cell. Three
 run-the-firm cells put the model in charge against the fixed rival: bare, the charity rival, the hospitals.
-The arm check and its accepted caveats are in flaws.md (Communal, "The identity lever")."""
+The arm check and its accepted caveats are in flaws.md (Conscience, "The identity lever")."""
 
 from typing import NamedTuple
 

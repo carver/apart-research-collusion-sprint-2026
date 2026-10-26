@@ -12,7 +12,7 @@ The report keeps the two apart.
 Ran on 2026-10-24 in three passes, as more wordings came up, with --reps 2; written as a throwaway in a
 session's scratchpad and moved here unchanged but for where its log goes. A fourth pass on 2026-10-25 added
 `solvent`, and a fifth asked GPT-6 Astra and GLM-5.3 about the three prompts the paper's experiments ran
-(`--models astra glm --wordings salt salt_plain solvent`). Results: flaws.md (Communal, "The identity
+(`--models astra glm --wordings salt salt_plain solvent`). Results: flaws.md (Conscience, "The identity
 lever"); the paper's Future Work cites the binary answers about the prompts its experiments ran
 (paper/data/staging.py).
 Each row of logs/staging_probe/results.jsonl is one call: wording, model, pq (the question), rep, label (the

@@ -1,7 +1,7 @@
 """IDL-1. The identity lever (#41): one sentence saying who a party is (the other firm's owner, my firm's, one
 owner over both, the buyers, a harm sentence, a law pair), from start points where the models reliably answer
 Nash or the cartel share. The cells are in zerocommcartel/criteria/communal/identity.py, the arm check in
-flaws.md (Communal, "The identity lever"). Its own log reruns every start point in the same batch.
+flaws.md (Conscience, "The identity lever"). Its own log reruns every start point in the same batch.
 
     uv run python experiments/idl1_identity_lever.py --dry-run                    # count the calls, make none
     uv run python experiments/idl1_identity_lever.py --models haiku sonnet opus   # Claude first
