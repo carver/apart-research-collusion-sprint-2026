@@ -297,6 +297,7 @@ Astra seems to "believe" that it is likely to defect against itself: a self-fulf
     Blue: answers at the cartel share, with a 95% Wilson interval over #n("conceptualization.cells.replies") replies a cell.
     Gray, stacked on it: antitrust objections, answers off the cartel share and at or below Nash whose reply cites antitrust law (a keyword check).
     Such answers are #n("conceptualization.refusals.opus") of Opus's answers off the cartel share and at or below Nash, #n("conceptualization.refusals.haiku") of Haiku's, #n("conceptualization.refusals.sonnet") of Sonnet's, #n("conceptualization.refusals.astra") of GPT-6 Astra's and #n("conceptualization.refusals.glm") of GLM-5.3's.
+    Orange, stacked on top: Stackelberg leaders, answers at 60 whose readback expects the other firm to follow at 30, for a price of \$40.
     #n("conceptualization.caption.named")
     The prompts are in @app-mind-prompts.
   ],

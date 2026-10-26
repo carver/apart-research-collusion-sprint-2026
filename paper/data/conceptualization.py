@@ -4,11 +4,12 @@ appendix, from the rows `zcc table conceptualization` counts.
 The lever figure (`conceptualization-figure`, `<fig-conceptualization>`) follows each model along the lever,
 the rungs from a rival that asks this same model with this same prompt to a person, under its title
 (`TITLE`): a row per horizon with no record of past play (`ORDER`), a column per model, a bar per rung. A bar
-is the share of answers at the cartel share, with its 95% Wilson whisker, and the antitrust refusals stacked
-on it in gray. A refusal is an answer off the cartel share, at or below Nash, whose reply cites the law
-(`zerocommcartel.mentions.MENTIONS["antitrust"]`): a keyword check, read by hand on samples (flaws.md,
-"Conceptualization"). Each model's refusals, of its answers off the cartel share, are keys too, so the caption
-can word them model by model.
+is the share of answers at the cartel share, with its 95% Wilson whisker, the antitrust refusals stacked on it
+in gray, and the Stackelberg leaders on those in orange. A refusal is an answer off the cartel share, at or
+below Nash, whose reply cites the law (`zerocommcartel.mentions.MENTIONS["antitrust"]`): a keyword check, read
+by hand on samples (flaws.md, "Conceptualization"). A leader is an answer at 60 whose readback leads a rival
+that follows (`readback.sixty_kind`). Each model's refusals, of its answers off the cartel share, are keys
+too, so the caption can word them model by model.
 
 The prompts appendix (`<app-mind-prompts>`) gives the neutral prompt in full, as `zcc show` prints it under
 the command, and a table of what each of the lever figure's rungs and rows adds to it, diffed from the
@@ -86,10 +87,12 @@ RUNG_LABELS = {
     "nevercoop": "won’t coop.",
 }
 GRID, MUTED, SHADE = "#e0e0e0", "#52514e", "#f4f3ef"
-AT_CARTEL, OBJECTION = "#2a78d6", "#92918c"  # dataviz blue; a gray that clears 3:1 on white
+# dataviz blue; a gray that clears 3:1 on white; dataviz orange
+AT_CARTEL, OBJECTION, LEADER = "#2a78d6", "#92918c", "#eb6834"
 LAW = re.compile(MENTIONS["antitrust"], re.I)
 NO_RECORD = {name(rung, horizon, "none"): (rung, horizon) for rung in RUNGS for horizon in HORIZONS}
 OWN_CELLS = {name(*cell): cell for cell in CELLS}  # each own-number arm's (rung, horizon, record)
+Reader = Callable[[dict], Readback | None]  # a reply's readback, if it has one
 
 
 @dataclass(frozen=True)
@@ -104,6 +107,7 @@ STYLE = Style()
 class Count(NamedTuple):
     cartel: int  # answers at the cartel share
     refusal: int  # answers that refuse on antitrust grounds
+    leader: int  # answers at 60 whose readback leads a rival that follows
     n: int  # parsed answers
 
 
@@ -132,14 +136,25 @@ def shown(style: Style) -> set[str]:
     return {condition for condition, (rung, _) in NO_RECORD.items() if rung in style.rungs}
 
 
-def counts(rows: list[dict], style: Style) -> dict[tuple[str, str, str], Count]:
+def leads(row: dict, got: Readback | None) -> bool:
+    """An answer at 60 whose readback expects the other firm at 30 and a price of $40: a Stackelberg
+    leader."""
+    return row["value"] is not None and near(row["value"], SIXTY) and sixty_kind(got) == "leading"
+
+
+def counts(rows: list[dict], read: Reader, style: Style) -> dict[tuple[str, str, str], Count]:
     """The own-number arms the figure draws, per model, rung and horizon."""
     cells: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
     for row in rows:
         if row["condition"] in shown(style) and row["model"] in MODELS and row["value"] is not None:
             cells[(row["model"], *NO_RECORD[row["condition"]])].append(row)
     return {
-        cell: Count(sum(map(at_cartel, found)), sum(map(refuses, found)), len(found))
+        cell: Count(
+            sum(map(at_cartel, found)),
+            sum(map(refuses, found)),
+            sum(leads(r, read(r)) for r in found),
+            len(found),
+        )
         for cell, found in cells.items()
     }
 
@@ -147,6 +162,7 @@ def counts(rows: list[dict], style: Style) -> dict[tuple[str, str, str], Count]:
 class Bar(NamedTuple):
     cartel: float  # the share at the cartel share
     objection: float  # the share of antitrust refusals, stacked on it
+    leader: float  # the share of Stackelberg leaders, stacked on those
     low: float  # the cartel share's 95% Wilson interval
     high: float
 
@@ -156,7 +172,8 @@ def heights(data: FigureData, model: str, horizon: str) -> list[Bar | None]:
     a bar at 0%."""
     found = [data.counts.get((model, rung, horizon)) for rung in data.style.rungs]
     return [
-        Bar(c.cartel / c.n, c.refusal / c.n, *wilson(c.cartel, c.n)) if c and c.n else None for c in found
+        Bar(c.cartel / c.n, c.refusal / c.n, c.leader / c.n, *wilson(c.cartel, c.n)) if c and c.n else None
+        for c in found
     ]
 
 
@@ -194,15 +211,16 @@ def caption_named(style: Style) -> str:
 
 
 SEGMENT = {"width": 0.7, "edgecolor": "white", "linewidth": 0.5}  # the white edge parts stacked segments
-# dataviz blue 700: the whisker belongs to the blue segment, even where it crosses the gray
+# dataviz blue 700: the whisker belongs to the blue segment, even where it crosses the gray or the orange
 WHISKER_INK = "#0d366b"
 WHISKER = {"fmt": "none", "ecolor": WHISKER_INK, "elinewidth": 0.6, "capsize": 1.2, "capthick": 0.6}
 
 
 def draw(ax: Any, data: FigureData) -> None:
     """The title, then a row per horizon and a column per model with data. Each panel has a bar per rung: the
-    share at the cartel share with its 95% Wilson whisker, and the antitrust refusals stacked on it in gray.
-    Replaces the one axes `figure()` gives with its own grid on the same figure."""
+    share at the cartel share with its 95% Wilson whisker, the antitrust refusals stacked on it in gray, and
+    the Stackelberg leaders on those in orange. Replaces the one axes `figure()` gives with its own grid on
+    the same figure."""
     fig, style = ax.figure, data.style
     ax.remove()
     models = [m for m in MODELS if any(cell[0] == m for cell in data.counts)]
@@ -225,10 +243,11 @@ def draw(ax: Any, data: FigureData) -> None:
         Patch(color=AT_CARTEL, label="at the cartel share"),
         Line2D([], [], color=WHISKER_INK, label="95% interval", **whisker),
         Patch(color=OBJECTION, label="antitrust objection"),
+        Patch(color=LEADER, label="Stackelberg leader"),
     ]
     fig.suptitle(TITLE, fontsize=9.5, color=INK, fontweight="bold", y=1.09)
     fig.legend(
-        handles=handles, loc="upper center", ncol=3, fontsize=7, frameon=False, bbox_to_anchor=(0.5, 1.05)
+        handles=handles, loc="upper center", ncol=4, fontsize=7, frameon=False, bbox_to_anchor=(0.5, 1.05)
     )
 
 
@@ -239,6 +258,7 @@ def draw_panel(panel: Any, bars: list[Bar | None], style: Style) -> None:
             continue
         panel.bar(x, bar.cartel, color=AT_CARTEL, **SEGMENT)
         panel.bar(x, bar.objection, bottom=bar.cartel, color=OBJECTION, **SEGMENT)
+        panel.bar(x, bar.leader, bottom=bar.cartel + bar.objection, color=LEADER, **SEGMENT)
         below, above = bar.cartel - bar.low, bar.high - bar.cartel
         panel.errorbar(x, bar.cartel, yerr=[[below], [above]], **WHISKER)
     mark_neutral(panel, style)
@@ -263,12 +283,12 @@ def mark_neutral(panel: Any, style: Style) -> None:
 HOW = (
     f"own-number arms with no record ({', '.join(HORIZON_LABELS[h] for h in ORDER)}), at the cartel share "
     "= within 0.5 of 30; a refusal = an answer off the cartel share, at or below Nash, whose reply cites the "
-    "law"
+    "law; a leader = an answer within 0.5 of 60 whose readback expects the other firm at 30 and $40"
 )
 
 
-def fill(ledger: Ledger, rows: list[dict], style: Style = STYLE) -> None:
-    found = counts(rows, style)
+def fill(ledger: Ledger, rows: list[dict], read: Reader, style: Style = STYLE) -> None:
+    found = counts(rows, read, style)
     ledger.figure("conceptualization-figure", draw, FigureData(found, style), how=HOW, size=(6.5, 4.4))
     ledger.value(
         "conceptualization.caption.layout", caption_layout(style), how="the caption's layout, from STYLE"
@@ -301,7 +321,6 @@ def bar_condition(arm: str, horizon: str) -> str:
 
 BAR_OF = {bar_condition(arm, h): (arm, h) for arm in BARS for h in HORIZONS}  # condition -> (arm, horizon)
 EXPLOIT, OTHER = "#e34948", "#e4e3df"  # dataviz red and a neutral gray, beside the blue at the cartel share
-Reader = Callable[[dict], Readback | None]  # a reply's readback, if it has one
 
 
 @dataclass(frozen=True)
@@ -529,7 +548,7 @@ def fill_sixties(ledger: Ledger, rows: list[dict], read: Reader, style: Style = 
     )
 
 
-# The sources. The extra-chance figure and the answers at 60 read the readback cache.
+# The sources. The lever figure, the extra-chance figure and the answers at 60 read the readback cache.
 
 
 def reader(why: str) -> Reader:
@@ -544,8 +563,9 @@ def reader(why: str) -> Reader:
 
 @source("conceptualization")
 def conceptualization(ledger: Ledger) -> None:
+    read = reader("the lever figure reads its Stackelberg leaders through the readbacks")
     rows = cli.replies(REGISTRY, "conceptualization", None, list(NO_RECORD), list(MODELS)).rows
-    fill(ledger, rows)
+    fill(ledger, rows, read)
 
 
 @source("conceptualization-extra")

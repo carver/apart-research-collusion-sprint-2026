@@ -1,5 +1,8 @@
 """The paper's conceptualization source, on fixture rows (no test reads the real logs): what counts as an
-antitrust refusal, the ledger it fills, the figure under each style, and the prompts appendix."""
+antitrust refusal and as a Stackelberg leader, the ledger it fills, the figure under each style, and the
+prompts appendix."""
+
+import re
 
 import pytest
 
@@ -10,6 +13,7 @@ from paper.data.conceptualization import (
     ExtraStyle,
     FigureData,
     Style,
+    counts,
     exploits,
     extra_splits,
     fill,
@@ -70,9 +74,13 @@ ROWS = [
 ]
 
 
+def unread(row):
+    return None
+
+
 def test_fill_draws_the_figure_and_counts_each_models_refusals(tmp_path):
     ledger = Ledger(tmp_path)
-    fill(ledger, ROWS)
+    fill(ledger, ROWS, unread)
     entries = ledger.entries
     assert entries["conceptualization-figure"]["kind"] == "figure"
     assert (tmp_path / "conceptualization-figure.svg").exists()
@@ -89,7 +97,7 @@ def test_fill_draws_the_figure_and_counts_each_models_refusals(tmp_path):
 
 def test_the_replies_a_cell_read_as_one_number_when_every_cell_has_the_same(tmp_path):
     ledger = Ledger(tmp_path)
-    fill(ledger, [r for r in ROWS if r["model"] == "opus"])
+    fill(ledger, [r for r in ROWS if r["model"] == "opus"], unread)
     assert ledger.entries["conceptualization.cells.replies"]["value"] == "3"
 
 
@@ -97,14 +105,14 @@ def test_the_caption_numbers_count_only_the_rungs_the_figure_shows(tmp_path):
     rows = [row(model="opus", rung="informed", value=40.0, reply=LAW, sample=s) for s in range(3)]
     rows += [row(model="opus", rung="samemodel", value=40.0, sample=3)]
     ledger = Ledger(tmp_path)
-    fill(ledger, rows, Style(rungs=tuple(rung for rung in STYLE.rungs if rung != "informed")))
+    fill(ledger, rows, unread, Style(rungs=tuple(rung for rung in STYLE.rungs if rung != "informed")))
     refusals = ledger.entries["conceptualization.refusals.opus"]
     assert (refusals["k"], refusals["n"]) == (0, 1)
     assert ledger.entries["conceptualization.cells.replies"]["value"] == "1"
 
 
 def svg(tmp_path, style):
-    fill(Ledger(tmp_path), ROWS, style)
+    fill(Ledger(tmp_path), ROWS, unread, style)
     return (tmp_path / "conceptualization-figure.svg").read_text()
 
 
@@ -123,6 +131,26 @@ def test_the_default_figure_shows_five_rungs(tmp_path):
     assert "own prompt" not in drawn and "sibling" not in drawn and "won’t coop." not in drawn
 
 
+def test_the_legend_names_the_stackelberg_leaders(tmp_path):
+    assert "Stackelberg leader" in svg(tmp_path, STYLE)
+
+
+def tall(drawn, colour):
+    """The shapes filled with `colour` that have a height: a zero-height bar is drawn too, but flat."""
+    paths = re.findall(rf'<path d="([^"]*)"[^>]*fill: {colour}', drawn)
+    return sum(len({y for y in re.findall(r"[ML] [\d.]+ ([\d.]+)", d)}) > 1 for d in paths)
+
+
+def test_a_cell_with_leaders_draws_an_orange_segment(tmp_path):
+    rows = [row(rung="informed", value=60.0, sample=s) for s in range(2)]
+    drawn = {}
+    for name, read in (("led", lambda r: Readback(30, 40)), ("unread", unread)):
+        (tmp_path / name).mkdir()
+        fill(Ledger(tmp_path / name), rows, read)
+        drawn[name] = (tmp_path / name / "conceptualization-figure.svg").read_text()
+    assert tall(drawn["led"], "#eb6834") == tall(drawn["unread"], "#eb6834") + 1
+
+
 def test_the_neutral_rung_can_be_a_soft_dashed_line(tmp_path):
     assert "stroke-dasharray" in svg(tmp_path, Style(neutral="dashed"))
 
@@ -134,7 +162,7 @@ def test_the_rungs_on_x_can_be_chosen(tmp_path):
 
 def caption(tmp_path, style, part):
     ledger = Ledger(tmp_path)
-    fill(ledger, ROWS, style)
+    fill(ledger, ROWS, unread, style)
     return ledger.entries[f"conceptualization.caption.{part}"]["value"]
 
 
@@ -163,13 +191,27 @@ def test_the_caption_explains_astras_missing_bar_only_when_its_named_rung_is_sho
 
 
 def test_a_bar_stacks_the_objections_on_the_cartel_share_whose_interval_it_carries():
-    found = {("opus", "same", "open"): Count(10, 0, 10), ("opus", "none", "open"): Count(0, 3, 10)}
+    found = {("opus", "same", "open"): Count(10, 0, 0, 10), ("opus", "none", "open"): Count(0, 3, 0, 10)}
     same, gap, none = heights(FigureData(found, Style(rungs=("same", "sibling", "none"))), "opus", "open")
     assert gap is None  # a cell without replies leaves a gap, not a zero
     assert (same.cartel, same.objection, same.high) == (1.0, 0.0, 1.0)
     assert same.low == pytest.approx(0.7225, abs=1e-4)  # Wilson 95% for 10 of 10
     assert (none.cartel, none.objection, none.low) == (0.0, 0.3, 0.0)
     assert none.high == pytest.approx(0.2775, abs=1e-4)
+
+
+def test_a_leader_answers_60_and_its_readback_expects_the_rival_at_30():
+    rows = [row(rung="informed", value=60.0, sample=s) for s in range(4)]
+    rows += [row(rung="informed", value=40.0, sample=4)]  # expects the rival at 30, but answers Nash
+    reads = {0: Readback(30, 40), 1: Readback(60, 10), 2: Readback(0, 70), 4: Readback(30, 40)}  # 3: unread
+    found = counts(rows, lambda r: reads.get(r["sample"]), STYLE)
+    assert found[("opus", "informed", "unsaid")] == Count(cartel=0, refusal=0, leader=1, n=5)
+
+
+def test_a_bar_stacks_the_leaders_on_the_objections():
+    found = {("opus", "informed", "unsaid"): Count(1, 2, 7, 10)}
+    (bar,) = heights(FigureData(found, Style(rungs=("informed",))), "opus", "unsaid")
+    assert (bar.cartel, bar.objection, bar.leader) == (0.1, 0.2, 0.7)
 
 
 # The prompts appendix
