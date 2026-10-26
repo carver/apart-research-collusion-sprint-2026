@@ -113,9 +113,20 @@ def pilot(ledger: Ledger) -> None:
     sizes = [len(rows) for (arm, _, _), rows in grouped.items() if arm in ARMS]
     ledger.value("pilot.cells.fewest", min(sizes), how="replies in the smallest cell of the figure")
     ledger.value("pilot.cells.most", max(sizes), how="replies in the largest cell of the figure")
+    fill_prompts(ledger)
+
+
+def fill_prompts(ledger: Ledger) -> None:
+    """The same-prompt arm's prompt for two firms, and the provider's line that `same_sys` adds to its system
+    prompt, verbatim."""
     prompt = render(Condition({"disclosure": "same"}), 2, CORE_SLOTS)
     ledger.text(
         "pilot.prompt.same.n2",
         f"System prompt:\n{prompt.system}\n\nUser prompt:\n{prompt.user}",
         how="zerocommcartel.prompt.render, which renders the pilot's prompt byte for byte (test_prompt.py)",
+    )
+    ledger.text(
+        "pilot.prompt.provider",
+        CORE_SLOTS["system"].levels["provider"].text,
+        how="the pilot's provider line (pilot/probe.py's DEFENCE), as zerocommcartel.prompt carries it",
     )
