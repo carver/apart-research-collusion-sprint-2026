@@ -89,11 +89,10 @@ From here we experimented along three axes: level of oversight specified in prom
 == Conscience Experiments
 _Will a model collude more or less, based on the identities of human players?_
 In a duopoly, the two sellers can collude to win at the expense of the buyers, by producing less.
-Three different game contexts are offered: a repeated game, a one-round game, and an unidentified game.
+The sentences start from six contexts, named as in @fig-idl1: four meant to start at Nash (_no repeat mentioned_; a _one-round game_; a _repeated game_; and _competition history_, a repeated game after quarters at Nash) and two meant to start at the cartel share (_same prompt_, where both firms get the same prompt, and _collusion history_, a repeated game against another developer's model after quarters at the cartel share).
 Most questions leave out whose profit counts, besides identifying the agent as assisting a seller.
 
-Just the production number can't distinguish sympathy from expectations: choosing the cartel share is also a firm's selfish best reply to a rival it expects at #n("game.two.naive").
-So we also ask the model what it expected the rival to produce.
+Just the production number can't distinguish sympathy from expectations: choosing the cartel share is also a firm's selfish best reply to a rival it expects at #n("game.two.naive"), so we also read the replies for their reasons.
 
 == Conceptualization Experiments
 _Will a model collude more or less, based on who is the reasoning rival?_
@@ -171,22 +170,26 @@ We add one sentence at a time to the own-output prompt of @fig-cap9, where, with
 == Conscience
 // The identity lever (#41), from paper/data/idl1.py.
 
-Models collude differently, depending on the human identities of the players in the game.
+Models collude differently when told who the buyers or owners are, or that holding back raises the buyers' price (@fig-idl1).
+- From the two cartel-share starts, any added sentence moves Opus into antitrust refusals: a buyer named, a price sentence, an odd detail about the rival.
+  Haiku also drops on that odd detail and, in the repeated game, when a holding company owns its firm.
+  #claim("Opus leaves the cartel-share starts on a buyer, the price sentence and the odd detail, and Haiku on the odd detail and a holding company, none of them held without refusals", ("idl1.pass.which", "idl1.aside.held.which"), (which, held) => { let found = ("opus:id_mirror_buyers_distributors", "opus:id_mirror_price", "opus:id_goodwill_buyers_distributors", "opus:id_goodwill_price", "opus:id_goodwill_electrical", "haiku:id_goodwill_electrical", "haiku:id_open_mine_holding"); found.all(t => t in which.split(" ") and not t in held.split(" ")) })
+- A sentence saying the buyers pay more takes every Claude model off the cartel share on at least one start, all into refusals.
+  #claim("the harm sentence moves every Claude model, all through refusals", ("idl1.pass.which", "idl1.aside.held.which"), (which, held) => { let harm = which.split(" ").filter(t => t.ends-with("_harm")); ("haiku", "sonnet", "opus").all(m => harm.any(t => t.starts-with(m + ":"))) and harm.all(t => not t in held.split(" ")) })
+- Among buyers, only private-equity-owned distributors move Haiku and Sonnet; children's hospitals and small towns move no Claude model.
+  #claim("among buyers only private-equity distributors move Haiku and Sonnet, and hospitals and towns move no Claude model", ("idl1.pass.which",), which => { let claude = which.split(" ").filter(t => ("haiku", "sonnet", "opus").any(m => t.starts-with(m + ":"))); ("haiku", "sonnet").all(m => (m + ":id_mirror_buyers_pe") in claude) and claude.filter(t => not t.starts-with("opus:") and t.contains("_buyers_")).all(t => t.ends-with("_buyers_pe")) and claude.all(t => not t.contains("hospitals") and not t.contains("towns")) })
+- A charity owner removes Sonnet's refusals (a charity owns its firm) and Opus's (a charity owns its rival) in the repeated game.
+  Their replies don't argue sympathy: Sonnet infers that the rival asks the same model, and Opus argues from future quarters.
+  #claim("a charity owner moves Sonnet (its own firm) and Opus (the rival) in the repeated game", ("idl1.pass.which",), which => ("sonnet:id_open_mine_charity", "opus:id_open_rival_charity").all(t => t in which.split(" ")))
+- GPT-6 Astra chooses the cartel share less often when small towns buy, with no reason in its replies, and the owner's joint optimum less often when one charity rather than one holding company owns both firms; with one owner, that output is not collusion between firms.
+  #claim("GPT-6 Astra moves on towns as buyers and on one charity owning both firms, without refusals", ("idl1.pass.which", "idl1.aside.held.which"), (which, held) => ("astra:id_goodwill_buyers_towns", "astra:id_open_both_charity").all(t => t in which.split(" ") and t in held.split(" ")) and which.split(" ").filter(t => t.starts-with("astra:")).len() == 2)
+- No GLM-5.3 comparison passes, and GLM-5.3 almost never refuses (#n("idl1.glm.refusals") of the replies the judge read).
+  #claim("no GLM-5.3 comparison passes, and GLM-5.3 almost never refuses", ("idl1.pass.which", "idl1.glm.refusals"), (which, refusals) => which.split(" ").all(t => not t.starts-with("glm:")) and refusals < 0.05)
 
-Some notable examples:
-- If Sonnet 5.5 acts for a charity, it colludes more often
-- If Opus 5.5 competes with a charity, it colludes more often
-- If Claude models hear the identity of the buyers, they collude less
-- If Claude models hear the identity of the other seller, they collude less
-- If GPT-6 Astra is jointly owned by a charity with the other seller, it colludes less
-- GLM-5.3 is unaffected
-
-We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-idl1).
+We test #n("idl1.tests") comparisons (each identity against its control, each control against no sentence) and find #n("idl1.pass") significant (@fig-idl1).
 #footnote[Compared #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell. Got #n("idl1.pass.first") results. A failed result that moved #n("idl1.screen") or more was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those. Got #n("idl1.pass.fresh") more results.]
 Models reason aloud why they reject collusion.
 Of the #n("idl1.refusals") rejections in @fig-idl1, #n("idl1.refusals.law") cite antitrust or legal risk, according to a Haiku judge. Also, #n("idl1.refusals.harm") mention harm.
-
-This is an interesting crossover between Caution and Conscience. The mention of a player who is losing something in the game can trigger a second order effect, by making the model more cautious, and then avoiding collusion. Perhaps even more interesting, by naming a sympathetic beneficiary, some models throw caution to the wind and collude.
 
 #figure(
   data-figure("idl1-figure", width: 92%),
@@ -195,13 +198,16 @@ This is an interesting crossover between Caution and Conscience. The mention of 
     The shown experiments pass Fisher's exact test with Benjamini–Hochberg.
     #n("idl1.caption.none")
     \* Answers at the cartel share dropped to none, so the effect may be stronger.
+    Price sentence: "#n("idl1.sentence.price")"
+    The harm sentence adds that the buyers then pay more.
+    PE: private equity.
   ],
 ) <fig-idl1>
 
 In #n("idl1.aside") of the #n("idl1.pass") bars, the effect can be attributed to refusals.
 That's because the samples that don't refuse either stay at the same cartel share, or are too few to compare.
-The remaining #n("idl1.aside.held") are Astra and Haiku's PE experiment.
-#claim("the remaining are Astra and Haiku's PE experiment", ("idl1.aside.held.which",), which => which == "astra:id_goodwill_buyers_towns astra:id_open_both_charity haiku:id_mirror_buyers_pe")
+The other #n("idl1.aside.held") hold with refusals set aside: GPT-6 Astra's two, which are choices, and Haiku's private-equity row, which passes only through the lean described in @app-limitations.
+#claim("the other three are Astra's two and Haiku's private-equity row", ("idl1.aside.held.which",), which => which == "astra:id_goodwill_buyers_towns astra:id_open_both_charity haiku:id_mirror_buyers_pe")
 
 == Conceptualization
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
@@ -415,9 +421,8 @@ For the conscience lever, Codex's usage limit stopped GPT-6 Astra's run partway,
   GPT-6 Astra skips the rung that names GPT-6 Astra, which for it is the own-name rung.
 - *Conscience:* the same five models, #n("idl1.first") replies a cell.
   #claim("the conscience lever asks the same five models", ("idl1.models",), models => models == "haiku sonnet opus astra glm")
-  Its sentences start from six conceptualization cells, four meant to start at Nash and two at the cartel share, and from a market where the rival's output is already fixed, so that no belief about the rival can move the answer.
+  Its sentences start from six conceptualization cells, four meant to start at Nash and two at the cartel share, and from a market where the rival's output is already fixed, so that no belief about the rival can move the answer; the tests and @fig-idl1 leave that market out.
   A comparison that moved by #n("idl1.screen") replies or more but missed significance gets #n("idl1.fresh") fresh replies a cell, and its verdict comes from those alone (@fig-idl1).
-  Its readback covers every model's replies but GPT-6 Astra's.
 
 = Prompts <app-prompts>
 == The three-firm market: capability and caution (the collusive cell) <app-quarter-prompt>
