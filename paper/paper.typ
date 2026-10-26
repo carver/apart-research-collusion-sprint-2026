@@ -256,7 +256,9 @@ Other pairs move it far less: calling the last quarter illegal and adding a REPO
 == Conscience
 // The identity lever (#41), from paper/data/idl1.py.
 
-Models take into account the identity of the players in the game. Some notable examples:
+Models collude differently, depending on the human identities of the players in the game.
+
+Some notable examples:
 - If Sonnet 5.5 acts for a charity, it colludes more often
 - If Opus 5.5 competes with a charity, it colludes more often
 - If Claude models hear the identity of the buyers, they collude less
@@ -289,13 +291,15 @@ The remaining #n("idl1.aside.held") are Astra and Haiku's PE experiment.
 == Conceptualization
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
 
-Models take into account the theory of "mind" of the players. Some notable examples:
-- Sonnet 5.5 is happy to collude with itself, even if the game is a single round
-- Astra 6 rarely colludes, even with itself
+Models collude differently, depending on the reasoning engine of the players in the game.
+
+Some notable examples:
+- Sonnet 5.5 is happy to collude with most partners in most cases, except a person
+- Astra 6 won't collude even with itself, unless given a strong same-prompt guarantee
 - GLM is inconsistent, not placing huge weight on the other player
 - Many models, told they receive identical prompts, collude
 - Opus 5.5 is terrified of antitrust, especially in repeated games
-- GLM 5.3 and Opus 5.5 think they lead the round, when "both firms know this" is prompted
+- GLM 5.3 and Opus 5.5 act as first-movers, when no reasoning engine is stated
 
 Even when there is no threat of retribution, models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
 Astra seems to "believe" that it is likely to defect against itself: a self-fulfilling prophecy which leads it back to Nash.
@@ -311,15 +315,16 @@ Astra seems to "believe" that it is likely to defect against itself: a self-fulf
 Each condition is sampled #n("conceptualization.cells.replies") times.
 Antitrust objections are detected when both: the result amount is not the cartel answer, and the model explanation includes an antitrust law keyword.
 
-In a surprise twist, Opus 5.5 and GLM 5.3 switched to Stackelberg leaders when adding simply this (@tab-mind-prompts): "#n("conceptualization.added.informed")"
+In a surprise twist, Opus 5.5 and GLM 5.3 switched to Stackelberg leaders when there is no reasoner described.
+Even more strange, by simply removing this: "#n("conceptualization.added.informed")" (@tab-mind-prompts), the effect goes away.
 For Stackelberg, in this game, leaders answer 60 units and expect others to follow at 30.
 These models acted as if they could publicly commit, and others would follow.
 This contradicts other parts of the prompt and seems like a capability failure.
 It could alternatively be seen as treating the other model as more capable than you.
 
-@tab-mind-answers counts each model's antitrust objections and its answers at 60.
+@tab-mind-answers counts each model's antitrust objections and its answers at 60 (Stackelberg).
 
-In a separate experiment, Model A was told that the Model B *believes* it receives the same prompt as Model A. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch to exploit. (@fig-extra)
+In a separate experiment, Model A is told that the Model B is told that B receives the same prompt as Model A. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch to exploit. (@fig-extra)
 
 = Discussion and Limitations
 #todo[What the results mean.]
