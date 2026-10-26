@@ -222,7 +222,7 @@ Astra though, points to the fact that the rival using the same model "does not i
 Under this reasoning, it settles for the safer bet of Nash.
 
 #figure(
-  data-figure("conceptualization-figure", width: 100%),
+  data-figure("conceptualization-figure", width: 95%),
   caption: [
     Models, told who is making the decision, collude (95% Wilson interval).
     Prompts are in @app-mind-prompts.
