@@ -588,4 +588,14 @@ The prompt when every firm asks the same model with the same prompt, for two fir
 #data-text("pilot.prompt.same.n2")
 
 #unnumbered[LLM Usage Statement]
-#todo[How we used LLMs, and that every claim and result was verified.]
+The models we study were also our tools.
+We worked with Claude Code (Claude Opus 5.5) throughout: it wrote most of the code, ran the experiments, built the report's pipeline, read and summarized sources, and red-teamed experimental arms.
+A Claude Haiku 5.5 judge labels refusals in the conscience lever.
+
+Initial drafts of this report's text were generated with AI.
+We then restructured, rewrote and revised them heavily by hand, as the git history of `paper/paper.typ` shows.
+The exception is the appendices, which are mostly AI-generated: we reviewed them, but did not revise or edit them.
+
+To keep errors out, no number in the report is typed by hand: each comes from the logs through a data source, and every build checks each sentence whose wording depends on the data against those numbers.
+We cite only sources that one of us, or an agent we directed, read in full, and every known weakness of an experiment is recorded in the repository's `flaws.md`.
+We reviewed the code, results and text, and take responsibility for all of it.
