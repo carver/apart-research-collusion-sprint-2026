@@ -117,16 +117,21 @@ def test_the_default_figure_has_its_title_a_row_per_horizon_and_a_column_per_mod
 
 def test_the_default_figure_shows_the_ladder_then_the_base_prompt(tmp_path):
     drawn = svg(tmp_path, STYLE)
-    labels = ("same prompt", "same model", "neutral", "person", "base prompt")
+    labels = ("same prompt", "same model", "own name", "neutral", "person", "base prompt")
     assert all(f">{label}<" in drawn for label in labels)
     order = [drawn.index(f">{label}<") for label in labels]
     assert order == sorted(order)
     assert "both know" not in drawn and "sibling" not in drawn and "won’t coop." not in drawn
 
 
+LADDER = sum(rung not in STYLE.apart for rung in STYLE.rungs)  # the default's rungs before the gap
+
+
 def test_the_rungs_set_apart_sit_after_a_gap():
     steps = [b - a for a, b in zip(positions(STYLE), positions(STYLE)[1:], strict=False)]
-    assert steps[:3] == [1, 1, 1] and steps[3] > 1  # the base prompt, after the person
+    assert (
+        steps[: LADDER - 1] == [1] * (LADDER - 1) and steps[LADDER - 1] > 1
+    )  # the base prompt, after the person
     assert positions(Style(rungs=("same", "human"))) == [0, 1]
 
 
@@ -141,11 +146,11 @@ def centres(drawn, colour):
 def test_the_shade_sits_on_the_neutral_bar_and_the_base_prompt_after_a_gap(tmp_path):
     fill(Ledger(tmp_path), [row(rung=rung, value=30.0) for rung in STYLE.rungs], unread)  # one panel of bars
     drawn = (tmp_path / "conceptualization-figure.svg").read_text()
-    bars = centres(drawn, "#2a78d6")[:5]  # the legend's patch comes last
+    bars = centres(drawn, "#2a78d6")[: len(STYLE.rungs)]  # the legend's patch comes last
     shade = centres(drawn, "#f4f3ef")[0]
-    assert shade == pytest.approx(bars[2], abs=0.5)  # the neutral rung, third
+    assert shade == pytest.approx(bars[STYLE.rungs.index(STYLE.baseline)], abs=0.5)
     steps = [b - a for a, b in zip(bars, bars[1:], strict=False)]
-    assert steps[3] > 1.3 * steps[0] and steps[0] == pytest.approx(steps[2], abs=0.5)
+    assert steps[LADDER - 1] > 1.3 * steps[0] and steps[0] == pytest.approx(steps[LADDER - 2], abs=0.5)
 
 
 def test_the_shaded_column_marks_the_baseline_rung_when_it_is_shown(tmp_path):
@@ -289,12 +294,17 @@ def test_the_appendix_table_gives_each_rung_and_rows_condition_and_additions_in_
     assert table["header"][-1] == "what it adds to the base prompt"
     other = "The other firm gets its production number by asking this same AI model"
     assert [label for label, *_ in table["rows"]] == [
-        "same prompt", "same model", "neutral", "person", "base prompt",
+        "same prompt", "same model", "own name", "neutral", "person", "base prompt",
         "repeated game", "no repeat mentioned", "one-round game",
     ]  # fmt: skip
     assert {label: rest for label, *rest in table["rows"]} == {
         "same prompt": ["mind_same_unsaid_none", f"{other} with this same prompt. Both firms know this."],
         "same model": ["mind_samemodel_unsaid_none", f"{other}, with its own prompt. Both firms know this."],
+        "own name": [
+            "mind_selfnamed_unsaid_none",
+            "The other firm gets its production number by asking [the model’s own name], "
+            "with its own prompt. Both firms know this.",
+        ],
         "neutral": ["mind_informed_unsaid_none", "Both firms know this."],
         "person": [
             "mind_human_unsaid_none",

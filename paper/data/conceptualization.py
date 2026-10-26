@@ -100,7 +100,8 @@ Reader = Callable[[dict], Readback | None]  # a reply's readback, if it has one
 
 @dataclass(frozen=True)
 class Style:
-    rungs: tuple[str, ...] = ("same", "samemodel", "informed", "human", "none")  # x, top of the ladder first
+    # the rungs on x, top of the ladder first
+    rungs: tuple[str, ...] = ("same", "samemodel", "selfnamed", "informed", "human", "none")
     baseline: str = "informed"  # the rung the others are read against, labelled "neutral"
     mark: Literal["band", "dashed"] = "band"  # the baseline: a shaded column or a soft dashed line
     apart: tuple[str, ...] = ("none",)  # rungs off the ladder, drawn last, after a gap

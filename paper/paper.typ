@@ -99,7 +99,8 @@ So we also ask the model what it expected the rival to produce.
 _Will a model collude more or less, based on who is the reasoning rival?_
 In this duopoly experiment, we pose the question about how much to supply, given who the rival is.
 We test rivals on a spectrum from similar to different from the model being asked.
-These rivals are considered: the same AI model with the same prompt; the same model with its own prompt; neutral; and a person.
+These rivals are considered: the same AI model with the same prompt; the same model with its own prompt; the model by its own name, with its own prompt; neutral; and a person.
+The Claude models know their own names, but GPT-6 Astra and GLM-5.3 aren't told theirs, so for them the own-name rival may not read as themselves.
 
 Every rival's line ends with "Both firms know this."; the neutral prompt has only that sentence, and the base prompt not even that.
 The closer the rival is to the model itself, the stronger the pull toward the cartel share should be, but only if the model reasons circularly, choosing its own output and its rival's at once: a back door to collusion with no shared history.
@@ -419,7 +420,7 @@ After a record, "this quarter only" becomes "the market's final quarter".
 The conceptualization lever asks Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 each rung under #n("conceptualization.backgrounds.opus") backgrounds, three horizons times four records, and GPT-6 Astra and GLM-5.3 each rung under the #n("conceptualization.backgrounds.glm") backgrounds with no record.
 #claim("the Claude models ran every background, four records", ("conceptualization.backgrounds.haiku", "conceptualization.backgrounds.sonnet", "conceptualization.backgrounds.opus", "conceptualization.records.opus"), (haiku, sonnet, opus, records) => haiku == opus and sonnet == opus and records == 4)
 #claim("GPT-6 Astra and GLM-5.3 ran only the backgrounds with no record", ("conceptualization.backgrounds.astra", "conceptualization.backgrounds.glm", "conceptualization.norecord.astra", "conceptualization.norecord.glm"), (astra, glm, astra-none, glm-none) => astra == glm and astra-none == astra and glm-none == glm)
-GPT-6 Astra skips the rung that names GPT-6 Astra, which for it is the rung that names itself.
+GPT-6 Astra skips the rung that names GPT-6 Astra, which for it is the own-name rung.
 
 The conscience lever asks the same five models, #n("idl1.first") replies a cell.
 #claim("the conscience lever asks the same five models", ("idl1.models",), models => models == "haiku sonnet opus astra glm")
