@@ -16,6 +16,8 @@ Some pilot code was copied into `zerocommcartel/` at the start of the sprint, an
 
 The rest of the code here when the sprint started is preexisting too: the pilot's tests and the shared tools in `bin/`, `lib/` and `.claude/skills/`. So is the report's Typst template, `paper/apart.typ`, copied on 2026-10-23 from Jason's earlier run (written 2026-10-21 and 22) and then brought up to the live template. `git log` dates every later change.
 
+Before the sprint, `tradingcartel/` (2026-10-19 to 22) also explored a stock market scenario, with experiments on instructed collusion, a buyer cartel and trading on non-public information. It is preexisting too, and its full history, including the parts a later commit removed, is in `git log`.
+
 What it found, Claude Haiku, Sonnet and Opus 5.5 pooled, two and four firms (cartel-share answers out of replies):
 
 | the firm's prompt adds | cartel share |
