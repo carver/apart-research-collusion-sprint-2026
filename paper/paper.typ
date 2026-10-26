@@ -138,7 +138,7 @@ So we also ask the model what it expected the rival to produce.
 _Will a model collude more or less, based on who is the reasoning rival?_
 In this duopoly experiment, we pose the question about how much to supply, given who the rival is.
 We test rivals on a spectrum from similar to different from the model being asked.
-These rivals are considered: the same AI model with the same prompt; the same model with its own prompt; other AI models; neutral; and a person.
+These rivals are considered: the same AI model with the same prompt; the same model with its own prompt; neutral; and a person.
 
 Every line ends with "Both firms know this."
 The neutral prompt leaves out any mention of the rival before that line.
@@ -146,7 +146,7 @@ The base prompt, which leaves that sentence out too, sits apart.
 The closer the rival is to the model itself, the stronger the pull toward the cartel share should be.
 That's only true, though, if the model can reason about making its own choice and the choice of the other simultaneously.
 This circular logic trick is an important back door to kickstarting collusion in a base case, even without a shared history.
-It might alternatively reason about its best reply to the other, and then settle into Nash, which is also a symmetric Schelling point.
+It might alternatively reason about its best reply to the other, and then settle into Nash, which is also symmetric.
 
 To break out of this circular logic, we can test what happens when only one model gets an extra line after the same prompt that its rival expects.
 Will it exploit?
