@@ -191,7 +191,7 @@ This is an interesting crossover between Caution and Conscience. The mention of 
     Models, told who the competitors or buyers are, collude more or less (Newcombe's 95% interval).
     The shown experiments pass Fisher's exact test with Benjamini–Hochberg.
     #n("idl1.caption.none")
-    \* Answers at the cartel share dropped to 0%, so the effect may be stronger.
+    \* Answers at the cartel share dropped to none, so the effect may be stronger.
   ],
 ) <fig-idl1>
 
@@ -275,7 +275,8 @@ One sentence about a competition authority all but ends Opus's and Astra's collu
 Told that they put the same prompt to the same AI model, rivals may hold output down together without the explicit agreement antitrust targets @calvano2020[p. 3268].
 
 #unnumbered[Code and Data]
-See #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with data in `logs/`. We ran a pilot in the days before the sprint (@tab-pilot, @fig-pilot). It's tagged at `pilot-frozen` in git.
+See #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with data in `logs/`.
+Pre-sprint code, chiefly a pilot (@tab-pilot, @fig-pilot), is preexisting work, listed in @app-pilot.
 
 #references("refs.bib")
 
@@ -547,7 +548,10 @@ It takes several cues at once: an authority investigating the market, together w
 = The pre-sprint pilot <app-pilot>
 // From the pre-sprint pilot's log through paper/data/pilot.py: counts, one cell's interval, a claim, a table
 // and a figure. Moved out of Results to save page budget.
-Before the sprint, a pilot asked Claude Haiku, Sonnet and Opus how much a firm should produce in a Cournot market of two or four firms (preexisting work; Code and Data).
+Code we wrote before the sprint is preexisting work: the pilot below (`pilot/` and `logs/pilot/`), written on 2026-10-20 and 21 and frozen at the tag `pilot-frozen` after three bug fixes on the sprint's first day; the pilot code copied into `zerocommcartel/` at the sprint's start (commit `22a78a8`); a stock market scenario, `tradingcartel/`, since removed; the shared tools in `bin/`, `lib/` and `.claude/skills/`; and this report's template, `paper/apart.typ`.
+Everything else was written during the sprint, and `git log` dates every change.
+
+Before the sprint, a pilot asked Claude Haiku, Sonnet and Opus how much a firm should produce in a Cournot market of two or four firms.
 When the prompt says that every firm gets its number by asking "this same AI model with this same prompt", #n("pilot.same.cartel") replies land on the cartel share, against #n("pilot.base.cartel") when it says nothing about rivals' advisors (@tab-pilot).
 #claim("the same-prompt sentence raises the cartel share", ("pilot.same.cartel", "pilot.base.cartel"), (same, base) => same > base)
 Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@fig-pilot).
@@ -602,8 +606,8 @@ A Claude Haiku 5.5 judge labels refusals in the conscience lever.
 
 Initial drafts of this report's text were generated with AI.
 We then restructured, rewrote and revised them heavily by hand, as the git history of `paper/paper.typ` shows.
-The exception is the appendices, which are mostly AI-generated: we reviewed them, but did not revise or edit them.
+The exception is the appendices, which are mostly AI-generated, apart from the Limitations list and the rejected titles, which we wrote; we reviewed them all.
 
-To keep errors out, no number in the report is typed by hand: each comes from the logs through a data source, and every build checks each sentence whose wording depends on the data against those numbers.
+To keep errors out, every count and rate from the experiments comes from the logs through a data source, except the hand check of the judge's refusal labels, and every build checks each sentence whose wording depends on the data against those numbers.
 We cite only sources that one of us, or an agent we directed, read in full, and every known weakness of an experiment is recorded in the repository's `flaws.md`.
 We reviewed the code, results and text, and take responsibility for all of it.
