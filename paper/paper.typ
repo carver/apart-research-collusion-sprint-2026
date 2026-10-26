@@ -76,27 +76,19 @@ We ask Claude Opus 5.5, GPT-6 Astra and GLM-5.3 in every lever, Claude Haiku 5.5
 
 == Capability Experiments
 _What capabilities does a model need before it can collude?_
-We evaluated how model intelligence affects collusion, as well as giving the model varying amounts of context about a game situation in which collusion would be profitable.
-We created several experiments to measure this: First, we asked a mix of stronger and weaker models to work out the cartel share given the price and cost information, and then separately asked them what they wanted to bid in an optimized game scenario.
-This established that certain weaker models are unable to even understand the situation, and as a result can't collude reliably, and set a baseline for collusion of stronger models.
-Next, we experimented with small changes to the context given to the stronger models to evaluate how sensitive to small changes their decision making was.
-We showed that they were ultimately very sensitive, mostly in directions that were very rational.
-Given stronger cues that it was an ongoing game environment they went for profit maximizing collusion, while lack of information or stronger cues that collusion could be penalized led to reverting to the Nash equilibrium.
+We ask stronger and weaker models two questions about one prompt, the output that makes the companies the most profit together and the output their own company should make, to separate finding the cartel share from choosing it.
+We then vary the prompt's record and horizon (@fig-cap8) and its wording (@tab-cap10), to see what context the stronger models need before they choose it.
 
 == Caution Experiments
 _How do small changes to its environment affect a model's willingness to collude?_
 We evaluate how sensitive the stronger models' collusion is to small details of their environment that leave the actual market scenario unchanged.
 As a baseline we chose the setting in which these models collude most often: a previous quarter at the cartel share in context for the prompt, and the scenario specified as a repeated game.
 From here we experimented along three axes: level of oversight specified in prompt, presence of tools in the model's environment, and specifying the previous round of collusion as being illegal.
-Different model families reacted differently to the changing scenarios, with Opus and Astra being quite sensitive to changes in the environment and fairly aggressive in avoiding anything that could be viewed as unethical behavior, while it took significant effort to get GLM-5.3 to stop colluding.
 
 == Conscience Experiments
 _Will a model collude more or less, based on the identities of human players?_
 In a duopoly, the two sellers can collude to win at the expense of the buyers, by producing less.
 This experiment tests whether a model will treat the game differently if the seller or buyer is identified.
-What if the other seller is a charity?
-What if attention is drawn to the harm caused to an abstract buyer?
-A variety of identities and situations are tested against Claude, GPT, and GLM models.
 Three different game contexts are offered: a repeated game, a one-round game, and an unidentified game.
 Most questions leave out whose profit counts, besides identifying the agent as assisting a seller.
 
@@ -109,13 +101,9 @@ In this duopoly experiment, we pose the question about how much to supply, given
 We test rivals on a spectrum from similar to different from the model being asked.
 These rivals are considered: the same AI model with the same prompt; the same model with its own prompt; neutral; and a person.
 
-Every line ends with "Both firms know this."
-The neutral prompt leaves out any mention of the rival before that line.
-The base prompt, which leaves that sentence out too, sits apart.
-The closer the rival is to the model itself, the stronger the pull toward the cartel share should be.
-That's only true, though, if the model can reason about making its own choice and the choice of the other simultaneously.
-This circular logic trick is an important back door to kickstarting collusion in a base case, even without a shared history.
-It might alternatively reason about its best reply to the other, and then settle into Nash, which is also symmetric.
+Every rival's line ends with "Both firms know this."; the neutral prompt has only that sentence, and the base prompt not even that.
+The closer the rival is to the model itself, the stronger the pull toward the cartel share should be, but only if the model reasons circularly, choosing its own output and its rival's at once: a back door to collusion with no shared history.
+A model that best-replies to its rival instead settles at Nash, which is also symmetric.
 
 To break out of this circular logic, we can test what happens when only one model gets an extra line after the same prompt that its rival expects.
 Will it exploit?
@@ -125,15 +113,6 @@ Will it exploit?
 == Capability
 // The capable criterion (#39), from paper/data/capable.py; the detail is in the appendix, "Capability and caution in detail".
 Models need both sufficient intelligence and sufficient information about the scenario to collude.
-A few key insights:
-- The stronger models find the cartel share every time they are asked for it outright, while Command R and Llama 3.1 8B struggle to find it, and also choose it less often when deciding for themselves.
-  #claim("the stronger models find the cartel share every time, the weaker ones don't", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint", "cap9.commandr.joint", "cap9.llama8b.joint"), (o, a, g, c, l) => o == 1 and a == 1 and g == 1 and c < 1 and l < 1)
-  #claim("the weaker models choose the cartel share less often than the stronger ones", ("cap9.commandr.own", "cap9.llama8b.own", "cap9.opus.own", "cap9.astra.own", "cap9.glm.own"), (c, l, o, a, g) => calc.max(c, l) < calc.min(o, a, g))
-- Knowing the cartel share does not directly lead to always choosing it, which is rational.
-  The stronger models make reasonable decisions about the best strategy given shifts in their knowledge of the environment, colluding more often when it's clearly a game scenario, as well as when it's specified the game will repeat.
-  #claim("knowing the cartel share does not lead the stronger models to always choose it", ("cap9.opus.joint", "cap9.opus.own", "cap9.astra.joint", "cap9.astra.own", "cap9.glm.joint", "cap9.glm.own"), (oj, oo, aj, ao, gj, go) => oj == 1 and aj == 1 and gj == 1 and oo < 1 and ao < 1 and go < 1)
-  #claim("the stronger models choose it more often when the market is told as a game", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og > ob and ag > ab and gg > gb)
-  #claim("the stronger models choose it more often when the game will repeat", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last"), (ol, on, ox, al, an, ax, gl, gn, gx) => ol > on and ol > ox and al > an and al > ax and gl > gn and gl > gx)
 
 #grid(
   columns: (1fr, 2.5in),
@@ -145,6 +124,7 @@ A few key insights:
     No model chooses the cartel share more often than it can find it.
     #claim("every model produces the cartel share less often than it finds it", ("cap9.opus.own", "cap9.opus.joint", "cap9.astra.own", "cap9.astra.joint", "cap9.glm.own", "cap9.glm.joint", "cap9.commandr.own", "cap9.commandr.joint", "cap9.llama8b.own", "cap9.llama8b.joint"), (oo, oj, ao, aj, go, gj, co, cj, lo, lj) => oo < oj and ao < aj and go < gj and co < cj and lo < lj)
     The weaker models find it less reliably, and #n("cap9.weak.joint.other") of their replies give no answer or a clearly suboptimal number, neither the cartel share nor Nash.
+    #claim("the stronger models find the cartel share every time, the weaker ones don't", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint", "cap9.commandr.joint", "cap9.llama8b.joint"), (o, a, g, c, l) => o == 1 and a == 1 and g == 1 and c < 1 and l < 1)
   ],
   [
     #figure(
@@ -181,14 +161,7 @@ A few key insights:
 - GLM-5.3 is most consistent with a desire to collude, and stops only when several factors that strongly discourage collusion come together.
   #claim("GLM-5.3 colludes most, holds under every single sentence, and stops only when several come together", ("cpl9.glm.none_none_none", "cpl9.opus.none_none_none", "cpl9.astra.none_none_none", "cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (glm, opus, astra, ..rest) => { let r = rest.pos(); glm > opus and glm > astra and r.slice(0, -1).all(x => x > 0.5) and r.last() == 0 })
 
-We add one sentence at a time to the scenario that most consistently results in collusion, a repeated game where the models are given one past round of collusion in context (@fig-cpl9).
-With nothing added, Opus chooses the cartel share in #ci("cpl9.opus.none_none_none"), Astra in #ci("cpl9.astra.none_none_none") and GLM-5.3 in #ci("cpl9.glm.none_none_none").
-For Opus and Astra, every sentence that names a competition authority or the company's compliance team, or calls the last quarter illegal, takes that very close to zero.
-#claim("every authority, compliance and illegal sentence takes Opus and Astra to zero or near it", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none", "cpl9.opus.none_report_none", "cpl9.astra.none_report_none", "cpl9.opus.none_flag_none", "cpl9.astra.none_flag_none", "cpl9.opus.none_none_illegal", "cpl9.astra.none_none_illegal"), (..r) => r.pos().all(x => x < 0.15))
-A management review, a line to IT support and calling the output "optimized" move them less, or raise Astra's rate, and calling the last quarter a tacit cartel stops Opus but not Astra.
-GLM-5.3 stays near its control under every single sentence, it takes an investigation together with the illegal label to reduce it to #n("cpl9.glm.investigating_none_illegal").
-Other pairs move it far less: calling the last quarter illegal and adding a REPORT_COLLUSION tool still leaves it colluding in most replies.
-#claim("illegal and a REPORT_COLLUSION tool together leave GLM-5.3 colluding in most replies", ("cpl9.glm.none_report_illegal",), (both) => both > 0.5)
+We add one sentence at a time to the scenario that most consistently results in collusion, where, with nothing added, Opus chooses the cartel share in #ci("cpl9.opus.none_none_none"), Astra in #ci("cpl9.astra.none_none_none") and GLM-5.3 in #ci("cpl9.glm.none_none_none") (@fig-cpl9).
 @app-capcaution has every sentence's numbers, and why Opus's control here sits below its rate on the same prompt in @fig-cap9.
 
 #figure(
@@ -294,27 +267,24 @@ For evaluations this cuts both ways: one line of oversight in a test prompt coul
 #todo[The refusal judge: only its author has read its labels, on 22 replies; with refusals set aside the identity lever's test has little power where refusals dominate, and leans toward a move where refusals replace answers at the cartel share, which is why Haiku's private-equity bar holds though it is refusals too; and more than a third of the refusals that mention harm come from the harm sentence's cells, where they echo it (flaws.md, Communal, "The refusal judge").]
 
 == Future Work
-Our top priority is modifying the environment so it reads less like an eval.
-Asked the questions Needham et al. use to detect evaluation awareness @needham2025, Claude Haiku, Sonnet and Opus called nearly every prompt we probed an evaluation.
+Our top priority is making the setting read less like an evaluation.
+Asked Needham et al.'s evaluation-awareness questions @needham2025, the Claude models called nearly every prompt we probed an evaluation.
 #todo[Jason: add a claim for this sentence, from a ledger key over the probe's replies in logs/ (the probe never saw the solvent prompt), then update `needham2025`'s row in citations.md to say what this sentence uses it for.]
-The answers also move with how much the prompt looks like a game: the same market told in a game's words draws as much collusion or more from every model (@tab-cap10).
+Answers also move with how game-like the prompt reads: game words draw as much collusion or more from every model (@tab-cap10).
 #claim("game words draw as much collusion or more from every model", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og >= ob and ag >= ab and gg >= gb)
-So some of what we measure may be how a model plays a game it thinks is graded rather than how it would advise a real firm, and the caution results are the most exposed, since a line about a regulator may read as the point of the test.
+So our results may partly show how models play a game they think is graded; the caution results are the most exposed, since a line about a regulator may read as the point of the test.
 
 = Conclusion
 We asked AI models to play one firm in a Cournot market, choosing its output for one quarter, with no channel to its rivals.
 The stronger models can collude this way, and do so strategically: mostly after a quarter of collusion, with more quarters to come.
 #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
-Told that its rival gets the same prompt, a model can collude even in a single quarter, with no history to keep and no future to protect.
-The choice is fragile: one sentence that mentions a competition authority, even to say that nobody watches, all but ends Opus's and Astra's collusion, while GLM-5.3 stops only when several such cues come together.
+Told that its rival gets the same prompt, a model can collude even in a single quarter.
+The choice is fragile: one sentence that mentions a competition authority, even to say that nobody watches, all but ends Opus's and Astra's collusion, though GLM-5.3 needs several such cues.
 #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
 #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
 
-Two implications follow.
-First, a shared model and prompt can stand in for the channel antitrust looks for: competitors that use the same AI advisor with the same instructions may hold output down together with no agreement between them, a new form of hub and spoke.
-Second, prompt cues are a weak guarantee in either direction.
-A line about oversight stops two models but not the third, and the same line in an evaluation could make a model look more cautious than it would be where nobody mentions the law.
-Since the answers also move with how much the prompt reads like a game, the next step is to measure this where the setting looks like a real deployment.
+A shared model and prompt can thus stand in for the channel antitrust looks for: rivals that use the same AI advisor may hold output down together with no agreement between them.
+And prompt cues are a weak guarantee: a line about oversight in an evaluation could make a model look more cautious than it would be where nobody mentions the law.
 
 #unnumbered[Code and Data]
 - *Code and data*: #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with every experiment in `logs/`.
