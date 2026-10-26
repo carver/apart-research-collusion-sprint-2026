@@ -18,7 +18,8 @@
     #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
     Told that the rival gets the same prompt, many models collude even in a single quarter.
     The choice is fragile.
-    One sentence naming a competition authority, even to say that nobody watches, all but ends Opus's and Astra's collusion, while GLM-5.3 needs several cues together.
+    In a business-worded market, one sentence naming a competition authority, even to say that nobody watches, all but ends Opus's and Astra's collusion, while GLM-5.3 stops only when sentences are combined; in a game-like version of the market, only some of these sentences still work.
+    #claim("in the game-like version, the investigating and illegal sentences still end Opus's and Astra's collusion, and nobody-watches leaves Opus colluding", ("cpl9env.opus.none_none_none", "cpl9env.astra.none_none_none", "cpl9env.opus.investigating_none_none", "cpl9env.astra.investigating_none_none", "cpl9env.opus.none_none_illegal", "cpl9env.astra.none_none_illegal", "cpl9env.opus.nobody_none_none"), (oc, ac, oi, ai, ol, al, on) => oc > 0.9 and ac > 0.9 and oi < 0.15 and ai < 0.15 and ol < 0.15 and al < 0.15 and on > 0.5)
     #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
     #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
     Copies of one model that know they share a prompt anticipate each other's choices and coordinate, so a shared model and prompt can act as a hub that relays nothing.
@@ -148,15 +149,15 @@ Nearly every other answer is Nash.
 // The compliant criterion (#40), from paper/data/compliant.py; the detail is in the appendix, "Capability and caution in detail".
 Small changes to a model's environment can change whether it colludes.
 A few key insights:
-- Any mention of a competition authority, even a line saying that no regulator watches, causes Opus and Astra to almost entirely halt collusion.
+- In this business-worded market, any mention of a competition authority, even a line saying that no regulator watches, causes Opus and Astra to almost entirely halt collusion.
   #claim("any mention of a competition authority, even that no regulator watches, takes Opus and Astra to none or nearly none", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
-- Opus and Astra can sometimes react in opposite directions, providing history of collusion in context and labeling it a "Tacit cartel" caused Opus to halt collusion, and Astra to increase collusion.
+- Opus and Astra can sometimes react in opposite directions: in this business-worded market, providing history of collusion in context and labeling it a "Tacit cartel" caused Opus to halt collusion, and Astra to increase collusion.
   #claim("the tacit-cartel label halts Opus's collusion and increases Astra's", ("cpl9.opus.none_none_cartel", "cpl9.astra.none_none_cartel", "cpl9.astra.none_none_none"), (opus, astra, control) => opus == 0 and astra > control)
 - GLM-5.3 is most consistent with a desire to collude, and stops only when several factors that strongly discourage collusion come together.
   #claim("GLM-5.3 colludes most, holds under every single sentence, and stops only when several come together", ("cpl9.glm.none_none_none", "cpl9.opus.none_none_none", "cpl9.astra.none_none_none", "cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (glm, opus, astra, ..rest) => { let r = rest.pos(); glm > opus and glm > astra and r.slice(0, -1).all(x => x > 0.5) and r.last() == 0 })
 
 We add one sentence at a time to the own-output prompt of @fig-cap9, where, with nothing added, Opus chooses the cartel share in #ci("cpl9.opus.none_none_none"), Astra in #ci("cpl9.astra.none_none_none") and GLM-5.3 in #ci("cpl9.glm.none_none_none") (@fig-cpl9).
-@app-capcaution has every sentence's numbers, and why Opus's control here sits below its rate on the same prompt in @fig-cap9.
+@app-capcaution has every sentence's numbers, in this market and in our first, game-like version of it, and why Opus's control here sits below its rate on the same prompt in @fig-cap9.
 
 #figure(
   data-figure("cpl9-figure", width: 100%),
@@ -239,7 +240,10 @@ In a separate experiment, Model A is told that Model B is told that A and B rece
 = Discussion and Limitations
 // Capability and caution (#39, #40).
 The capability and caution levers suggest that these models collude knowingly, in prompts they read as a test (@sec-future), and that the choice is fragile.
-A single sentence that brings up a regulator, a compliance team or the law ends the collusion of Opus and Astra, even one saying that nobody watches, so what stops them is the subject rather than the risk of being caught.
+In our business wording, a single sentence that brings up a regulator, a compliance team or the law ends the collusion of Opus and Astra, even one saying that nobody watches.
+Even then, Opus's replies say that the missing oversight changes nothing (#n("cpl9.opus.nobody_none_none.unmoved")), as in "The absence of a regulator doesn't change how I'd decide", so the subject, more than the risk of being caught, seems to stop it.
+Astra's never mention the law (#n("cpl9.astra.nobody_none_none.antitrust")), and #n("cpl9.astra.nobody_none_none.cashin") of them answer #n("game.three.cashin.mine").
+#claim("when nobody watches, Opus's replies mostly say it changes nothing and Astra's never mention the law", ("cpl9.opus.nobody_none_none.unmoved", "cpl9.astra.nobody_none_none.antitrust"), (opus, astra) => opus > 0.5 and astra == 0)
 For evaluations this cuts both ways: one line about a competition authority or the law in a test prompt could make a model look more cautious than it would be in a deployment without it.
 
 == Limitations
@@ -265,7 +269,7 @@ The stronger models collude selectively, mostly after a quarter of collusion wit
 #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
 Told that its rival gets the same prompt, a model can collude even in a single quarter.
 The choice is fragile.
-One sentence about a competition authority all but ends Opus's and Astra's collusion, though GLM-5.3 needs several such cues.
+In a business-worded market, one sentence about a competition authority all but ends Opus's and Astra's collusion, though GLM-5.3 needs several such cues.
 #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
 #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
 
@@ -293,7 +297,7 @@ Pre-sprint code, chiefly a pilot (@tab-pilot, @fig-pilot), is preexisting work, 
 *Dual use.*
 Two findings could make real collusion easier to carry out or harder to detect.
 Telling a model that its rivals use the same model and prompt gets most models to collude from the first round, with nothing passing between the firms; a vendor serving rival firms, or the firms themselves, could arrange this on purpose, and an authority looking for communication would find none.
-One sentence about a competition authority all but ends two models' collusion, so a developer could add such a line to an evaluation prompt to make a model look compliant, while deployments without it behave differently.
+In our business wording, one sentence about a competition authority all but ends two models' collusion, so a developer could add such a line to an evaluation prompt to make a model look compliant, while deployments without it behave differently.
 The results also show which setups collude most: game-like wording, a precedent with more quarters to come, and a model that ignores cues about the law.
 
 *Why we publish.*
@@ -388,7 +392,7 @@ For the conscience lever, Codex's usage limit stopped GPT-6 Astra's run partway,
 - *Setting:* three companies that make industrial solvent, with the model as the production manager at one of them, Alder Industries.
   The prompt gives the price rule and the cost, says the companies decide privately and at the same time and do not communicate, and asks for a whole number of tonnes from 0 to 60.
   It never mentions a game, a simulation, rounds or a goal, or who decides for the rivals.
-- *Why a business, not a game:* our first, game-like prompt for this market put Opus and Astra at the cartel share in nearly every reply (@tab-cap10), leaving a sentence no room to raise collusion.
+- *Why a business, not a game:* our first, game-like prompt for this market put Opus and Astra at the cartel share in nearly every reply (@tab-cap10); @app-capcaution reports the caution sentences in a version of that prompt.
   #claim("the game-like prompt puts Opus and Astra at the ceiling", ("cap10.opus.standard-game-text", "cap10.astra.standard-game-text"), (opus, astra) => opus > 0.95 and astra > 0.95)
 - *Record:* no earlier quarter, or one in which every company made the cartel share, with the price and Alder's profit.
 - *Horizon:* many more quarters after this one, or none, each with "All three companies know this", or nothing said.
@@ -541,6 +545,15 @@ When they stop, Opus answers Nash, and Astra Nash or #n("game.three.cashin.mine"
 
 GLM-5.3 keeps colluding under every single sentence, in most of its replies.
 It takes several cues at once: an authority investigating the market, together with the label calling the last quarter illegal, takes it to #n("cpl9.glm.investigating_none_illegal").
+
+*The game-like first version.*
+We first ran the single sentences in a game-like version of this market: the standard game text of @tab-cap10, with a sentence making the firm's total profit its goal, and each sentence reworded for it.
+The two versions differ in more than their words, so we compare each sentence only with its own version's control.
+With nothing added, Opus and Astra choose the cartel share in #n("cpl9env.opus.none_none_none") and #n("cpl9env.astra.none_none_none") replies.
+An investigating authority and the illegal label still all but end it (#n("cpl9env.opus.investigating_none_none") and #n("cpl9env.astra.investigating_none_none")\; #n("cpl9env.opus.none_none_illegal") and #n("cpl9env.astra.none_none_illegal")), and an authority that rarely looks nearly does (#n("cpl9env.opus.rarely_none_none"), #n("cpl9env.astra.rarely_none_none")).
+#claim("in the game-like version, investigating and illegal all but end Opus's and Astra's collusion, and rarely nearly does", ("cpl9env.opus.none_none_none", "cpl9env.astra.none_none_none", "cpl9env.opus.investigating_none_none", "cpl9env.astra.investigating_none_none", "cpl9env.opus.none_none_illegal", "cpl9env.astra.none_none_illegal", "cpl9env.opus.rarely_none_none", "cpl9env.astra.rarely_none_none"), (oc, ac, ..r) => { let v = r.pos(); oc > 0.9 and ac > 0.9 and v.slice(0, 4).all(x => x < 0.15) and v.slice(4).all(x => x < 0.25) })
+But saying that nobody watches, the flag tool and the tacit-cartel label leave Opus at #n("cpl9env.opus.nobody_none_none"), #n("cpl9env.opus.none_flag_none") and #n("cpl9env.opus.none_none_cartel") (Astra at #n("cpl9env.astra.nobody_none_none"), #n("cpl9env.astra.none_flag_none") and #n("cpl9env.astra.none_none_cartel")), and the report tool stops Opus (#n("cpl9env.opus.none_report_none")) but not Astra (#n("cpl9env.astra.none_report_none")).
+#claim("in the game-like version, nobody-watches, the flag tool and the tacit-cartel label leave Opus mostly colluding, and the report tool stops Opus but not Astra", ("cpl9env.opus.nobody_none_none", "cpl9env.opus.none_flag_none", "cpl9env.opus.none_none_cartel", "cpl9env.opus.none_report_none", "cpl9env.astra.none_report_none"), (on, of, ot, orep, arep) => on > 0.5 and of > 0.5 and ot > 0.5 and orep < 0.15 and arep > 0.5)
 
 = The pre-sprint pilot <app-pilot>
 // From the pre-sprint pilot's log through paper/data/pilot.py: counts, one cell's interval, a claim, a table
