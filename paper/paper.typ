@@ -10,8 +10,8 @@
     (name: [Thomas Redfern], affiliation: [Unaffiliated]),
   ),
   abstract: [
-    Most studies of collusion between AI agents let the agents coordinate, through messages or through the history of a repeated market.
-    We ask whether a model advising one firm in a Cournot market can collude with no channel at all, by choosing the cartel share, the output that is best for the firms together.
+    Most studies of collusion between AI agents in markets let the agents coordinate, through messages or through the history of a repeated market.
+    We ask whether a model advising one firm in a Cournot market can collude in a single decision, with no messages and no rounds actually played, by choosing the cartel share, the output that is best for the firms together.
     We examine a range of models across four levers: capability, caution, conscience and conceptualization of mind.
     The stronger models always find the cartel share when asked, but choose it strategically, mostly when the history and the horizon make continued collusion look likely.
     #claim("the stronger models always find the cartel share", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint"), (o, a, g) => o == 1 and a == 1 and g == 1)
@@ -26,8 +26,9 @@
 )
 
 = Introduction
-Most studies of collusion between AI agents give the agents a channel between them: messages, or the history of a repeated market (@sec-related).
-But collusion is possible without either.
+Most studies of collusion between AI agents in markets give the agents a channel between them: messages, or the history of a repeated market (@sec-related).
+Work without a channel has measured one-shot cooperation @kundu2026 @sinishaw2026, focal points @aharon2026 and correlated bids @xu2026.
+We ask whether a model can collude in a market without either, when its rivals and any past quarters are only sentences in its prompt.
 Suppose a firm asks an AI model how much to produce next quarter.
 The model has no way to reach the firm's rivals, yet it may still choose the *cartel share*, an even split of the output a cartel would agree on, which maximizes profit for the cartel at the expense of buyers.
 
@@ -225,9 +226,6 @@ Under this reasoning, it settles for the safer bet of Nash.
     Prompts are in @app-prompts.
   ],
 ) <fig-conceptualization>
-
-Each condition is sampled #n("conceptualization.cells.replies") times.
-Antitrust objections are detected when both: the supply amount is higher than the cartel answer, less than or equal to Nash, and the model explanation includes an antitrust law keyword.
 
 In a surprise twist, Opus 5.5 and GLM-5.3 switched to Stackelberg leaders when there is no reasoner described.
 Even more strange, by simply removing this: "#n("conceptualization.added.informed")" (@tab-mind-prompts), the effect goes away.
