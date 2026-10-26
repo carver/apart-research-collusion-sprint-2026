@@ -34,11 +34,11 @@ We study this in a Cournot market @cournot1897 (@sec-game).
 Two or three firms sell an identical product, each chooses how much to make without knowing the others' choices, and their total output sets the price.
 We ask the model how much its firm should make this quarter, and compare its answer with the Nash equilibrium output and the cartel share.
 
-We explore when a model chooses the cartel share, and what moves it, through four levers:
-- *Capability*: how much intelligence, and how much understanding of its situation, does a model need to collude?
-- *Caution*: how do tweaks to the model's understanding of the situation or environment affect its willingness to collude?
-- *Conscience*: whose profit does the model weigh, and does a sympathetic rival or buyer change its willingness to collude?
-- *Conceptualization of mind*: how does the model's picture of its rival's decision-maker, up to a copy of itself, affect its willingness to collude?
+We explore when a model chooses the cartel share, and what moves it, through four levers.
+*Capability* asks how much intelligence, and how much understanding of its situation, a model needs to collude.
+*Caution* asks how tweaks to its understanding of the situation or environment affect its willingness to collude.
+*Conscience* asks whose profit it weighs, and whether a sympathetic rival or buyer changes its choice.
+*Conceptualization of mind* asks how its picture of the rival's decision-maker, up to a copy of itself, affects that choice.
 
 Our main contributions are:
 + A cross-model analysis of four levers on collusion when an AI model advises a firm without communicating with its rivals: capability, caution, conscience and conceptualization of mind.
@@ -69,10 +69,10 @@ Our caution lever tests such sentences in a single round, where the sentence is 
 @app-related covers more related work.
 
 = Methods <sec-methods>
-Each reply is one independent call: the model, advising or running one firm, says how much to produce this quarter and gives a number on a final answer line.
-The firms never interact: the rivals, any past quarters and any to come are sentences in the prompt, and each lever adds its sentences to a prompt that otherwise stays fixed.
-The levers use two markets with the price rule of @sec-game, written separately: three companies making solvent for capability and caution, and two firms making salt for conscience and conceptualization (@tab-markets compares their prompts).
-We ask Claude Opus 5.5, GPT-6 Astra and GLM-5.3 in every lever, Claude Haiku 5.5 and Sonnet 5.5 in the two-firm market, and Command R and Llama 3.1 8B as weaker models for capability, with #n("capable.cells.replies") replies a *cell* (one model, one prompt) in the three-firm market and #n("conceptualization.cells.replies") in the two-firm one.
+Each reply is one independent call: the model, advising or running one firm, says how much to produce this quarter.
+The firms never interact: the rivals and any past or future quarters are sentences in the prompt, and each lever changes only its own sentences.
+The levers use two markets with the price rule of @sec-game: three companies making solvent for capability and caution, and two firms making salt for conscience and conceptualization.
+We ask frontier models from Anthropic, OpenAI and Z.ai, and two weaker ones for capability (@tab-markets), with #n("capable.cells.replies") replies a *cell* (one model, one prompt) in the three-firm market and #n("conceptualization.cells.replies") in the two-firm one.
 
 == Capability Experiments
 _What capabilities does a model need before it can collude?_
@@ -380,6 +380,7 @@ Collusion among LLM agents also weakens when they differ, as when one ignores th
     [Record], [none, or one quarter at the cartel share], [none, or eight quarters: at the cartel share, at Nash, or ending in the rival's cheating],
     [Horizon], [many more quarters, none, or unsaid], [the market repeats, this quarter only, or unsaid],
     [At a point of @tab-game when], [equal to it], [within half a unit of it],
+    [Models], [Claude Opus 5.5, GPT-6 Astra, GLM-5.3; Command R and Llama 3.1 8B for capability], [Claude Haiku, Sonnet and Opus 5.5, GPT-6 Astra, GLM-5.3],
     [Replies a cell], [#n("capable.cells.replies")], [#n("conceptualization.cells.replies")],
     [Readback], [no], [yes],
   ),
