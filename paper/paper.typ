@@ -68,23 +68,16 @@ The other rows exploit the rivals, cashing in on rivals that hold to the cartel 
 We call an answer at the cartel share collusion, more loosely than economists, for whom collusion also needs a scheme of reward and punishment that makes the high prices each firm's best play rather than a mistake @calvano2020.
 
 = Related Work <sec-related>
-Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents.
-LLM pricing agents in a repeated market reach prices above the competitive level without being told to collude @fish2024, and in repeated Cournot markets with several products, LLM agents divide the products between them @lin2024 @bracalesyrnikov2026.
-In double auctions, messages between sellers raise collusion, and without them sellers did not price above the competitive level after the first ten rounds @agrawal2025.
-All these agents play many rounds and see prices or messages come back, so a firm can punish a rival's defection in the rounds that follow.
+Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents in repeated markets @fish2024, Cournot markets among them @bracalesyrnikov2026; in double auctions, messages between sellers raise collusion further @agrawal2025.
+All these agents play many rounds, so a firm can punish a rival's defection in the rounds that follow.
 Ours play one round, and share at most the model and its prompt.
 
-Theorists have proposed ways for agents that reason alike to cooperate without talking: each asks what the pair should do @gold2007, or programs read each other's code @tennenholtz2004 or a score of how similar they are @oesterheld2023.
-LLMs coordinate on focal points without communicating, often as well as humans, and models of one family coordinate better with each other than with models of other families @aharon2026.
-Told only that they face another player, recent models defect in single-shot social dilemmas @tewolde2026, but most cooperate in a one-shot prisoner's dilemma when told their opponent's decision-making is highly similar to theirs, though models differ widely @kundu2026.
-Copies of a model that coordinate without a channel are also a concern for AI control, since doing so is among the abilities a model may need to subvert a control protocol @mallen2024.
+Agents that see how similar they are can sustain cooperation without talking @oesterheld2023, and most LLMs cooperate in a one-shot prisoner's dilemma when told their opponent's decision-making is highly similar to theirs @kundu2026.
 Our conceptualization lever carries this into a market: it tells the model who decides for the rival firm, up to a copy of itself.
 
-Prompts against collusion have had mixed effects in repeated markets.
-Told to avoid collusion, GPT-5.4 priced at Nash while a small distilled model raised its prices, and telling the distilled models they were monitored lessened their collusion only marginally @riemer2026.
-In a Cournot market, a rule that forbade collusion and warned of monitoring did not reliably reduce it @bracalesyrnikov2026.
-Collusion also weakens when the agents differ, as when one ignores the future or cannot see its rival's past prices @keppo2026.
-Our caution lever tests such sentences in a single round, where the sentence is all that differs between two prompts, and our conscience lever asks whose profit the model weighs.
+In a repeated Cournot market, a rule that forbade collusion and warned of monitoring did not reliably reduce it @bracalesyrnikov2026.
+Our caution lever tests such sentences in a single round, where the sentence is all that differs between two prompts.
+@app-related covers more related work.
 
 = Methods <sec-methods>
 Each reply comes from one call that asks the model, as one firm, how much to produce this quarter, and to give a number on a final answer line.
@@ -430,6 +423,14 @@ No model plays real quarters.
 A record is a few sentences in the prompt, so we choose where the induction starts.
 
 Every lever counts an answer at the cartel share when it is within half a unit of it; the three-firm market of the capability and caution levers asks for whole numbers, so there an answer must equal it.
+
+= More related work <app-related>
+In repeated multi-product Cournot competition, LLM agents divide the markets between them @lin2024 @bracalesyrnikov2026.
+LLMs coordinate on focal points without communicating, often as well as humans, and models of one family coordinate better with each other than with models of other families @aharon2026.
+Told only that they face another player, recent models defect in single-shot social dilemmas @tewolde2026.
+Copies of a model that coordinate without a channel are also a concern for AI control, since doing so is among the abilities a model may need to subvert a control protocol @mallen2024.
+Other prompts against collusion have had mixed effects: told to avoid collusion, GPT-5.4 priced at Nash while a small distilled model raised its prices, and telling the distilled models they were monitored lessened their collusion only marginally @riemer2026.
+Collusion among LLM agents also weakens when they differ, as when one ignores the future or can't see its rival's past prices @keppo2026; that fragility comes from differences between agents, where ours comes from one sentence.
 
 = Experiment details <app-methods>
 Claude runs through Claude Code's command line, whose short note to the model names it.
