@@ -323,7 +323,12 @@ For evaluations this cuts both ways: one line of oversight in a test prompt coul
 #todo[The refusal judge: only its author has read its labels, on 22 replies; with refusals set aside the identity lever's test has little power where refusals dominate, and leans toward a move where refusals replace answers at the cartel share, which is why Haiku's private-equity bar holds though it is refusals too; and more than a third of the refusals that mention harm come from the harm sentence's cells, where they echo it (flaws.md, Communal, "The refusal judge").]
 
 == Future Work
-#todo[What we'd do next.]
+Our top priority is modifying the environment so it reads less like an eval.
+Asked the questions Needham et al. use to detect evaluation awareness @needham2025, Claude Haiku, Sonnet and Opus called nearly every prompt we probed an evaluation.
+#todo[The probe isn't in the ledger: its replies aren't in logs/, and it never saw the solvent prompt. Rerun it on the solvent prompt, commit its replies, or drop this sentence.]
+The answers also move with how much the prompt looks like a game: the same market told in a game's words draws as much collusion or more from every model (@tab-cap10).
+#claim("game words draw as much collusion or more from every model", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og >= ob and ag >= ab and gg >= gb)
+So some of what we measure may be how a model plays a game it thinks is graded rather than how it would advise a real firm, and the caution results are the most exposed, since a line about a regulator may read as the point of the test.
 
 = Conclusion
 #todo[The main findings and their implications, in one or two paragraphs.]
