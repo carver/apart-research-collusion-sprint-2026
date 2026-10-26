@@ -204,14 +204,17 @@ The remaining #n("idl1.aside.held") are Astra and Haiku's PE experiment.
 
 Models collude differently, depending on the reasoning engine of the players in the game.
 
-Some notable examples:
-- Sonnet 5.5 colludes with "this same AI model" every time (#n("conceptualization.cartel.sonnet.samemodel")), but rarely with itself by name (#n("conceptualization.cartel.sonnet.selfnamed")), and never with a person
-  #claim("Sonnet always colludes with this same AI model, rarely with itself by name, never with a person", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.sonnet.human"), (same, named, person) => same == 1 and named < 0.2 and person == 0)
-- Astra 6 won't collude even with itself, unless given a strong same-prompt guarantee
-- GLM is inconsistent, not reliably making the same choice against the same player
+Some notable examples #todo[link to appendix: maybe a new one or an existing? there are items ready to move below]:
 - Many models, told they receive identical prompts, collude
+- Astra 6 won't collude even with itself, unless given a strong same-prompt guarantee
+- Sonnet 5.5 colludes with "this same AI model" every time, but never with a person
+  #claim("Sonnet always colludes with this same AI model, rarely with itself by name, never with a person", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.sonnet.human"), (same, named, person) => same == 1 and named < 0.2 and person == 0)
+
+#todo[move these to the appendix mentioned above]
 - Opus 5.5 is terrified of antitrust, especially in repeated games
 - GLM 5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash nor collusion
+- GLM is inconsistent, not reliably making the same choice against the same player
+- Although Sonnet 5.5 colludes with "this same AI model" every time (#n("conceptualization.cartel.sonnet.samemodel")), it rarely with itself by name (#n("conceptualization.cartel.sonnet.selfnamed"))
 
 Even when there is no threat of retribution, most models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
 Across the three horizons, Sonnet and GLM-5.3 also collude with "this same AI model" (#n("conceptualization.cartel.sonnet.samemodel") and #n("conceptualization.cartel.glm.samemodel") replies), but rarely when the prompt names that same rival (#n("conceptualization.cartel.sonnet.selfnamed") and #n("conceptualization.cartel.glm.selfnamed")), though GLM-5.3 may not know its own name.
