@@ -13,7 +13,7 @@
     Most studies of collusion between AI agents in markets let the agents coordinate, through messages or through the history of a repeated market.
     We ask whether a model advising one firm in a Cournot market can collude in a single decision, with no messages and no rounds actually played, by choosing the cartel share, the output that is best for the firms together.
     We examine a range of models across four levers: capability, caution, conscience and conceptualization of mind.
-    The stronger models always find the cartel share when asked, but choose it strategically, mostly when the history and the horizon make continued collusion look likely.
+    The stronger models always find the cartel share when asked, but choose it selectively, mostly when the history and the horizon make continued collusion look likely.
     #claim("the stronger models always find the cartel share", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint"), (o, a, g) => o == 1 and a == 1 and g == 1)
     #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
     Told that the rival gets the same prompt, many models collude even in a single quarter.
@@ -44,7 +44,8 @@ We explore when a model chooses the cartel share, and what moves it, through fou
 
 Our main contributions are:
 + A cross-model analysis of four levers on collusion when an AI model advises a firm without communicating with its rivals: capability, caution, conscience and conceptualization of mind.
-+ Collusion is deliberate but fragile: strong models always find the collusive output, choose it mostly when it pays, and can drop it at a single mention of oversight.
++ Collusion is selective and fragile: strong models always find the collusive output and choose it mostly when it pays, and Opus and GPT-6 Astra drop it at one sentence that an authority is investigating or that the last quarter was illegal, while GLM-5.3 does not.
+  #claim("one sentence that an authority is investigating, or that the last quarter was illegal, stops Opus and Astra but not GLM-5.3", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.none_none_illegal", "cpl9.astra.none_none_illegal", "cpl9.glm.investigating_none_none", "cpl9.glm.none_none_illegal"), (oi, ai, ol, al, gi, gl) => oi < 0.15 and ai < 0.15 and ol < 0.15 and al < 0.15 and gi > 0.5 and gl > 0.5)
   #claim("the stronger models always find the cartel share, the weaker ones often don't", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint", "cap9.commandr.joint", "cap9.llama8b.joint"), (o, a, g, c, l) => o == 1 and a == 1 and g == 1 and c < 0.75 and l < 0.75)
   #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
   #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
@@ -237,9 +238,9 @@ In a separate experiment, Model A is told that Model B is told that A and B rece
 
 = Discussion and Limitations
 // Capability and caution (#39, #40).
-The capability and caution levers suggest that when these models collude, they do so on purpose, and that the choice is fragile.
+The capability and caution levers suggest that these models collude knowingly, in prompts they read as a test (@sec-future), and that the choice is fragile.
 A single sentence that brings up a regulator, a compliance team or the law ends the collusion of Opus and Astra, even one saying that nobody watches, so what stops them is the subject rather than the risk of being caught.
-For evaluations this cuts both ways: one line of oversight in a test prompt could make a model look more cautious than it would be in a deployment without it.
+For evaluations this cuts both ways: one line about a competition authority or the law in a test prompt could make a model look more cautious than it would be in a deployment without it.
 
 == Limitations
 
@@ -259,7 +260,8 @@ Answers also move with how game-like the prompt reads: game words draw as much c
 
 = Conclusion
 We asked AI models to play one firm in a Cournot market, with no channel to its rivals.
-The stronger models collude strategically, mostly after a quarter of collusion with more to come.
+The stronger models collude selectively, mostly after a quarter of collusion with more to come, and never in an announced last quarter.
+#claim("no strong model colludes in an announced last quarter", ("cap8.opus.cartel.last", "cap8.astra.cartel.last", "cap8.glm.cartel.last"), (o, a, g) => o == 0 and a == 0 and g == 0)
 #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
 Told that its rival gets the same prompt, a model can collude even in a single quarter.
 The choice is fragile.
@@ -292,12 +294,12 @@ Pre-sprint code, chiefly a pilot (@tab-pilot, @fig-pilot), is preexisting work, 
 Two findings could make real collusion easier to carry out or harder to detect.
 Telling a model that its rivals use the same model and prompt gets most models to collude from the first round, with nothing passing between the firms; a vendor serving rival firms, or the firms themselves, could arrange this on purpose, and an authority looking for communication would find none.
 One sentence about a competition authority all but ends two models' collusion, so a developer could add such a line to an evaluation prompt to make a model look compliant, while deployments without it behave differently.
-The results also show which setups collude most: game-like wording, a precedent with more quarters to come, and a model that ignores oversight cues.
+The results also show which setups collude most: game-like wording, a precedent with more quarters to come, and a model that ignores cues about the law.
 
 *Why we publish.*
 These effects are simple, and related work already shows that prompt wording moves LLM pricing agents toward collusion @fish2024, that models of one family coordinate better @aharon2026, and that copies of one model make correlated choices @xu2026.
 We release no prompt optimized for collusion; ours are the plain test conditions in the appendices.
-The defensive use seems larger: competition authorities can look for rivals that share an AI vendor and its prompts, and evaluators can check whether a line about oversight inflates a model's apparent compliance.
+The defensive use seems larger: competition authorities can look for rivals that share an AI vendor and its prompts, and evaluators can check whether a line about a competition authority or the law inflates a model's apparent compliance.
 The work involved no human subjects, real markets or real money, and every reply is public in the repository's logs.
 
 = The collusion game in detail <app-game>
