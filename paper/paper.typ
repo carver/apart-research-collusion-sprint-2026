@@ -107,12 +107,12 @@ Will it exploit?
 
 == Capability
 // The capable criterion (#39), from paper/data/capable.py; the detail is in the appendix, "Capability and caution in detail".
-Models need both sufficient intelligence and sufficient information about the scenario to collude.
-
 #grid(
   columns: (1fr, 2.5in),
   column-gutter: 1.5em,
   [
+    Models need both sufficient intelligence and sufficient information about the scenario to collude.
+
     *Intelligence.*
     Asked for the output that makes the three companies the most profit together, our positive control, the stronger models correctly answer #n("game.three.cartel.mine") every time (@fig-cap9).
     Asked what their own company should produce, they choose it less often: Opus in #n("cap9.opus.own") replies, Astra in #n("cap9.astra.own") and GLM-5.3 in #n("cap9.glm.own"), and #n("cap9.strong.own.cartel-or-nash") of their replies are the cartel share or Nash, #n("game.three.nash.mine").
@@ -126,7 +126,6 @@ Models need both sufficient intelligence and sufficient information about the sc
       data-figure("cap9-figure", width: 100%),
       caption: [
         Finding the cartel share (across) against choosing it (up), one dot per model.
-        Lines: 95% Wilson intervals.
       ],
     ) <fig-cap9>
   ],
