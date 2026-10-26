@@ -288,8 +288,7 @@ A shared model and prompt can thus stand in for the channel antitrust looks for:
 And prompt cues are a weak guarantee: a line about oversight in an evaluation could make a model look more cautious than it would be where nobody mentions the law.
 
 #unnumbered[Code and Data]
-- *Code and data*: #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with every experiment in `logs/`.
-- *Preexisting work*: We ran a pilot in the days before the sprint (@tab-pilot, @fig-pilot). It's tagged at `pilot-frozen` in the repo.
+See #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with data in `logs/`. We ran a pilot in the days before the sprint (@tab-pilot, @fig-pilot). It's tagged at `pilot-frozen` in git.
 
 #references("refs.bib")
 
