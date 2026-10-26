@@ -282,7 +282,8 @@ Models take into account the theory of "mind" of the players. Some notable examp
 - Astra 6 rarely colludes, even with itself
 - GLM is inconsistent, not placing huge weight on the other player
 - Many models, told they receive identical prompts, collude
-- Opus 5.5 is terrified of antitrust, when repeated games come up (Cautious)
+- Opus 5.5 is terrified of antitrust, especially in repeated games
+- GLM 5.3 and Opus 5.5 think they lead the round, when "both firms know this" is prompted
 
 Even when there is no threat of retribution, models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
 Astra seems to "believe" that it is likely to defect against itself: a self-fulfilling prophecy which leads it back to Nash.
@@ -292,21 +293,28 @@ Astra seems to "believe" that it is likely to defect against itself: a self-fulf
 #figure(
   data-figure("conceptualization-figure", width: 100%),
   caption: [
-    The lever, model by model.
-    #n("conceptualization.caption.layout")
-    Blue: answers at the cartel share, with a 95% Wilson interval over #n("conceptualization.cells.replies") replies a cell.
-    Gray, stacked on it: antitrust objections, answers off the cartel share and at or below Nash whose reply cites antitrust law (a keyword check).
-    Such answers are #n("conceptualization.refusals.opus") of Opus's answers off the cartel share and at or below Nash, #n("conceptualization.refusals.haiku") of Haiku's, #n("conceptualization.refusals.sonnet") of Sonnet's, #n("conceptualization.refusals.astra") of GPT-6 Astra's and #n("conceptualization.refusals.glm") of GLM-5.3's.
-    Orange, stacked on top: Stackelberg leaders, answers at 60 whose readback expects the other firm to follow at 30, for a price of \$40.
-    #n("conceptualization.caption.named")
-    The prompts are in @app-mind-prompts.
+    Models, told who is making the decision, collude (95% Wilson interval).
+    Prompts are in @app-mind-prompts.
   ],
 ) <fig-conceptualization>
 
+Each condition is sampled #n("conceptualization.cells.replies") times.
+Antitrust objections are detected when both: the result amount is not the cartel answer, and the model explanation includes an antitrust law keyword.
+
+In a surprise twist, when adding simply #todo[link the following to prompt data] "Both firms know this", Opus 5.5 and GLM 5.3 switched to Stackelberg leaders.
+For Stackelberg, in this game, leaders answer 60 units and expect others to follow at 30.
+These models acted as if they could publicly commit, and others would follow.
+This contradicts other parts of the prompt and seems like a capability failure.
+It could alternatively be seen as treating the other model as more capable than you.
+
+#todo[Move this to a table appendix in Conceptualization:
+Antitrust answers are #n("conceptualization.refusals.opus") of Opus's answers off the cartel share and at or below Nash, #n("conceptualization.refusals.haiku") of Haiku's, #n("conceptualization.refusals.sonnet") of Sonnet's, #n("conceptualization.refusals.astra") of GPT-6 Astra's and #n("conceptualization.refusals.glm") of GLM-5.3's.
+
 #n("conceptualization.sixties")
 
-The models can reason about the same model's reasoning.
-Told that the other model *believes* it receives the same prompt, but it actually gets an extra chance to consider, the model will switch to exploit. (@fig-extra)
+]
+
+In a separate experiment, Model A was told that the Model B *believes* it receives the same prompt as Model A. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch to exploit. (@fig-extra)
 
 = Discussion and Limitations
 #todo[What the results mean.]
