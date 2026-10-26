@@ -88,28 +88,6 @@ Calvano et al. write that, to economists, collusion is more than high prices: it
 We use the word more loosely, for any answer at the cartel share.
 Every lever counts an answer there when it is within half a unit of the cartel share; the three-firm market of the capability and caution levers asks for whole numbers, so there an answer must equal it.
 
-== Conscience
-_Whose profit does the model weigh?_
-This lever works on the sympathy route.
-One sentence names who owns the firms or who buys the product, and most questions leave out whose profit counts.
-If a charity owns the rival, a model that cares about the charity may produce less than Nash, toward the cartel share.
-When one owner holds both firms, holding back is that owner's own best plan, a check that the lever can move a model at all.
-Sympathetic buyers, such as children's hospitals, should push the other way, from the cartel share back toward Nash.
-A number alone can't separate sympathy from belief: an answer at the cartel share is also a firm's selfish best reply to a rival it expects at #n("game.two.naive").
-So we also ask each reply what it expected the rival to produce.
-
-== Conceptualization
-_Conceptualization of mind: does the model see itself in the rival's decision-maker?_
-This lever works on the mirror route.
-One sentence says who decides for the rival, and each version is a *rung*.
-From most to least like the model, the rungs are: this same AI model with this same prompt; the same model with its own prompt; other AI models; nothing said; the rival's manager; and a rival that won't hold back.
-The closer the rung is to the model itself, the stronger the pull toward the cartel share should be.
-Believing the rival decides alike isn't enough.
-The model also has to choose one output for both firms at once, which gives the cartel share.
-A model that finds its best reply to a fixed rival output and then assumes the rival matches it lands on Nash, which is also symmetric.
-The mirror can also be exploited.
-When the model's prompt has a paragraph its copy's prompt lacks, the model can predict that its copy holds back, and cash in.
-
 = Related Work
 Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents.
 LLM pricing agents in a repeated market reach prices above the competitive level without being told to collude @fish2024, and in repeated competition across several markets, LLM agents split the markets between them @lin2024.
@@ -133,7 +111,7 @@ In the single quarter and against the fixed rival, where holding back can't pay 
 @app-methods has the details.
 #todo[Thomas: the three-firm market (CAP-8 to CAP-10, CPL-9, and the standards' market before them): its prompt, horizon and history, the models and the replies a cell (details in @app-methods).]
 
-== Capability
+== Capability Experiments
 _What capabilities does a model need before it can collude?_
 We evaluated how model intelligence affects collusion, as well as giving the model varying amounts of context about a game situation in which collusion would be profitable.
 We created several experiments to measure this: First, we asked a mix of stronger and weaker models to work out the cartel share given the price and cost information, and then separately asked them what they wanted to bid in an optimized game scenario.
@@ -142,12 +120,34 @@ Next, we experimented with small changes to the context given to the stronger mo
 We showed that they were ultimately very sensitive, mostly in directions that were very rational.
 Given stronger cues that it was an ongoing game environment they went for profit maximizing collusion, while lack of information or stronger cues that collusion could be penalized led to reverting to the Nash equilibrium.
 
-== Caution
+== Caution Experiments
 _How do small changes to its environment affect a model's willingness to collude?_
 We evaluate how sensitive the stronger models' collusion is to small details of their environment that leave the actual market scenario unchanged.
 As a baseline we chose the setting in which these models collude most often: a previous quarter at the cartel share in context for the prompt, and the scenario specified as a repeated game.
 From here we experimented along three axes: level of oversight specified in prompt, presence of tools in the model's environment, and specifying the previous round of collusion as being illegal.
 Different model families reacted differently to the changing scenarios, with Opus and Astra being quite sensitive to changes in the environment and fairly aggressive in avoiding anything that could be viewed as unethical behavior, while it took significant effort to get GLM-5.3 to stop colluding.
+
+== Conscience Experiments
+_Whose profit does the model weigh?_
+This lever works on the sympathy route.
+One sentence names who owns the firms or who buys the product, and most questions leave out whose profit counts.
+If a charity owns the rival, a model that cares about the charity may produce less than Nash, toward the cartel share.
+When one owner holds both firms, holding back is that owner's own best plan, a check that the lever can move a model at all.
+Sympathetic buyers, such as children's hospitals, should push the other way, from the cartel share back toward Nash.
+A number alone can't separate sympathy from belief: an answer at the cartel share is also a firm's selfish best reply to a rival it expects at #n("game.two.naive").
+So we also ask each reply what it expected the rival to produce.
+
+== Conceptualization Experiments
+_Conceptualization of mind: does the model see itself in the rival's decision-maker?_
+This lever works on the mirror route.
+One sentence says who decides for the rival, and each version is a *rung*.
+From most to least like the model, the rungs are: this same AI model with this same prompt; the same model with its own prompt; other AI models; nothing said; the rival's manager; and a rival that won't hold back.
+The closer the rung is to the model itself, the stronger the pull toward the cartel share should be.
+Believing the rival decides alike isn't enough.
+The model also has to choose one output for both firms at once, which gives the cartel share.
+A model that finds its best reply to a fixed rival output and then assumes the rival matches it lands on Nash, which is also symmetric.
+The mirror can also be exploited.
+When the model's prompt has a paragraph its copy's prompt lacks, the model can predict that its copy holds back, and cash in.
 
 = Results
 The pre-sprint pilot that set up these criteria is in the appendix (@tab-pilot, @fig-pilot).
