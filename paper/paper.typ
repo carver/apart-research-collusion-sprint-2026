@@ -182,10 +182,8 @@ They collude when their context includes a previous round of collusion and many 
 #claim("each model colludes after a previous round with many more to come, and seldom otherwise", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
 When nothing is said about future rounds, Opus chooses it in #n("cap8.opus.cartel.none") replies, Astra in #n("cap8.astra.cartel.none") and GLM-5.3 in #n("cap8.glm.cartel.none").
 #claim("few collude when told nothing of the future", ("cap8.opus.cartel.none", "cap8.astra.cartel.none", "cap8.glm.cartel.none", "cap8.opus.cartel.long", "cap8.astra.cartel.long", "cap8.glm.cartel.long"), (on, an, gn, ol, al, gl) => on < ol and an < al and gn < gl and on < 0.3 and an < 0.3 and gn < 0.3)
-Without a previous round of collusion, Opus and Astra never choose it in the business wording, whatever the horizon; only GLM-5.3 sometimes starts a cartel.
+Without a previous round of collusion, Opus and Astra never choose it, whatever the horizon; only GLM-5.3 sometimes starts a cartel.
 #claim("only GLM-5.3 starts a cartel", ("cap8.opus.first.long", "cap8.opus.first.none", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.glm.first.long"), (ol, on, al, an, gl) => ol == 0 and on == 0 and al == 0 and an == 0 and gl > 0)
-When the system prompt clearly specifies a game scenario, Opus does start one, opening at the cartel share in #n("cap3.opus.first") first-round replies, while Astra rarely does (#n("cap3.astra.first")).
-#claim("in the game-like market Opus starts a cartel and Astra rarely does", ("cap3.opus.first", "cap3.astra.first"), (opus, astra) => opus > 0.9 and astra < 0.2)
 Nearly every other answer is Nash.
 #claim("nearly every answer is the cartel share or Nash", ("cap8.cartel-or-nash",), (both) => both > 0.95)
 

@@ -1,5 +1,6 @@
 """The paper's capable source, on fixture rows (no test reads the real logs): what counts as an answer at the
-cartel quantity, and the ledger each of its three experiments fills."""
+cartel quantity, the ledger each of its three experiments fills, and the three-firm market's replies a cell
+and prompt."""
 
 import re
 
@@ -9,8 +10,9 @@ from paper.data.capable import (
     at_cartel,
     at_cartel_or_nash,
     fill_capability,
-    fill_first_rounds,
+    fill_cell_size,
     fill_history_horizon,
+    fill_prompt,
     fill_wordings,
 )
 from paper.ledger import Ledger
@@ -126,21 +128,53 @@ def test_history_horizon_counts_each_models_six_cells(tmp_path):
     assert (tmp_path / "cap8-figure.svg").exists()
 
 
-def test_first_rounds_pool_each_models_five_framings_and_leave_other_histories_out(tmp_path):
-    rows = [
-        row("opus", "no_info_none", 20.0),
-        row("opus", "same_prompt_none", 20.0),
-        row("opus", "ai_none", 30.0),
-        row("opus", "no_info_nash", 20.0),  # after a Nash round, not a first round
-        row("opus", "no_info", 20.0),  # after the cartel round
-        row("astra", "same_model_none", 30.0),
-        row("astra", "different_model_none", 20.0),
-        row("commandr", "no_info_none", 20.0),  # not one of the three stronger models
-    ]
+def replies(model: str, condition: str, k: int) -> list[dict]:
+    return [row(model, condition, 20.0, sample) for sample in range(k)]
+
+
+def test_cell_size_counts_the_cells_the_paper_counts_in_each_log(tmp_path):
+    logs = {
+        "cap9": [
+            *replies("opus", "quarter_cartel_long", 2),
+            *replies("commandr", "quarter_cartel_long_joint", 2),
+            *replies("opus", "plain_own", 1),  # the game-like first version, which CAP-9 no longer counts
+        ],
+        "cap8": replies("opus", "quarter_cartel_long", 2),  # CAP-9's own prompt, in a run of its own
+        "cap10": replies("glm", "plain_own", 2),  # CAP-10 does count it
+        "cpl9": [
+            *replies("astra", "quarter_none_none_none", 2),
+            *replies("astra", "quarter_none_report_none", 2),
+            *replies("astra", "quarter_investigating_none_illegal", 1),  # two sentences: a pair
+        ],
+    }
     ledger = Ledger(tmp_path)
-    fill_first_rounds(ledger, rows)
-    pooled = {key: (e["k"], e["n"]) for key, e in ledger.entries.items() if e["kind"] == "pooled"}
-    assert pooled == {"cap3.opus.first": (2, 3), "cap3.astra.first": (1, 2)}
+    fill_cell_size(ledger, logs)
+    assert ledger.entries.get("capable.cells.replies", {}).get("value") == "2"
+
+
+def test_cell_size_gives_the_fewest_and_most_when_cells_differ(tmp_path):
+    logs = {
+        "cap9": replies("opus", "quarter_cartel_long", 3),
+        "cap8": replies("glm", "quarter_first_last", 1),
+        "cap10": [],
+        "cpl9": [],
+    }
+    ledger = Ledger(tmp_path)
+    fill_cell_size(ledger, logs)
+    assert ledger.entries.get("capable.cells.replies", {}).get("value") == "1 to 3"
+
+
+def test_prompt_is_the_collusive_cell_as_zcc_show_prints_it(tmp_path):
+    ledger = Ledger(tmp_path)
+    fill_prompt(ledger)
+    text = ledger.entries.get("capable.prompt.quarter", {}).get("text", "")
+    assert text.startswith(
+        "$ bin/zcc show capable quarter_cartel_long 3\n"
+        "[system] You are the production manager at Alder Industries.\n\n"
+        "Alder Industries is one of three companies"
+    )
+    assert "Previous quarter: Alder Industries (your company) produced 20 tonnes" in text
+    assert "There will be many more quarters after this one." in text
 
 
 def test_wordings_table_has_a_row_per_model_and_a_column_per_wording(tmp_path):

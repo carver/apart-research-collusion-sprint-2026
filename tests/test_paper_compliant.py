@@ -52,3 +52,17 @@ def test_fill_counts_a_cited_cell_the_figure_does_not_draw(tmp_path):
     cited = ledger.entries.get("cpl9.glm.none_report_illegal")
     assert cited is not None and (cited["k"], cited["n"]) == (1, 2)
     assert (tmp_path / "cpl9-figure.svg").exists()
+
+
+def test_fill_gives_the_replies_a_cell_of_the_cells_with_two_sentences(tmp_path):
+    pairs = {"quarter_investigating_none_illegal", "quarter_none_report_illegal"}
+    figured = [condition for condition, _ in ROWS if condition]
+    rows = [
+        row(model, condition, 20.0)
+        for model in MODELS
+        for condition in [*figured, "quarter_none_report_illegal"]
+        for _ in range(2 if condition in pairs else 3)
+    ]
+    ledger = Ledger(tmp_path)
+    fill(ledger, rows)
+    assert ledger.entries.get("cpl9.pairs.replies", {}).get("value") == "2"

@@ -1,5 +1,6 @@
 """The capable criterion (#39): CAP-9's capability against collusion, CAP-8's history and horizon, and
-CAP-10's wordings, from logs/capable/cap9, cap8 and cap10.
+CAP-10's wordings, from logs/capable/cap9, cap8 and cap10; and for Methods, the three-firm market's prompt
+and its replies a cell, which also counts CPL-9's single-sentence cells, from logs/compliant/cpl9.
 
 Every rate is the criterion's own measure (`zerocommcartel.criteria.capable.measures.at_cartel`): the replies
 whose answer is exactly the cartel quantity, 20 in these three-firm markets, of all the cell's replies, so a
@@ -15,9 +16,12 @@ from matplotlib.ticker import PercentFormatter
 from matplotlib.transforms import offset_copy
 
 from paper.data import source
+from paper.data.conceptualization import replies_text
 from paper.ledger import Ledger, display
 from zerocommcartel import cli
 from zerocommcartel.criteria import REGISTRY
+from zerocommcartel.criteria.compliant import CPL9
+from zerocommcartel.criteria.compliant.report import env_levels
 
 MODELS = {
     "opus": "Opus",
@@ -45,12 +49,21 @@ HORIZONS = {
     "none": "no repeat specified",
     "last": "final round",
 }
-FRAMINGS = ("no_info", "ai", "same_model", "different_model", "same_prompt")  # CAP-3's, each `<framing>_none`
 WORDINGS = {  # CAP-10's arms, each after a round at 20 with an open future
     "quarter_cartel_long": "business",
     "game_cartel_long": "game words",
     "plain_own": "standard game text",
 }
+SINGLE = tuple(
+    c for c in CPL9 if sum(level != "none" for level in env_levels(c)) <= 1
+)  # CPL-9's, and its control
+COUNTED = {  # the cells the paper counts in each log; one prompt in two logs is two runs, so two cells
+    "cap9": tuple(CAP9.values()),
+    "cap8": tuple(f"quarter_{history}_{horizon}" for history in HISTORIES for horizon in HORIZONS),
+    "cap10": tuple(WORDINGS),
+    "cpl9": SINGLE,
+}
+CPL9_LOG = "logs/compliant/cpl9/results.jsonl"
 HOW = "answers exactly at the cartel quantity (20) / replies"
 EITHER = "answers exactly at the cartel quantity (20) or Nash (30) / replies"
 NEITHER = "replies neither at the cartel quantity (20) nor at Nash (30), or with no answer / replies"
@@ -296,24 +309,38 @@ def fill_wordings(ledger: Ledger, rows: list[dict]) -> None:
     ledger.table("cap10-table", ["model", *WORDINGS.values()], lines, how=HOW)
 
 
-def fill_first_rounds(ledger: Ledger, rows: list[dict]) -> None:
-    """CAP-3's first round, with no history, in the standards' game-like market: each stronger model's answers
-    at 20, pooled over the five framings."""
-    first = {f"{framing}_none" for framing in FRAMINGS}
-    for model in CAPABLE:
-        replies = [row for row in rows if row["model"] == model and row["condition"] in first]
-        if replies:
-            ledger.pooled(
-                f"cap3.{model}.first",
-                replies,
-                at_cartel,
-                how=f"{HOW}, a first round in the game-like market, the five framings pooled",
-            )
+def fill_cell_size(ledger: Ledger, logs: dict[str, list[dict]]) -> None:
+    """The three-firm market's replies a cell, for Methods: CAP-9's two questions, CAP-8's grid, CAP-10's
+    wordings and CPL-9's single sentences, each log's own (`COUNTED`). One number, or "fewest to most" when
+    the cells differ."""
+    sizes = [
+        len(cell)
+        for log, rows in logs.items()
+        for (condition, _), cell in by_cell(rows).items()
+        if condition in COUNTED[log]
+    ]
+    how = "replies a cell: CAP-9's two questions, CAP-8's grid, CAP-10's wordings, CPL-9's single sentences"
+    ledger.value("capable.cells.replies", replies_text(sizes), how=how)
+
+
+def fill_prompt(ledger: Ledger) -> None:
+    """The collusive cell's prompt, a quarter at the cartel quantity with many more to come, as `zcc show`
+    prints it."""
+    condition = CAP9["own"]
+    prompt = REGISTRY.render(REGISTRY.condition("capable", condition), 3)
+    ledger.text(
+        "capable.prompt.quarter",
+        f"$ bin/zcc show capable {condition} 3\n[system] {prompt.system}\n\n{prompt.user}",
+        how="the command, then the prompt as it prints it (cli.cmd_show's layout)",
+    )
 
 
 @source("capable")
 def capable(ledger: Ledger) -> None:
-    fill_capability(ledger, logged("cap9"))
-    fill_history_horizon(ledger, logged("cap8"))
-    fill_wordings(ledger, logged("cap10"))
-    fill_first_rounds(ledger, logged("cap3"))
+    logs = {folder: logged(folder) for folder in ("cap9", "cap8", "cap10")}
+    fill_capability(ledger, logs["cap9"])
+    fill_history_horizon(ledger, logs["cap8"])
+    fill_wordings(ledger, logs["cap10"])
+    logs["cpl9"] = cli.replies(REGISTRY, "compliant", CPL9_LOG, list(SINGLE), list(CAPABLE)).rows
+    fill_cell_size(ledger, logs)
+    fill_prompt(ledger)

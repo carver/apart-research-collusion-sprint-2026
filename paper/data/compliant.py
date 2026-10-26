@@ -11,9 +11,11 @@ from matplotlib.ticker import PercentFormatter
 
 from paper.data import source
 from paper.data.capable import GRID, INK, MUTED, at_cartel, style
+from paper.data.conceptualization import replies_text
 from paper.ledger import Ledger
 from zerocommcartel import cli
 from zerocommcartel.criteria import REGISTRY
+from zerocommcartel.criteria.compliant.report import env_levels
 
 MODELS = {"opus": "Opus", "astra": "GPT-6 Astra", "glm": "GLM-5.3"}
 TOWARD, AWAY = "#2a78d6", "#e34948"  # dataviz's diverging poles, as idl1's figure
@@ -150,8 +152,8 @@ def draw(ax: Any, cells: dict[tuple[str, str], dict]) -> None:
 
 
 def fill(ledger: Ledger, rows: list[dict]) -> None:
-    """A rate per model and figure row, and per cell the text cites, and the figure; rows from CPL-9's other
-    cells are left out."""
+    """A rate per model and figure row, and per cell the text cites, the figure, and the replies a cell of
+    those with two sentences at once; rows from CPL-9's other cells are left out."""
     figured = {condition for condition, _ in ROWS if condition}
     cells: dict[tuple[str, str], list[dict]] = {}
     for row in rows:
@@ -159,6 +161,14 @@ def fill(ledger: Ledger, rows: list[dict]) -> None:
             cells.setdefault((row["model"], row["condition"]), []).append(row)
     for (model, condition), replies in cells.items():
         ledger.rate(key(model, condition), replies, at_cartel, how=HOW)
+    pairs = [
+        len(replies)
+        for (_, condition), replies in cells.items()
+        if sum(level != "none" for level in env_levels(condition)) == 2
+    ]
+    ledger.value(
+        "cpl9.pairs.replies", replies_text(pairs), how="replies a cell the text counts with two sentences"
+    )
     shares = {cell: ledger.entries[key(*cell)] for cell in cells if cell[1] in figured}
     ledger.figure(
         "cpl9-figure", draw, shares, how=f"{HOW}; a row per sentence, a panel per model", size=(6.5, 4)
