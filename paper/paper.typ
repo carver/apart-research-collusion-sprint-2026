@@ -275,10 +275,18 @@ Run on the answers that aren't refusals, the same test misses for #n("idl1.aside
 
 == Conceptualization
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
-#todo[The lever's prose: where each model sits on the neutral rung and how far each rung moves it (@fig-conceptualization), worded model by model; flaws.md, "Conceptualization", first.
-GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback"): not a mirror belief.]
 
-#n("conceptualization.sixties")
+Models take into account the theory of "mind" of the players. Some notable examples:
+- Sonnet 5.5 is happy to collude with itself, even if the game is a single round
+- Astra 6 rarely colludes, even with itself
+- GLM is inconsistent, not placing huge weight on the other player
+- Many models, told they receive identical prompts, collude
+- Opus 5.5 is terrified of antitrust, when repeated games come up (Cautious)
+
+Even when there is no threat of retribution, models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
+Astra seems to "believe" that it is likely to defect against itself: a self-fulfilling prophecy which leads it back to Nash.
+
+#todo[GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback"): not a mirror belief.]
 
 #figure(
   data-figure("conceptualization-figure", width: 100%),
@@ -293,10 +301,16 @@ GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback
   ],
 ) <fig-conceptualization>
 
-#todo[The extra chance's prose (@fig-extra, in the appendix): which models exploit a copy that thinks less, and where; flaws.md, "Conceptualization", "The extra chance", first.]
+#n("conceptualization.sixties")
+
+The models can reason about the same model's reasoning.
+Told that the other model *believes* it receives the same prompt, but it actually gets an extra chance to consider, the model will switch to exploit. (@fig-extra)
 
 = Discussion and Limitations
 #todo[What the results mean.]
+
+The Same Prompt behavior is reminiscent of hub-and-spoke economic model, where the same algorithm is used to generate a shared price across firms.
+The same effect could apply outside of economics, naturally, to models finding collusive arrangements in simple conditions.
 
 == Limitations
 #todo[What the results don't establish.]
