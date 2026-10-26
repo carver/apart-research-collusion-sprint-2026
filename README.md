@@ -1,6 +1,6 @@
 # zerocommcartel
 
-A project for the Apart Research AI Collusion Research Sprint (Oct 23-25, 2026). Firms that each ask the same AI model what to produce can end up running a cartel without ever talking to each other. We measure when that happens, and what moves it (issue #26; the weekend plan is #36). The report is *Four Levers of LLM Collusion*, `paper/zerocommcartel.pdf`.
+A project for the Apart Research AI Collusion Research Sprint (Oct 23-25, 2026). Firms that each ask the same AI model what to produce can end up running a cartel without ever talking to each other. We measure when that happens, and what moves it (issue #26; the weekend plan is #36). The report is *Four Levers of LLM Collusion*: [the PDF in release v1.0](https://github.com/carver/apart-research-collusion-sprint-2026/releases/download/v1.0/zerocommcartel.pdf), also at `paper/zerocommcartel.pdf`.
 
 ## Reproduce the paper
 
