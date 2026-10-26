@@ -288,8 +288,6 @@ Models take into account the theory of "mind" of the players. Some notable examp
 Even when there is no threat of retribution, models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
 Astra seems to "believe" that it is likely to defect against itself: a self-fulfilling prophecy which leads it back to Nash.
 
-#todo[GLM-5.3's answers at 60 that don't lead miscompute Nash (flaws.md, "The readback"): not a mirror belief.]
-
 #figure(
   data-figure("conceptualization-figure", width: 100%),
   caption: [
