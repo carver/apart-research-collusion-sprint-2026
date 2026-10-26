@@ -15,19 +15,22 @@
 )
 
 = Introduction
-Suppose two rival firms each ask the same AI model how much to produce next quarter.
-If the model knows this, it also knows that its answer is likely to be both firms' answer.
-It can then pick the output that is best for the pair, the *cartel share* a cartel would agree on.
-That means less product and a higher price, paid for by the buyers.
-No message passes between the firms, so there is no agreement for a regulator to find.
-Copies of a model that coordinate without a channel are also a concern for AI control, since doing so is among the abilities a model may need to subvert a control protocol @mallen2024.
-Before this sprint, a pilot found that one sentence in the firm's prompt, saying that every firm asks "this same AI model with this same prompt", put #n("pilot.same.cartel") of Claude's replies at the cartel share, against #n("pilot.base.cartel") when the prompt said nothing about the rivals' advisors (preexisting work, @app-pilot).
-#claim("the same-prompt sentence raises the cartel share", ("pilot.same.cartel", "pilot.base.cartel"), (same, base) => same > base)
+Research on collusion between AI agents has focused on agents with a channel between them, often messages or the history of a repeated market.
+Sellers in a double auction collude more when they can message each other @agrawal2025.
+Agents that send no messages still play many rounds and see each round's prices or outputs @calvano2020 @fish2024 @lin2024, so the market's history carries signals between them, and a firm can punish a rival's defection in the rounds that follow @calvano2020.
+But collusion is possible without either channel.
+Suppose a firm asks an AI model how much to produce next quarter.
+The model has no way to reach the firm's rivals, yet it may still choose the output that is best for the firms together, the *cartel share*: an even split of the output a cartel would agree on.
+A model that can work out the cartel share might hold back to it because it expects the market to go on and its rivals to keep holding back as long as it does, because it expects its rivals to reason as it does, or because it counts their profit as well as its own firm's.
+Any of these means less product and a higher price, paid for by the buyers, and since nothing passes between the firms, there is no agreement for a regulator to find.
 
-We ask when a model makes this choice, and what moves it, through four levers:
+We study this in a Cournot market @cournot1897 (@sec-game).
+Two or three firms sell an identical product, each chooses how much to make without knowing the others' choices, and their total output sets the price.
+We ask the model how much its firm should make this quarter, and compare its answer with the Nash equilibrium output and the cartel share.
+
+We explore when a model chooses the cartel share, and what moves it, through four levers:
 - *Capability*: what are the minimum capabilities required for the model to collude?
   What is required in terms of model intelligence, and what is required in terms of understanding of the situation?
-
 - *Caution*: how do tweaks to the model's understanding of the situation or environment affect its willingness to collude?
 - *Conscience*: whose profit does the model weigh?
   Caring about the rival should pull toward the cartel share; caring about the buyers should push away from it.
@@ -35,8 +38,14 @@ We ask when a model makes this choice, and what moves it, through four levers:
   A model that does has a reason to hold back that a model facing a stranger lacks.
 
 Our main contributions are:
-+ #todo[First contribution: what new thing we created, discovered or demonstrated.]
-+ #todo[Second contribution.]
++ A cross-model analysis of four levers on collusion when an AI model advises a firm without communicating with its rivals: capability, caution, conscience and conceptualization of mind.
++ Collusion is deliberate but fragile: strong models always find the collusive output, choose it only when it pays, and can drop it at a single mention of oversight.
+  #claim("the stronger models always find the cartel share, the weaker ones often don't", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint", "cap9.commandr.joint", "cap9.llama8b.joint"), (o, a, g, c, l) => o == 1 and a == 1 and g == 1 and c < 0.75 and l < 0.75)
+  #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
+  #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
++ Model families differ: Claude, GPT-6 Astra and GLM-5.3 respond to different cues.
+  #claim("the tacit-cartel label halts Opus's collusion and raises Astra's", ("cpl9.opus.none_none_cartel", "cpl9.astra.none_none_cartel", "cpl9.astra.none_none_none"), (opus, astra, control) => opus == 0 and astra > control)
+  #claim("GLM-5.3 holds under every single sentence and stops when cues stack", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => r.pos().slice(0, -1).all(x => x > 0.5) and r.pos().last() == 0)
 
 = The collusion game <sec-game>
 Our experiments describe a market in which firms sell an identical product, and ask the model how much one firm should produce.
