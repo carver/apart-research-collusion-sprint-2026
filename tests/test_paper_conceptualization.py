@@ -106,6 +106,29 @@ def test_fill_pools_each_models_cartel_answers_on_each_rung_it_shows_over_the_ho
     }
 
 
+def test_fill_pools_each_models_leaders_on_each_rung_it_shows_over_the_horizons(tmp_path):
+    rows = [row(rung="informed", value=60.0, sample=s) for s in range(3)]
+    rows += [row(rung="informed", horizon="open", value=60.0, sample=3)]
+    rows += [row(rung="informed", value=40.0, sample=4)]  # expects the rival at 30, but answers Nash
+    rows += [row(model="glm", rung="none", value=60.0)]
+    rows += [row(rung="samemodel", value=40.0, sample=5)]  # a rung shown with no leader
+    rows += [row(rung="sibling", value=60.0)]  # a rung the figure doesn't show
+    reads = {0: Readback(30, 40), 1: Readback(0, 70), 3: Readback(30, 40), 4: Readback(30, 40)}  # 2: unread
+    ledger = Ledger(tmp_path)
+    fill(ledger, rows, lambda r: reads.get(r["sample"]) if r["model"] == "opus" else Readback(30, 40))
+    pooled = {
+        key: (e["k"], e["n"])
+        for key, e in ledger.entries.items()
+        if key.startswith("conceptualization.leader.") and e["kind"] == "pooled"
+    }
+    assert pooled == {
+        "conceptualization.leader.opus.informed": (2, 5),
+        "conceptualization.leader.glm.none": (1, 1),
+        "conceptualization.leader.opus.samemodel": (0, 1),
+    }
+    assert ledger.entries["conceptualization.leader.where"]["value"] == "glm:none opus:informed"
+
+
 def test_the_replies_a_cell_read_as_one_number_when_every_cell_has_the_same(tmp_path):
     ledger = Ledger(tmp_path)
     fill(ledger, [r for r in ROWS if r["model"] == "opus"], unread)

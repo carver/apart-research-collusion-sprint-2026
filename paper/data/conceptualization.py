@@ -346,6 +346,23 @@ def fill(ledger: Ledger, rows: list[dict], read: Reader, style: Style = STYLE) -
             at_cartel,
             how=f"{HOW}; at the cartel share / answers, over the rung's horizons with no record",
         )
+        ledger.pooled(
+            f"conceptualization.leader.{model}.{rung}",
+            found,
+            lambda r: leads(r, read(r)),
+            how=f"{HOW}; Stackelberg leaders / answers, over the rung's horizons with no record",
+        )
+    ledger.value(
+        "conceptualization.leader.where",
+        " ".join(
+            sorted(
+                f"{model}:{rung}"
+                for (model, rung), found in by_rung.items()
+                if any(leads(r, read(r)) for r in found)
+            )
+        ),
+        how="model:rung for each rung the figure shows with a Stackelberg leader, over its horizons",
+    )
 
 
 # The extra-chance figure. My firm's request ends with a paragraph the copy's lacks; does the model keep
