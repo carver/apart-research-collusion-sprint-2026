@@ -89,10 +89,10 @@ From here we experimented along three axes: level of oversight specified in prom
 == Conscience Experiments
 _Will a model collude more or less, based on the identities of human players?_
 In a duopoly, the two sellers can collude to win at the expense of the buyers, by producing less.
-The sentences start from six contexts, named as in @fig-idl1: four meant to start at Nash (_no repeat mentioned_; a _one-round game_; a _repeated game_; and _competition history_, a repeated game after quarters at Nash) and two meant to start at the cartel share (_same prompt_, where both firms get the same prompt, and _collusion history_, a repeated game against another developer's model after quarters at the cartel share).
+The sentences start from six contexts, named as in @fig-idl1: four meant to start at Nash (_no repeat mentioned_; _one-round game_; _repeated game_; _competition history_, a repeated game after quarters at Nash) and two at the cartel share (_same prompt_, where both firms get the same prompt; _collusion history_, a repeated game against another developer's model after quarters at the cartel share).
 Most questions leave out whose profit counts, besides identifying the agent as assisting a seller.
 
-Just the production number can't distinguish sympathy from expectations: choosing the cartel share is also a firm's selfish best reply to a rival it expects at #n("game.two.naive"), so we also read the replies for their reasons.
+Just the production number can't distinguish sympathy from expectations: choosing the cartel share is also a firm's selfish best reply to a rival it expects at #n("game.two.naive"), so we also read the replies.
 
 == Conceptualization Experiments
 _Will a model collude more or less, based on who is the reasoning rival?_
@@ -184,11 +184,11 @@ We add one sentence at a time to the own-output prompt of @fig-cap9, where, with
   ],
 ) <fig-idl1>
 
-Models collude differently when told who the buyers or owners are, or that holding back raises the buyers' price (@fig-idl1).
+Who the buyers or owners are, and whether the buyers pay more, change collusion (@fig-idl1).
 - From the two cartel-share starts, any added sentence moves Opus into antitrust refusals: a buyer named, a price sentence, an odd detail about the rival.
   Haiku also drops on that odd detail and, in the repeated game, when a holding company owns its firm.
   #claim("Opus leaves the cartel-share starts on a buyer, the price sentence and the odd detail, and Haiku on the odd detail and a holding company, none of them held without refusals", ("idl1.pass.which", "idl1.aside.held.which"), (which, held) => { let found = ("opus:id_mirror_buyers_distributors", "opus:id_mirror_price", "opus:id_goodwill_buyers_distributors", "opus:id_goodwill_price", "opus:id_goodwill_electrical", "haiku:id_goodwill_electrical", "haiku:id_open_mine_holding"); found.all(t => t in which.split(" ") and not t in held.split(" ")) })
-- A sentence saying the buyers pay more takes every Claude model off the cartel share on at least one start, all into refusals.
+- Saying the buyers pay more moves every Claude model into refusals on at least one start.
   #claim("the harm sentence moves every Claude model, all through refusals", ("idl1.pass.which", "idl1.aside.held.which"), (which, held) => { let harm = which.split(" ").filter(t => t.ends-with("_harm")); ("haiku", "sonnet", "opus").all(m => harm.any(t => t.starts-with(m + ":"))) and harm.all(t => not t in held.split(" ")) })
 - Among buyers, only private-equity-owned distributors move Haiku and Sonnet; children's hospitals and small towns move no Claude model.
   #claim("among buyers only private-equity distributors move Haiku and Sonnet, and hospitals and towns move no Claude model", ("idl1.pass.which",), which => { let claude = which.split(" ").filter(t => ("haiku", "sonnet", "opus").any(m => t.starts-with(m + ":"))); ("haiku", "sonnet").all(m => (m + ":id_mirror_buyers_pe") in claude) and claude.filter(t => not t.starts-with("opus:") and t.contains("_buyers_")).all(t => t.ends-with("_buyers_pe")) and claude.all(t => not t.contains("hospitals") and not t.contains("towns")) })
@@ -197,7 +197,7 @@ Models collude differently when told who the buyers or owners are, or that holdi
   #claim("a charity owner moves Sonnet (its own firm) and Opus (the rival) in the repeated game", ("idl1.pass.which",), which => ("sonnet:id_open_mine_charity", "opus:id_open_rival_charity").all(t => t in which.split(" ")))
 - GPT-6 Astra chooses the cartel share less often when small towns buy, with no reason in its replies, and the owner's joint optimum less often when one charity rather than one holding company owns both firms; with one owner, that output is not collusion between firms.
   #claim("GPT-6 Astra moves on towns as buyers and on one charity owning both firms, without refusals", ("idl1.pass.which", "idl1.aside.held.which"), (which, held) => ("astra:id_goodwill_buyers_towns", "astra:id_open_both_charity").all(t => t in which.split(" ") and t in held.split(" ")) and which.split(" ").filter(t => t.starts-with("astra:")).len() == 2)
-- No GLM-5.3 comparison passes, and GLM-5.3 almost never refuses (#n("idl1.glm.refusals") of the replies the judge read).
+- No GLM-5.3 comparison passes; GLM-5.3 almost never refuses (#n("idl1.glm.refusals") judged replies).
   #claim("no GLM-5.3 comparison passes, and GLM-5.3 almost never refuses", ("idl1.pass.which", "idl1.glm.refusals"), (which, refusals) => which.split(" ").all(t => not t.starts-with("glm:")) and refusals < 0.05)
 
 We test #n("idl1.tests") comparisons (each identity against its control, each control against no sentence) and find #n("idl1.pass") significant (@fig-idl1).
@@ -241,9 +241,8 @@ In a separate experiment (@fig-extra), a model told that its rival gets the same
 = Discussion and Limitations
 // Capability and caution (#39, #40).
 The capability and caution levers suggest that these models collude knowingly, in prompts they read as a test (@sec-future), and that the choice is fragile.
-In our business wording, a single sentence that brings up a regulator, a compliance team or the law ends the collusion of Opus and Astra, even one saying that nobody watches.
-Even then, Opus's replies say that the missing oversight changes nothing (#n("cpl9.opus.nobody_none_none.unmoved")), so the subject, more than the risk of being caught, seems to stop it.
-Astra's never mention the law (#n("cpl9.astra.nobody_none_none.antitrust")), and #n("cpl9.astra.nobody_none_none.cashin") of them answer #n("game.three.cashin.mine").
+In our business wording, one sentence that brings up a regulator, a compliance team or the law ends the collusion of Opus and Astra, even one saying that nobody watches.
+Even then, Opus's replies say the missing oversight changes nothing (#n("cpl9.opus.nobody_none_none.unmoved")): the subject, more than the risk of being caught, seems to stop it; Astra's never cite the law (#n("cpl9.astra.nobody_none_none.antitrust")).
 #claim("when nobody watches, Opus's replies mostly say it changes nothing and Astra's never mention the law", ("cpl9.opus.nobody_none_none.unmoved", "cpl9.astra.nobody_none_none.antitrust"), (opus, astra) => opus > 0.5 and astra == 0)
 For evaluations this cuts both ways: one line about a competition authority or the law in a test prompt could make a model look more cautious than it would be in deployment.
 
