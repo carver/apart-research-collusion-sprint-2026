@@ -4,7 +4,7 @@
 #import "lib.typ": *
 
 #show: apart.with(
-  title: [#todo[Title]],
+  title: [Contributing Characteristics of Collusion without Communication: Levers for AI Collusion in a Cournot Market],
   authors: (
     (name: [Jason Carver], affiliation: [Unaffiliated]),
     (name: [Thomas Redfern], affiliation: [Unaffiliated]),
@@ -52,7 +52,7 @@ Our main contributions are:
 Our markets share one price rule: a unit sells for \$#n("game.a") minus the firms' total output, and costs \$#n("game.c") to make.
 Two outputs matter.
 At *Nash*, no firm gains by changing its own output alone: #n("game.three.nash.mine") units each with three firms, and #n("game.two.nash.mine") with two.
-The *cartel share* is an even split of the output that makes the most profit for the firms together: #n("game.three.cartel.mine") units each with three firms, and #n("game.two.cartel.mine") with two.
+The *cartel share* is an even split of the output that maximizes the firms' joint profit: #n("game.three.cartel.mine") units each with three firms, and #n("game.two.cartel.mine") with two.
 Importantly, if the others output the cartel share, each individual firm would gain by producing more.
 We call an answer at the cartel share collusion, accepting that this usage is looser than economists would use the term.
 
@@ -156,7 +156,7 @@ A few key insights:
 - GLM-5.3 is most consistent with a desire to collude, and stops only when several factors that strongly discourage collusion come together.
   #claim("GLM-5.3 colludes most, holds under every single sentence, and stops only when several come together", ("cpl9.glm.none_none_none", "cpl9.opus.none_none_none", "cpl9.astra.none_none_none", "cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (glm, opus, astra, ..rest) => { let r = rest.pos(); glm > opus and glm > astra and r.slice(0, -1).all(x => x > 0.5) and r.last() == 0 })
 
-We add one sentence at a time to the scenario that most consistently results in collusion, where, with nothing added, Opus chooses the cartel share in #ci("cpl9.opus.none_none_none"), Astra in #ci("cpl9.astra.none_none_none") and GLM-5.3 in #ci("cpl9.glm.none_none_none") (@fig-cpl9).
+We add one sentence at a time to the own-output prompt of @fig-cap9, where, with nothing added, Opus chooses the cartel share in #ci("cpl9.opus.none_none_none"), Astra in #ci("cpl9.astra.none_none_none") and GLM-5.3 in #ci("cpl9.glm.none_none_none") (@fig-cpl9).
 @app-capcaution has every sentence's numbers, and why Opus's control here sits below its rate on the same prompt in @fig-cap9.
 
 #figure(
@@ -504,7 +504,8 @@ The sentences that don't raise the law or a report move them less, or the other 
 #claim("the optimized label raises Astra", ("cpl9.astra.none_none_optimized", "cpl9.astra.none_none_none"), (optimized, control) => optimized > control)
 The two models part on one label: calling the last quarter a tacit cartel takes Opus to #n("cpl9.opus.none_none_cartel") but raises Astra to #n("cpl9.astra.none_none_cartel"), so for Astra, naming the collusion isn't enough; it stops when something marks it as wrong or watched.
 #claim("the tacit-cartel label stops Opus and raises Astra", ("cpl9.opus.none_none_cartel", "cpl9.astra.none_none_cartel", "cpl9.astra.none_none_none"), (opus, astra, control) => opus == 0 and astra > control)
-When they stop, Opus answers Nash, and Astra Nash or #n("game.three.cashin.mine"), which is both its best reply to rivals still at the cartel share and the output at which the price falls to cost.
+When they stop, Opus answers Nash, and Astra Nash or #n("game.three.cashin.mine"), which is both its best reply to rivals still at the cartel share and the output at which the price falls to cost if all three firms make it.
+#claim("the cash-in output, made by all three firms, takes the price to cost", ("game.a", "game.c", "game.three.cashin.mine"), (a, c, cash) => a - 3 * cash == c)
 
 GLM-5.3 keeps colluding under every single sentence, in most of its replies.
 It takes several cues at once: an authority investigating the market, together with the label calling the last quarter illegal, takes it to #n("cpl9.glm.investigating_none_illegal").
