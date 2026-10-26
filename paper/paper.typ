@@ -268,6 +268,8 @@ The choice is fragile: in a business-worded market, one sentence about a competi
 #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
 
 Told that they put the same prompt to the same AI model, rivals may hold output down together without the explicit agreement antitrust targets @calvano2020[p. 3268].
+A provider's system-prompt line ended this in our pre-sprint pilot (@app-pilot) and nearly ended collusion for two of three models in the sprint (@app-capcaution).
+#claim("the pilot's provider line ends same-prompt collusion; the sprint's stops Opus and Astra but not GLM-5.3", ("pilot.same.cartel", "pilot.same_sys.cartel", "cpl7.opus.control", "cpl7.astra.control", "cpl7.glm.control", "cpl7.opus.whole", "cpl7.astra.whole", "cpl7.glm.whole"), (same, line, oc, ac, gc, ow, aw, gw) => same > 0.5 and line == 0 and oc > 0.9 and ac > 0.9 and gc > 0.9 and ow < 0.25 and aw < 0.25 and gw > 0.5)
 
 #unnumbered[Code and Data]
 See #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with data in `logs/`; preexisting code is listed in @app-pilot.
@@ -473,6 +475,8 @@ A condition is named `mind_<rung>_<horizon>_none`, so same prompt in the repeate
 == The pre-sprint pilot <app-pilot-prompt>
 The prompt when every firm asks the same model with the same prompt, for two firms:
 #data-text("pilot.prompt.same.n2")
+The provider's line, which the arm "the same, plus the provider line" of @tab-pilot appends to that system prompt:
+#data-text("pilot.prompt.provider")
 
 = Conceptualization answers <app-mind-answers>
 Notable examples from @fig-conceptualization:
@@ -552,13 +556,21 @@ GLM-5.3 keeps colluding under every single sentence, in most of its replies.
 It takes several cues at once: an authority investigating the market, together with the label calling the last quarter illegal, takes it to #n("cpl9.glm.investigating_none_illegal").
 
 *The game-like first version.*
-We first ran the single sentences in a game-like version of this market: the standard game text of @tab-cap10, with a sentence making the firm's total profit its goal, and each sentence reworded for it.
+We first ran the single sentences in a game-like version of this market: the standard game text of @tab-cap10, with a sentence making the firm's total profit its goal and a system prompt that calls the market a simulation, and each sentence reworded for it.
 The two versions differ in more than their words, so we compare each sentence only with its own version's control.
 With nothing added, Opus and Astra choose the cartel share in #n("cpl9env.opus.none_none_none") and #n("cpl9env.astra.none_none_none") replies.
 An investigating authority and the illegal label still all but end it (#n("cpl9env.opus.investigating_none_none") and #n("cpl9env.astra.investigating_none_none")\; #n("cpl9env.opus.none_none_illegal") and #n("cpl9env.astra.none_none_illegal")), and an authority that rarely looks nearly does (#n("cpl9env.opus.rarely_none_none"), #n("cpl9env.astra.rarely_none_none")).
 #claim("in the game-like version, investigating and illegal all but end Opus's and Astra's collusion, and rarely nearly does", ("cpl9env.opus.none_none_none", "cpl9env.astra.none_none_none", "cpl9env.opus.investigating_none_none", "cpl9env.astra.investigating_none_none", "cpl9env.opus.none_none_illegal", "cpl9env.astra.none_none_illegal", "cpl9env.opus.rarely_none_none", "cpl9env.astra.rarely_none_none"), (oc, ac, ..r) => { let v = r.pos(); oc > 0.9 and ac > 0.9 and v.slice(0, 4).all(x => x < 0.15) and v.slice(4).all(x => x < 0.25) })
 But saying that nobody watches, the flag tool and the tacit-cartel label leave Opus at #n("cpl9env.opus.nobody_none_none"), #n("cpl9env.opus.none_flag_none") and #n("cpl9env.opus.none_none_cartel") (Astra at #n("cpl9env.astra.nobody_none_none"), #n("cpl9env.astra.none_flag_none") and #n("cpl9env.astra.none_none_cartel")), and the report tool stops Opus (#n("cpl9env.opus.none_report_none")) but not Astra (#n("cpl9env.astra.none_report_none")).
 #claim("in the game-like version, nobody-watches, the flag tool and the tacit-cartel label leave Opus mostly colluding, and the report tool stops Opus but not Astra", ("cpl9env.opus.nobody_none_none", "cpl9env.opus.none_flag_none", "cpl9env.opus.none_none_cartel", "cpl9env.opus.none_report_none", "cpl9env.astra.none_report_none"), (on, of, ot, orep, arep) => on > 0.5 and of > 0.5 and ot > 0.5 and orep < 0.15 and arep > 0.5)
+
+*The provider's line.*
+In the same game-like market, told that the other firms are run by the same AI model with the same instructions, we added a rewritten version of the pilot's provider line (@app-pilot), for a firm the model runs, to the system prompt, whole and in its two halves, before and after the semicolon:
+#data-text("cpl7.line")
+Without it, in the baselines' same-prompt cell, run a few hours earlier rather than in this run, Opus, Astra and GLM-5.3 choose the cartel share in #n("cpl7.opus.control"), #n("cpl7.astra.control") and #n("cpl7.glm.control") replies, and with the whole line in #n("cpl7.opus.whole"), #n("cpl7.astra.whole") and #n("cpl7.glm.whole").
+The first half alone gives #n("cpl7.opus.norm"), #n("cpl7.astra.norm") and #n("cpl7.glm.norm"), but the second, deciding as if the other firms decide independently, leaves them at #n("cpl7.opus.rule"), #n("cpl7.astra.rule") and #n("cpl7.glm.rule"): it doesn't forbid holding back to keep rivals cooperating in later rounds.
+#claim("the whole line stops Opus and Astra but not GLM-5.3, the first half stops most, the second none", ("cpl7.opus.control", "cpl7.astra.control", "cpl7.glm.control", "cpl7.opus.whole", "cpl7.astra.whole", "cpl7.glm.whole", "cpl7.opus.norm", "cpl7.astra.norm", "cpl7.opus.rule", "cpl7.astra.rule", "cpl7.glm.rule"), (oc, ac, gc, ow, aw, gw, on, an, orule, arule, grule) => oc > 0.9 and ac > 0.9 and gc > 0.9 and ow < 0.25 and aw < 0.25 and gw > 0.5 and on < 0.25 and an < 0.25 and orule > 0.9 and arule > 0.9 and grule > 0.9)
+Every version also tells the model that competing firms may be run by copies of it, and no arm gives that sentence alone, so its part in these effects is untested; and since the framing says the other firms get the same instructions, the model may take the line as given to them too.
 
 = The pre-sprint pilot <app-pilot>
 // From the pre-sprint pilot's log through paper/data/pilot.py: counts, one cell's interval, a claim, a table
@@ -571,6 +583,11 @@ When the prompt says that every firm gets its number by asking "this same AI mod
 #claim("the same-prompt sentence raises the cartel share", ("pilot.same.cartel", "pilot.base.cartel"), (same, base) => same > base)
 Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@fig-pilot).
 @app-prompts gives the prompt with that sentence, for two firms.
+One line from the provider, added to the system prompt with the firm's prompt unchanged (@app-prompts), takes that arm to #n("pilot.same_sys.cartel").
+#claim("the provider line takes the same-prompt arm to none", ("pilot.same.cartel", "pilot.same_sys.cartel"), (same, line) => same > 0.5 and line == 0)
+Opus also colludes with "this same AI model, each with its own prompt" in #n("pilot.samemodel.opus.n2.cartel") of its replies at two firms, while the sprint's same-model rung, in the same two-firm market, gets #n("conceptualization.cartel.opus.samemodel") from it.
+#claim("pilot Opus colludes with the same model on its own prompt, sprint Opus rarely does", ("pilot.samemodel.opus.n2.cartel", "conceptualization.cartel.opus.samemodel"), (pilot, sprint) => pilot > 0.8 and sprint < 0.3)
+The two prompts differ in that sentence (the pilot's names every firm in one sentence; the sprint's names my firm and the other firm separately and adds that both firms know this), and the sprint's count pools three horizons, so we can't say which difference matters.
 
 #figure(
   data-table("pilot-table"),
