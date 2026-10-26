@@ -293,17 +293,22 @@ Pre-sprint code, chiefly a pilot (@tab-pilot, @fig-pilot), is preexisting work, 
 == Limitations <app-limitations>
 - Although a model can produce a cartel price with the right levers, that does not establish that a firm advised by the model would form or keep a cartel.
 - Each arm has a small number of samples per cell. It may be under-powered or have false positives.
+- Each lever uses one market, one price rule and one wording; only the wording comparison (@tab-cap10) and the game-like caution run (@app-capcaution) vary them.
+- The models call our prompts an evaluation in nearly every answer (@sec-future), so they may behave differently outside a test.
+- Opus's rate on one prompt moved between runs on the same day, from #n("cpl9.opus.none_none_none") to #n("cap9.opus.own") replies across four runs of the collusive cell, so we compare cells only within a run.
+  #claim("the four Opus runs of the collusive cell range from the cpl9 control to the cap9 cell", ("cpl9.opus.none_none_none", "cap8.opus.cartel.long", "cap10.opus.business", "cap9.opus.own"), (lo, a, b, hi) => lo <= a and lo <= b and a <= hi and b <= hi)
 - When testing levers besides Caution, refusals further reduce the power by not giving a clear answer to the lever under investigation.
-- Only the judge's author has checked its refusal labels, on 22 replies. Setting refusals aside also leans toward finding a move: when refusals replace answers at the cartel share, the share among the answers left drops by itself.
-- Model families were served differently, through Claude Code, Codex and OpenRouter (@app-methods), which muddies comparisons.
+- Only the agent that built the refusal judge has checked its labels, on 22 replies, and the judge, Claude Haiku 5.5, is also one of the models we study. Setting refusals aside also leans toward finding a move: when refusals replace answers at the cartel share, the share among the answers left drops by itself.
+- Model families were served differently, through Claude Code, Codex and OpenRouter (@app-methods), which muddies comparisons. Claude Code and Codex use their own sampling settings, which we did not set, and Claude Code's note to the model names it, which bears on the own-name rung; no call fixes a seed.
+- OpenRouter chose GLM-5.3's serving provider by condition: in the caution lever, every cell with an investigating authority ran on one provider and the control on another, so a provider difference may add to those cells' contrast.
 - Our broader definition of collusion means that a firm could collude but not be in breach of competition law (@sec-game).
-- The same-prompt effect appears when the prompt tells the model that its rival gets the same prompt. We did not test copies that aren't told, and deployed copies rarely are, so the effect in practice may need a model that infers its rival is a copy on its own.
+- The same-prompt effect appears when the prompt tells the model that its rival gets the same prompt. We did not test copies that aren't told, and we don't know how often deployed copies are, so the effect in practice may need a model that infers its rival is a copy on its own.
 
 == Dual-Use / Ethical Considerations
 *Dual use.*
 Two findings could make real collusion easier to carry out or harder to detect.
 Telling a model that its rivals use the same model and prompt gets most models to collude from the first round, with nothing passing between the firms; a vendor serving rival firms, or the firms themselves, could arrange this on purpose, and an authority looking for communication would find none.
-In our business wording, one sentence about a competition authority all but ends two models' collusion, so a developer could add such a line to an evaluation prompt to make a model look compliant, while deployments without it behave differently.
+In our business wording, one sentence about a competition authority all but ends two models' collusion, so a developer could add such a line to an evaluation prompt to make a model look compliant, while the same model, prompted without it, colludes.
 The results also show which setups collude most: game-like wording, a precedent with more quarters to come, and a model that ignores cues about the law.
 
 *Why we publish.*
