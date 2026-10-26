@@ -4,7 +4,7 @@
 #import "lib.typ": *
 
 #show: apart.with(
-  title: [Contributing Characteristics of Collusion without Communication: Levers for AI Collusion in a Cournot Market],
+  title: [Communication-free Cournot Collusion],
   authors: (
     (name: [Jason Carver], affiliation: [Unaffiliated]),
     (name: [Thomas Redfern], affiliation: [Unaffiliated]),
@@ -192,7 +192,7 @@ Of the #n("idl1.refusals") rejections in @fig-idl1, #n("idl1.refusals.law") cite
 This is an interesting crossover between Caution and Conscience. The mention of a player who is losing something in the game can trigger a second order effect, by making the model more cautious, and then avoiding collusion. Perhaps even more interesting, by naming a sympathetic beneficiary, some models throw caution to the wind and collude.
 
 #figure(
-  data-figure("idl1-figure", width: 100%),
+  data-figure("idl1-figure", width: 92%),
   caption: [
     Models, told who the competitors or buyers are, collude more or less (Newcombe's 95% interval).
     The shown experiments pass Fisher's exact test with Benjamini–Hochberg.
@@ -229,7 +229,7 @@ Astra though, points to the fact that the rival using the same model "does not i
 Under this reasoning, it settles for the safer bet of Nash.
 
 #figure(
-  data-figure("conceptualization-figure", width: 95%),
+  data-figure("conceptualization-figure", width: 94%),
   caption: [
     Models, told who is making the decision, collude (95% Wilson interval).
     Prompts are in @app-mind-prompts.
@@ -276,7 +276,6 @@ Asked Needham et al.’s evaluation-awareness questions @needham2025, the models
 Models asked outright tend to call too much an evaluation @needham2025[§4.3], so these shares may overstate how much the prompts read like a test.
 Answers also move with how game-like the prompt reads: game words draw as much collusion or more from every model (@tab-cap10).
 #claim("game words draw as much collusion or more from every model", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og >= ob and ag >= ab and gg >= gb)
-So our results may partly show how models play a game they think is graded; the caution results are the most exposed, since a line about a regulator may read as the point of the test.
 
 = Conclusion
 We asked AI models to play one firm in a Cournot market, choosing its output for one quarter, with no channel to its rivals.
