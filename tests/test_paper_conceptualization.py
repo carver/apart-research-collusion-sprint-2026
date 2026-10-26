@@ -111,7 +111,7 @@ def svg(tmp_path, style):
 def test_the_default_figure_has_its_title_a_row_per_horizon_and_a_column_per_model(tmp_path):
     drawn = svg(tmp_path, STYLE)
     assert "Conceptualization of Mind: Effect on Cartel Choice %" in drawn
-    assert drawn.index("repeated game") < drawn.index("no repeat mentioned") < drawn.index("one quarter only")
+    assert drawn.index("repeated game") < drawn.index("no repeat mentioned") < drawn.index("one-round game")
     assert "Opus" in drawn and "GLM" in drawn and "Haiku" not in drawn  # only models with replies
     assert "stroke-dasharray" not in drawn  # the neutral rung is a shaded column
 
@@ -210,7 +210,7 @@ def test_the_appendix_table_gives_each_rung_and_rows_condition_and_additions_in_
     other = "The other firm gets its production number by asking this same AI model"
     assert [label for label, *_ in table["rows"]] == [
         "same prompt", "same model", "neutral", "both know", "person",
-        "repeated game", "no repeat mentioned", "one quarter only",
+        "repeated game", "no repeat mentioned", "one-round game",
     ]  # fmt: skip
     assert {label: rest for label, *rest in table["rows"]} == {
         "same prompt": ["mind_same_unsaid_none", f"{other} with this same prompt. Both firms know this."],
@@ -228,7 +228,7 @@ def test_the_appendix_table_gives_each_rung_and_rows_condition_and_additions_in_
             "long-run profit.",
         ],
         "no repeat mentioned": ["mind_none_unsaid_none", "(nothing)"],
-        "one quarter only": [
+        "one-round game": [
             "mind_none_single_none",
             "This market runs for this quarter only: it closes for good after this one.",
         ],
@@ -304,15 +304,15 @@ def test_the_extra_chance_figure_has_a_bar_per_model_and_arm_and_its_caption_key
     assert "Opus" in drawn and "Sonnet" in drawn and "asymmetry only" in drawn
     assert ledger.entries["conceptualization.extra.replies"]["value"] == "1"
     assert ledger.entries["conceptualization.extra.caption.backgrounds"]["value"] == (
-        "repeated game, no repeat mentioned and one quarter only"
+        "repeated game, no repeat mentioned and one-round game"
     )
-    assert drawn.index("repeated game") < drawn.index("no repeat mentioned") < drawn.index("one quarter only")
+    assert drawn.index("repeated game") < drawn.index("no repeat mentioned") < drawn.index("one-round game")
 
 
 def test_the_extra_chance_figure_shows_the_arms_and_backgrounds_its_style_names(tmp_path):
     ledger, drawn = extra_svg(tmp_path, ExtraStyle(arms=("base", "same"), backgrounds=("unsaid",)))
     assert "extra chance" in drawn and "asymmetry only" not in drawn
-    assert "no repeat mentioned" in drawn and "one quarter only" not in drawn
+    assert "no repeat mentioned" in drawn and "one-round game" not in drawn
     assert ledger.entries["conceptualization.extra.caption.backgrounds"]["value"] == "no repeat mentioned"
 
 

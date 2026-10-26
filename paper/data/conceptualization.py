@@ -70,7 +70,7 @@ from zerocommcartel.prompt import Prompt
 MODELS = {"haiku": "Haiku", "sonnet": "Sonnet", "opus": "Opus", "astra": "GPT-6 Astra", "glm": "GLM-5.3"}
 INK = "#0b0b0b"  # titles and labels wear text ink, not a series colour (dataviz)
 # the horizons in order: the lever figure's rows from the top, the extra-chance figure's panels from the left
-HORIZON_LABELS = {"open": "repeated game", "unsaid": "no repeat mentioned", "single": "one quarter only"}
+HORIZON_LABELS = {"open": "repeated game", "unsaid": "no repeat mentioned", "single": "one-round game"}
 ORDER = tuple(HORIZON_LABELS)
 TITLE = "Conceptualization of Mind: Effect on Cartel Choice %"
 RUNG_LABELS = {
