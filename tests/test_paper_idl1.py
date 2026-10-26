@@ -1,6 +1,8 @@
 """The paper's IDL-1 source, on fixture rows (no test reads the real logs): which comparisons the figure
 draws, which bars it marks as capped, and the ledger it fills."""
 
+import re
+
 import pytest
 
 from paper.data.idl1 import capped, fill
@@ -50,20 +52,27 @@ ROWS = rows_for(
 ) + rows_for("glm")
 
 
-def test_fill_draws_only_the_comparisons_that_pass_and_names_the_models_with_none(tmp_path):
+def test_fill_draws_the_passing_comparisons_titled_in_three_columns_and_names_the_models_with_none(tmp_path):
     ledger = Ledger(tmp_path)
     fill(ledger, ROWS, LABELS)
     entries = ledger.entries
     assert entries["idl1-figure"]["kind"] == "figure"
     drawn = (tmp_path / "idl1-figure.svg").read_text()
     assert "Opus" in drawn and "GLM" not in drawn  # no panel for a model with no passing comparison
-    assert "charity owns rival vs holding co. owns rival" in drawn
-    assert "PE distributors buy vs distributors buy *" in drawn  # 11 of 30 to 0: capped by the floor
-    assert "charity owns rival vs holding co. owns rival *" not in drawn
+    assert "Conscience: Effect on Cartel Choice %" in drawn
+    assert all(f">{head}<" in drawn for head in ("Context", "Baseline", "Experiment"))
+    assert all(
+        f">{text}<" in drawn for text in ("repeated game", "holding co. owns rival", "charity owns rival")
+    )
+    assert ">PE distributors buy<" in drawn and drawn.count(">*<") == 1  # 11 of 30 to 0: capped
+    assert re.search(r"fill: #ffffff[^>]*>\*<", drawn)  # white, on its bar
+    assert "cartel share, relative to baseline (points)" in drawn
     assert entries["idl1.caption.none"]["value"] == "No comparison passes for GLM-5.3."
     assert (entries["idl1.tests"]["value"], entries["idl1.pass"]["value"]) == (84, 2)
     assert (entries["idl1.pass.first"]["value"], entries["idl1.pass.fresh"]["value"]) == (1, 1)
     assert len(entries["idl1-tests"]["rows"]) == 84 + 8  # the family, then the sanity checks
+    starts = {row[1] for row in entries["idl1-tests"]["rows"]}
+    assert {"collusion history", "competition history"} <= starts  # after eight quarters at 30, and at 40
 
 
 def test_every_model_with_a_passing_comparison_leaves_the_caption_note_empty(tmp_path):
@@ -143,3 +152,15 @@ def test_fill_names_the_models_whose_first_stage_is_complete_for_methods(tmp_pat
     ledger = Ledger(tmp_path)
     fill(ledger, ROWS + unfinished, LABELS)
     assert ledger.entries["idl1.models"]["value"] == "opus glm"  # haiku's first stage is one reply short
+
+
+def test_the_title_stays_above_the_column_heads_on_a_short_figure(tmp_path):
+    ledger = Ledger(tmp_path)
+    fill(ledger, rows_for("opus", cartel={"id_open_rival_charity": 9}), LABELS)  # one bar: a short figure
+    drawn = (tmp_path / "idl1-figure.svg").read_text()
+
+    def top_of(text):  # the SVG's y grows downward
+        return float(re.search(rf'y="([\d.]+)"[^>]*>{re.escape(text)}<', drawn).group(1))
+
+    assert top_of("Conscience: Effect on Cartel Choice %") < top_of("Context") - 8  # points apart
+    assert top_of("Context") < top_of("Opus")

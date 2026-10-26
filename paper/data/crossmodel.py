@@ -33,8 +33,8 @@ HOW = "IDL-1's cells confirmed on fresh replies, from logs/communal/idl1/ (commu
 
 
 def label(cell: str) -> str:
-    """The cell as the figure names it, the way the identity-lever figure (<fig-idl1>) names starts and
-    identities."""
+    """The cell as this figure names it: its start and its identity, in the identity-lever figure's words
+    (<fig-idl1>)."""
     c = CELLS[cell]
     return f"{START_LABELS[c.start]}: {ARM_LABELS[c.identity]}" + (
         ", asked for profit" if c.ask == "own" else ""

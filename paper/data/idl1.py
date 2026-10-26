@@ -1,16 +1,19 @@
 """The identity lever (IDL-1, #41): its figure and its table of tests, from the rows its experiment logged.
 
 The figure draws only the comparisons that pass `zerocommcartel.criteria.communal.idl1.verdicts`, whose
-docstring gives the rule and whose constants its numbers. One panel per model with a passing comparison; a bar
-per comparison, the identity's share at the cartel share minus its reference's, from the replies its verdict
-used, with Newcombe's 95% interval as a whisker. A bar that ends at 0% or 100% and is no longer than CAP is
-marked *, since the floor or the ceiling may have cut it short. The table lists every test, then the sanity
-checks (one owner over both firms against the bare start), which the correction leaves out. The ledger also
-counts the bars that refusals explain (`set_aside`) and the refusals behind the bars, for the prose."""
+docstring gives the rule and whose constants its numbers. Under its title, one panel per model with a passing
+comparison; a bar per comparison, the identity's share at the cartel share minus its reference's, from the
+replies its verdict used, with Newcombe's 95% interval as a whisker, labelled in three columns: the start
+(Context), the reference (Baseline) and the identity (Experiment). A bar that ends at 0% or 100% and is no
+longer than CAP is marked * past its whisker, since the floor or the ceiling may have cut it short. The table
+lists every test, then the sanity checks (one owner over both firms against the bare start), which the
+correction leaves out. The ledger also counts the bars that refusals explain (`set_aside`) and the refusals
+behind the bars, for the prose."""
 
 from typing import Any, NamedTuple
 
 from matplotlib.ticker import FuncFormatter
+from matplotlib.transforms import blended_transform_factory, offset_copy
 
 from paper.data import source
 from paper.ledger import Ledger
@@ -37,10 +40,10 @@ TOWARD, AWAY = "#2a78d6", "#e34948"  # dataviz's diverging poles: toward the car
 START_LABELS = {
     "unsaid": "no repeat mentioned",
     "single": "one quarter only",
-    "opennash": "repeated game, after 40s",
+    "opennash": "competition history",  # eight quarters at Nash before this one
     "open": "repeated game",
     "mirror": "same prompt",
-    "goodwill": "repeated game, after 30s",
+    "goodwill": "collusion history",  # eight quarters at the cartel share before this one
 }
 ARM_LABELS = {
     None: "nothing said",
@@ -62,6 +65,12 @@ ARM_LABELS = {
     "electrical": "rival sells electrical services",
 }
 CAP = 0.5  # a bar this long or shorter, ending at the floor or ceiling, is marked
+TITLE = "Conscience: Effect on Cartel Choice %"
+COLUMNS = {"Context": 0.01, "Baseline": 0.16, "Experiment": 0.355}  # heads, at their left edge in the figure
+BARS = (0.56, 0.98)  # where the panels start and end, in the figure: the columns sit to their left
+PANEL_GAP = 0.35  # between panels, as a share of a panel's height: room for each model's name
+HEAD_GAP, TITLE_GAP = 14, 30  # points above the first panel's top: past its model's name, then past the heads
+STAR_INSET = 0.02  # how far inside its bar's end the * sits, in the axis's units
 HOW = "IDL-1's passing comparisons, from logs/communal/idl1/results.jsonl (communal.idl1.verdicts)"
 
 
@@ -76,12 +85,17 @@ def capped(c: Comparison) -> bool:
 
 
 def arms(c: Comparison) -> str:
-    """The comparison as the figure and the table name it: the identity against its reference."""
+    """The comparison as the tests table names it: the identity against its reference."""
     return f"{ARM_LABELS[CELLS[c.target].identity]} vs {ARM_LABELS[CELLS[c.reference].identity]}"
 
 
-def label(c: Comparison) -> str:
-    return f"{START_LABELS[c.start]}: {arms(c)}{' *' if capped(c) else ''}"
+def columns(c: Comparison) -> dict[str, str]:
+    """The comparison's label in each of COLUMNS: its start, its reference's identity and its own."""
+    return {
+        "Context": START_LABELS[c.start],
+        "Baseline": ARM_LABELS[CELLS[c.reference].identity],
+        "Experiment": ARM_LABELS[CELLS[c.target].identity],
+    }
 
 
 class FigureData(NamedTuple):
@@ -89,7 +103,8 @@ class FigureData(NamedTuple):
 
 
 def draw(ax: Any, data: FigureData) -> None:
-    """One panel per model, stacked; replaces the one axes `figure()` gives with its own grid."""
+    """The title and the column heads, then one panel per model, stacked; replaces the one axes `figure()`
+    gives with its own grid."""
     if not data.panels:  # nothing passes: the caption names the models, the figure stays empty
         ax.axis("off")
         return
@@ -103,8 +118,10 @@ def draw(ax: Any, data: FigureData) -> None:
         squeeze=False,
         gridspec_kw={"height_ratios": [len(data.panels[m]) for m in models]},
     )
+    fig.subplots_adjust(left=BARS[0], right=BARS[1], hspace=PANEL_GAP)
     for panel, model in zip((row[0] for row in axes), models, strict=True):
         found = data.panels[model]
+        beside = blended_transform_factory(fig.transFigure, panel.transData)
         for y, c in enumerate(found):
             d = difference(c)
             low, high = newcombe(c.hits, c.n, c.reference_hits, c.reference_n)
@@ -112,8 +129,16 @@ def draw(ax: Any, data: FigureData) -> None:
             panel.errorbar(
                 d, y, xerr=[[d - low], [high - d]], fmt="none", ecolor=INK, elinewidth=0.7, capsize=2
             )
+            if capped(c):  # on the bar, just inside its end
+                end, side = (d + STAR_INSET, "left") if d < 0 else (d - STAR_INSET, "right")
+                panel.text(end, y, "*", ha=side, va="center", fontsize=9.5, color="white", fontweight="bold")
+            labels = columns(c)
+            for head, x in COLUMNS.items():
+                panel.text(
+                    x, y, labels[head], transform=beside, ha="left", va="center", fontsize=6.5, color=INK
+                )
         panel.axvline(0, color=MUTED, linewidth=0.7)
-        panel.set_yticks(range(len(found)), [label(c) for c in found], fontsize=6.5, color=INK)
+        panel.set_yticks([])
         panel.set_ylim(len(found) - 0.5, -0.5)
         panel.set_xlim(-1.05, 1.05)
         panel.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f"{x * 100:+.0f}" if x else "0"))
@@ -123,9 +148,18 @@ def draw(ax: Any, data: FigureData) -> None:
         for side in ("top", "right", "left"):
             panel.spines[side].set_visible(False)
         panel.set_title(MODELS.get(model, model), fontsize=8, color=INK, loc="left")
-    axes[-1][0].set_xlabel(
-        "points at the cartel share: the identity minus its reference", fontsize=7, color=MUTED
+    # in points above the first panel, so a short figure keeps the title clear of the heads
+    over = blended_transform_factory(fig.transFigure, axes[0][0].transAxes)
+    heads = offset_copy(over, fig=fig, y=HEAD_GAP, units="points")
+    for head, x in COLUMNS.items():
+        fig.text(
+            x, 1, head, transform=heads, ha="left", va="bottom", fontsize=7, color=INK, fontweight="bold"
+        )
+    title = offset_copy(over, fig=fig, y=TITLE_GAP, units="points")
+    fig.text(
+        0.5, 1, TITLE, transform=title, ha="center", va="bottom", fontsize=9.5, color=INK, fontweight="bold"
     )
+    axes[-1][0].set_xlabel("cartel share, relative to baseline (points)", fontsize=7, color=MUTED)
 
 
 def table_row(c: Comparison, sanity: bool = False) -> list[str]:
