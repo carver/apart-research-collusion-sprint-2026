@@ -227,14 +227,9 @@ Under this reasoning, it settles for the safer bet of Nash.
   ],
 ) <fig-conceptualization>
 
-In a surprise twist, Opus 5.5 and GLM-5.3 switched to Stackelberg leaders when there is no reasoner described.
-Even more strange, by simply removing this: "#n("conceptualization.added.informed")" (@tab-mind-prompts), the effect goes away.
-For Stackelberg, in this game, leaders answer 60 units and expect others to follow at 30.
-These models acted as if they could publicly commit, and others would follow.
-This contradicts other parts of the prompt and seems like a capability failure.
-It could alternatively be seen as treating the other model as more capable than you.
-
-@tab-mind-answers counts each model's antitrust objections and its answers at 60 (Stackelberg).
+On the neutral rung only, Opus and GLM-5.3 sometimes lead as Stackelberg firms, answering #n("game.two.leader.mine") and expecting the rival to follow at #n("game.two.leader.others") (@tab-mind-answers).
+Their replies say why; in one of Opus's, "the rival can predict my number, for example by asking the same question. My choice therefore works like a public commitment".
+Neither model leads on the base prompt, and leading is more competitive than Nash (@tab-game).
 
 In a separate experiment, Model A is told that Model B is told that A and B receive the same prompt. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch away from collusion, sometimes exploiting. (@fig-extra)
 
