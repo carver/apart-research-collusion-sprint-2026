@@ -280,7 +280,7 @@ This is an interesting crossover between Caution and Conscience. The mention of 
 ) <fig-idl1>
 
 In #n("idl1.aside") of the #n("idl1.pass") bars, the effect can be attributed to refusals.
-That's because all non-refusal samples remain at the same cartel share.
+That's because the samples that don't refuse either stay at the same cartel share, or are too few to compare.
 The remaining #n("idl1.aside.held") are Astra and Haiku's PE experiment.
 #claim("the remaining are Astra and Haiku's PE experiment", ("idl1.aside.held.which",), which => which == "astra:id_goodwill_buyers_towns astra:id_open_both_charity haiku:id_mirror_buyers_pe")
 
