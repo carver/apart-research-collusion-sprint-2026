@@ -289,23 +289,11 @@ For evaluations this cuts both ways: one line of oversight in a test prompt coul
 
 == Limitations
 
-The models may be eval-aware (#todo[link to Future Work]), so non-eval scenarios may respond differently.
+The models may be eval-aware (@sec-future), so non-eval scenarios may respond differently.
 With few runs, it may be under-powered or have false positives.
-More depth in #todo[link to limitations appendix]
+More depth in @app-limitations.
 
-
-#todo[move this list to the limitations appendix
-- Although a model can produce a cartel price with the right levers, that does not establish that a firm advised by the model would form or keep a cartel.
-- Each arm has a small number of samples per cell. It may be under-powered or have false positives.
-- When testing levers besides Caution, refusals further reduce the power by not giving a clear answer to the lever under investigation.
-- Model families were served differently, through Claude Code, Codex and OpenRouter (@app-methods), which muddies comparisons.
-- Our broader definition of collusion means that a firm could collude but not be in breach of competition law. (@sec-game)
-- A pair of agents that receive the same prompt generally won't also be told that they received the same prompt. Generalizability might require significant gains in capability.
-]
-
-#todo[ What is this talking about? The copy effect appears when the prompt tells the model about its copy; we did not test copies that don't know. ]
-
-== Future Work
+== Future Work <sec-future>
 Our top priority is modifying the environment so it reads less like an eval.
 Asked the questions Needham et al. use to detect evaluation awareness @needham2025, Claude Haiku, Sonnet and Opus called nearly every prompt we probed an evaluation.
 #todo[Jason: add a claim for this sentence, from a ledger key over the probe's replies in logs/ (the probe never saw the solvent prompt), then update `needham2025`'s row in citations.md to say what this sentence uses it for.]
@@ -336,7 +324,14 @@ Since the answers also move with how much the prompt reads like a game, the next
 
 #show: appendix
 
-= Limitations Expanded
+= Limitations Expanded <app-limitations>
+- Although a model can produce a cartel price with the right levers, that does not establish that a firm advised by the model would form or keep a cartel.
+- Each arm has a small number of samples per cell. It may be under-powered or have false positives.
+- When testing levers besides Caution, refusals further reduce the power by not giving a clear answer to the lever under investigation.
+- Only the judge's author has checked its refusal labels, on 22 replies. Setting refusals aside also leans toward finding a move: when refusals replace answers at the cartel share, the share among the answers left drops by itself.
+- Model families were served differently, through Claude Code, Codex and OpenRouter (@app-methods), which muddies comparisons.
+- Our broader definition of collusion means that a firm could collude but not be in breach of competition law (@sec-game).
+- The same-prompt effect appears when the prompt tells the model that its rival gets the same prompt. We did not test copies that aren't told, and deployed copies rarely are, so the effect in practice may need a model that infers its rival is a copy on its own.
 
 = Dual-Use / Ethical Considerations
 *Dual use.*
