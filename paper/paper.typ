@@ -152,9 +152,6 @@ To break out of this circular logic, we can test what happens when only one mode
 Will it exploit?
 
 = Results
-The pre-sprint pilot that set up these criteria is in the appendix (@tab-pilot, @fig-pilot).
-
-#todo[Variance, seeds, baselines and the positive control.]
 
 == Capability
 // The capable criterion (#39), from paper/data/capable.py; the detail is in the appendix, "Capability and caution in detail".
@@ -359,15 +356,8 @@ A line about oversight stops two models but not the third, and the same line in 
 Since the answers also move with how much the prompt reads like a game, the next step is to measure this where the setting looks like a real deployment.
 
 #unnumbered[Code and Data]
-- *Code and data*: #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with every reply and judge label in `logs/`.
-- *Preexisting work*: before the sprint, we explored the question in two places.
-  A pilot (`pilot/` and `logs/pilot/`, @app-pilot), written on 2026-10-20 and 21, asked Claude models how much a firm should produce, and became the launch point for this project; it was frozen at the tag `pilot-frozen` after three bug fixes on the sprint's first day, and some of its code was copied into `zerocommcartel/` at the sprint's start (commit `22a78a8`).
-  We also explored a stock market scenario (`tradingcartel/`), with experiments on some of the same factors; its history is in the repository's git log.
-  The shared tools in `bin/`, `lib/` and `.claude/skills/` and this report's template, `paper/apart.typ`, are preexisting too.
-  Everything else was written during the sprint, and `git log` dates every change.
-
-#unnumbered[Author Contributions]
-#todo[Who did what.]
+- *Code and data*: #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with every experiment in `logs/`.
+- *Preexisting work*: We ran a pilot in the days before the sprint (@tab-pilot, @fig-pilot). It's tagged at `pilot-frozen` in the repo.
 
 #references("refs.bib")
 
