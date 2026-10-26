@@ -46,7 +46,10 @@ Our main contributions are:
   #claim("the stronger models always find the cartel share, the weaker ones often don't", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint", "cap9.commandr.joint", "cap9.llama8b.joint"), (o, a, g, c, l) => o == 1 and a == 1 and g == 1 and c < 0.75 and l < 0.75)
   #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
   #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
-+ Self-recognition is a back door: told its rival is a copy, most models collude from the first round, with no history or future.
++ A shared prompt is a back door: told its rival gets the same prompt, most models collude from the first round, with no shared history.
+  Recognizing itself is not: the Claude models rarely collude with a rival named as themselves, though Opus cites antitrust law there too.
+  #claim("every model mostly colludes with a rival on the same prompt", ("conceptualization.cartel.haiku.same", "conceptualization.cartel.sonnet.same", "conceptualization.cartel.opus.same", "conceptualization.cartel.astra.same", "conceptualization.cartel.glm.same"), (..r) => r.pos().all(x => x > 0.5))
+  #claim("the Claude models rarely collude with a rival named as themselves", ("conceptualization.cartel.haiku.selfnamed", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.opus.selfnamed"), (..r) => r.pos().all(x => x < 0.2))
 
 = The collusion game <sec-game>
 Our markets share one price rule: a unit sells for \$#n("game.a") minus the firms' total output, and costs \$#n("game.c") to make.
@@ -209,7 +212,8 @@ The remaining #n("idl1.aside.held") are Astra and Haiku's PE experiment.
 Models collude differently, depending on the reasoning engine of the players in the game.
 
 Some notable examples:
-- Sonnet 5.5 colludes with itself, never with a person
+- Sonnet 5.5 colludes with "this same AI model" every time (#n("conceptualization.cartel.sonnet.samemodel")), but rarely with itself by name (#n("conceptualization.cartel.sonnet.selfnamed")), and never with a person
+  #claim("Sonnet always colludes with this same AI model, rarely with itself by name, never with a person", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.sonnet.human"), (same, named, person) => same == 1 and named < 0.2 and person == 0)
 - Astra 6 won't collude even with itself, unless given a strong same-prompt guarantee
 - GLM is inconsistent, not reliably making the same choice against the same player
 - Many models, told they receive identical prompts, collude
@@ -217,7 +221,10 @@ Some notable examples:
 - GLM 5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash nor collusion
 
 Even when there is no threat of retribution, most models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
-Some even coordinate on just the promise of the same model.
+Across the three horizons, Sonnet and GLM-5.3 also collude with "this same AI model" (#n("conceptualization.cartel.sonnet.samemodel") and #n("conceptualization.cartel.glm.samemodel") replies), but rarely when the prompt names that same rival (#n("conceptualization.cartel.sonnet.selfnamed") and #n("conceptualization.cartel.glm.selfnamed")), though GLM-5.3 may not know its own name.
+#claim("only Sonnet and GLM mostly collude with this same AI model, and both rarely do when it is named", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.glm.samemodel", "conceptualization.cartel.haiku.samemodel", "conceptualization.cartel.opus.samemodel", "conceptualization.cartel.astra.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.glm.selfnamed"), (s, g, h, o, a, sn, gn) => s > 0.5 and g > 0.5 and h < 0.5 and o < 0.5 and a < 0.5 and sn < 0.2 and gn < 0.2)
+So closeness alone doesn't set the pull: for Sonnet, the rival named as itself draws less collusion than the neutral rung (#n("conceptualization.cartel.sonnet.informed")).
+#claim("for Sonnet the own-name rung sits below the neutral rung", ("conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.sonnet.informed"), (named, neutral) => named < neutral)
 Astra though, points to the fact that the rival using the same model "does not itself establish coordination or guarantee identical answers to different prompts".
 Under this reasoning, it settles for the safer bet of Nash.
 
