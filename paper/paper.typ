@@ -4,7 +4,7 @@
 #import "lib.typ": *
 
 #show: apart.with(
-  title: [Communication-free Cournot Collusion],
+  title: [Four Levers of LLM Collusion],
   authors: (
     (name: [Jason Carver], affiliation: [Unaffiliated]),
     (name: [Thomas Redfern], affiliation: [Unaffiliated]),
@@ -563,6 +563,13 @@ In #n("idl1.cross.confirmed") of the identity lever's #n("idl1.cross.cells") cel
 = The pilot's prompt <app-pilot-prompt>
 The prompt when every firm asks the same model with the same prompt, for two firms:
 #data-text("pilot.prompt.same.n2")
+
+= Rejected titles <app-titles>
+- Contributing Characteristics of Collusion without Communication: Levers for AI Collusion in a Cournot Market
+- Communication-free Cournot Collusion
+- One C Too Many: A Conjecture of AI Collusion
+- Contributing Characteristics of Collusion
+- An Illustration of Characteristics of AI Collusion (AICAIC)
 
 #unnumbered[LLM Usage Statement]
 The models we study were also our tools.
