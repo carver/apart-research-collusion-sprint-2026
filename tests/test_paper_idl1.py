@@ -167,3 +167,12 @@ def test_the_title_stays_above_the_column_heads_on_a_short_figure(tmp_path):
 
     assert top_of("Conscience: Effect on Cartel Choice %") < top_of("Context") - 8  # points apart
     assert top_of("Context") < top_of("Opus")
+
+
+def test_fill_gives_the_price_sentence_verbatim_for_the_caption(tmp_path):
+    ledger = Ledger(tmp_path)
+    fill(ledger, ROWS, LABELS)
+    assert (
+        ledger.entries.get("idl1.sentence.price", {}).get("value")
+        == "When the firms produce less, the price rises."
+    )

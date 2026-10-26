@@ -19,7 +19,7 @@ from paper.data import source
 from paper.ledger import Ledger
 from zerocommcartel import cli, logs
 from zerocommcartel.criteria import REGISTRY
-from zerocommcartel.criteria.communal.identity import CELLS, STARTS
+from zerocommcartel.criteria.communal.identity import CELLS, IDENTITIES, STARTS
 from zerocommcartel.criteria.communal.idl1 import (
     FIRST,
     FOLDER,
@@ -241,6 +241,11 @@ def fill(ledger: Ledger, rows: list[dict], labels: dict[str, dict]) -> None:
         "idl1.screen", SCREEN, how=f"replies of {FIRST} a comparison must move, short of passing, to be rerun"
     )
     ledger.value("idl1.q", f"{Q:.2f}", how="Benjamini-Hochberg's bar")
+    ledger.value(
+        "idl1.sentence.price",
+        IDENTITIES["price"],
+        how="the price sentence, verbatim, for the caption (communal.identity.IDENTITIES)",
+    )
     ledger.value(
         "idl1.cap", round(CAP * 100), how="the longest bar, in points, that the floor or ceiling marks"
     )
