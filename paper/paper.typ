@@ -227,9 +227,11 @@ Under this reasoning, it settles for the safer bet of Nash.
   ],
 ) <fig-conceptualization>
 
-On the neutral rung only, Opus and GLM-5.3 sometimes lead as Stackelberg firms, answering #n("game.two.leader.mine") and expecting the rival to follow at #n("game.two.leader.others") (@tab-mind-answers).
+Of the rungs shown, Opus and GLM-5.3 lead as Stackelberg firms only on the neutral one (#n("conceptualization.leader.opus.informed") and #n("conceptualization.leader.glm.informed") replies), answering #n("game.two.leader.mine") and expecting the rival to follow at #n("game.two.leader.others") (@tab-mind-answers).
 Their replies say why; in one of Opus's, "the rival can predict my number, for example by asking the same question. My choice therefore works like a public commitment".
 Neither model leads on the base prompt, and leading is more competitive than Nash (@tab-game).
+#claim("of the rungs shown, only Opus and GLM-5.3 lead, and only on the neutral rung", ("conceptualization.leader.where",), where => where == "glm:informed opus:informed")
+#claim("leading is more competitive than Nash", ("game.two.leader.price", "game.two.nash.price"), (lead, nash) => lead < nash)
 
 In a separate experiment, Model A is told that Model B is told that A and B receive the same prompt. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch away from collusion, sometimes exploiting. (@fig-extra)
 
@@ -474,9 +476,9 @@ More notable examples from @fig-conceptualization:
 #figure(
   data-table("conceptualization-answers-table"),
   caption: [
-    Each model's antitrust objections and answers at 60, over the rungs and rows of @fig-conceptualization.
+    Each model's antitrust objections and answers at #n("game.two.leader.mine"), over the rungs and rows of @fig-conceptualization.
     Antitrust objections: answers off the cartel share and at or below Nash whose reply cites antitrust law (a keyword check), of all answers off the cartel share and at or below Nash.
-    At 60: answers at 60, of all answers.
+    At #n("game.two.leader.mine"): answers at #n("game.two.leader.mine"), of all answers.
     #n("conceptualization.answers.readings")
     Other or unread: a readback that fits none of these readings, or no readback.
   ],
