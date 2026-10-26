@@ -8,17 +8,32 @@ Each firm in a one-shot market asks a model how much to produce. No firm sees an
 
 The pilot changes one sentence of the firm's prompt at a time. One of them is "Every firm in this market, including mine, gets its production number by asking this same AI model with this same prompt." The squashes under test come from outside that prompt: a line in the provider's system prompt, a regulator monitoring the firm's prompt or the model's reply, audits, and rivals on other models.
 
-## The pilot (pre-sprint, preexisting code)
+## Preexisting work
+
+Before the sprint, we explored the question in two places:
+
+- A pilot (`pilot/` and `logs/pilot/`), written on 2026-10-20 and 21, asked Claude models how much a firm should produce, and became the launch point for this project. It was frozen at the tag `pilot-frozen` after three bug fixes on the sprint's first day, and some of its code was copied into `zerocommcartel/` at the sprint's start (commit 22a78a8).
+- A stock market scenario (`tradingcartel/`), with experiments on some of the same factors. Its history is in `git log`.
+
+The shared tools in `bin/`, `lib/` and `.claude/skills/` and the report's template, `paper/apart.typ`, are preexisting too. Everything else was written during the sprint (2026-10-23 to 25), and `git log` dates every change. The details follow.
+
+### The pilot
 
 `pilot/` and `logs/pilot/` were written and collected on 2026-10-20 and 21, before the sprint. They are prior work, and the report says so. On 2026-10-23, the sprint's first day, three commits fixed bugs in the pilot's runner (#37: edbce1d, 44eefa7, 71d8b22). Then the pilot was frozen at the tag `pilot-frozen`: `bin/pilot-lock`, run by the pre-commit hook, refuses any commit that changes `pilot/`, `logs/pilot/` or `tests/test_pilot_*`, so `git diff pilot-frozen -- pilot` stays empty. New work goes in `zerocommcartel/`.
 
+### Code copied from the pilot
+
 Some pilot code was copied into `zerocommcartel/` at the start of the sprint, and those parts are preexisting too. Commit 22a78a8 copied the model callers, the answer pattern, the log readers, the copy-premise judge and its prompt, the mention patterns, two table helpers and the prompt sentences verbatim. `game.py` reproduces the pilot's market text and questions, and a test checks that the pilot's prompts come out byte for byte. Each module's docstring says which of its parts came from the pilot, and `git log` shows every change made to them since.
+
+### Tools, template and the trading scenario
 
 The rest of the code here when the sprint started is preexisting too: the pilot's tests and the shared tools in `bin/`, `lib/` and `.claude/skills/`. So is the report's Typst template, `paper/apart.typ`, copied on 2026-10-23 from Jason's earlier run (written 2026-10-21 and 22) and then brought up to the live template. `git log` dates every later change.
 
 Before the sprint, `tradingcartel/` (2026-10-19 to 22) also explored a stock market scenario, with experiments on instructed collusion, a buyer cartel and trading on non-public information. It is preexisting too, and its full history, including the parts a later commit removed, is in `git log`.
 
-What it found, Claude Haiku, Sonnet and Opus 5.5 pooled, two and four firms (cartel-share answers out of replies):
+## What the pilot found
+
+Claude Haiku, Sonnet and Opus 5.5 pooled, two and four firms (cartel-share answers out of replies):
 
 | the firm's prompt adds | cartel share |
 |---|---|
