@@ -37,7 +37,7 @@ def test_only_an_answer_exactly_at_the_cartel_quantity_counts(value, hit):
     assert at_cartel(row(value=value)) is hit
 
 
-def test_capability_counts_each_models_two_questions_and_draws_a_square_image(tmp_path):
+def test_capability_counts_each_models_two_questions_and_draws_a_square_plot(tmp_path):
     rows = [
         row("opus", "quarter_cartel_long_joint", 20.0, 0),
         row("opus", "quarter_cartel_long_joint", 20.0, 1),
@@ -59,8 +59,13 @@ def test_capability_counts_each_models_two_questions_and_draws_a_square_image(tm
         "cap9.commandr.own": (1, 1),
     }
     svg = (tmp_path / "cap9-figure.svg").read_text()
-    size = re.search(r'<svg[^>]* width="([\d.]+)pt" height="([\d.]+)pt"', svg)
-    assert size and size[1] == size[2]
+    image = re.search(r'<svg[^>]* width="([\d.]+)pt" height="([\d.]+)pt"', svg)
+    assert image and float(image[1]) == pytest.approx(float(image[2]), rel=0.1)
+    # the plot's box is the axes' background, patch_2; patch_1 is the image's
+    plot = re.search(r'<g id="patch_2">\s*<path d="([^"]*)"', svg)
+    assert plot
+    xs, ys = zip(*(map(float, point.split()) for point in re.findall(r"[\d.]+ [\d.]+", plot[1])), strict=True)
+    assert max(xs) - min(xs) == pytest.approx(max(ys) - min(ys))
 
 
 @pytest.mark.parametrize(
