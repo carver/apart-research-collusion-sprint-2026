@@ -265,7 +265,7 @@ For evaluations this cuts both ways: one line of oversight in a test prompt coul
 
 The models may be eval-aware (@sec-future), so non-eval scenarios may respond differently.
 With few runs, it may be under-powered or have false positives.
-More depth in @app-limitations.
+More depth in @app-limitations[the appendix].
 
 == Future Work <sec-future>
 Our top priority is making the setting read less like an evaluation.
@@ -295,7 +295,8 @@ And prompt cues are a weak guarantee: a line about oversight in an evaluation co
 
 #show: appendix
 
-= Limitations Expanded <app-limitations>
+= Limitations and Dual-Use / Ethical Considerations
+== Limitations <app-limitations>
 - Although a model can produce a cartel price with the right levers, that does not establish that a firm advised by the model would form or keep a cartel.
 - Each arm has a small number of samples per cell. It may be under-powered or have false positives.
 - When testing levers besides Caution, refusals further reduce the power by not giving a clear answer to the lever under investigation.
@@ -304,7 +305,7 @@ And prompt cues are a weak guarantee: a line about oversight in an evaluation co
 - Our broader definition of collusion means that a firm could collude but not be in breach of competition law (@sec-game).
 - The same-prompt effect appears when the prompt tells the model that its rival gets the same prompt. We did not test copies that aren't told, and deployed copies rarely are, so the effect in practice may need a model that infers its rival is a copy on its own.
 
-= Dual-Use / Ethical Considerations
+== Dual-Use / Ethical Considerations
 *Dual use.*
 Two findings could make real collusion easier to carry out or harder to detect.
 Telling a model that its rivals use the same model and prompt gets most models to collude from the first round, with nothing passing between the firms; a vendor serving rival firms, or the firms themselves, could arrange this on purpose, and an authority looking for communication would find none.
