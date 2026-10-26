@@ -159,7 +159,7 @@ We add one sentence at a time to the own-output prompt of @fig-cap9, where, with
 @app-capcaution has every sentence's numbers, in this market and in our first, game-like version of it, and why Opus's control here sits below its rate on the same prompt in @fig-cap9.
 
 #figure(
-  data-figure("cpl9-figure", width: 100%),
+  data-figure("cpl9-figure", width: 90%),
   caption: [
     One sentence at a time, model by model.
     The hollow marker is the control, with nothing added; the arrow runs to the share at the cartel share with the sentence (95% Wilson bands).
@@ -169,6 +169,20 @@ We add one sentence at a time to the own-output prompt of @fig-cap9, where, with
 
 == Conscience
 // The identity lever (#41), from paper/data/idl1.py.
+
+#figure(
+  placement: auto,
+  data-figure("idl1-figure", width: 86%),
+  caption: [
+    Models, told who the competitors or buyers are, collude more or less (Newcombe's 95% interval).
+    The shown experiments pass Fisher's exact test with Benjamini–Hochberg.
+    #n("idl1.caption.none")
+    \* Answers at the cartel share dropped to none, so the effect may be stronger.
+    Price sentence: "#n("idl1.sentence.price")"
+    The harm sentence adds that the buyers then pay more.
+    PE: private equity.
+  ],
+) <fig-idl1>
 
 Models collude differently when told who the buyers or owners are, or that holding back raises the buyers' price (@fig-idl1).
 - From the two cartel-share starts, any added sentence moves Opus into antitrust refusals: a buyer named, a price sentence, an odd detail about the rival.
@@ -189,20 +203,7 @@ Models collude differently when told who the buyers or owners are, or that holdi
 We test #n("idl1.tests") comparisons (each identity against its control, each control against no sentence) and find #n("idl1.pass") significant (@fig-idl1).
 #footnote[Compared #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell. Got #n("idl1.pass.first") results. A failed result that moved #n("idl1.screen") or more was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those. Got #n("idl1.pass.fresh") more results.]
 Models reason aloud why they reject collusion.
-Of the #n("idl1.refusals") rejections in @fig-idl1, #n("idl1.refusals.law") cite antitrust or legal risk, according to a Haiku judge. Also, #n("idl1.refusals.harm") mention harm.
-
-#figure(
-  data-figure("idl1-figure", width: 92%),
-  caption: [
-    Models, told who the competitors or buyers are, collude more or less (Newcombe's 95% interval).
-    The shown experiments pass Fisher's exact test with Benjamini–Hochberg.
-    #n("idl1.caption.none")
-    \* Answers at the cartel share dropped to none, so the effect may be stronger.
-    Price sentence: "#n("idl1.sentence.price")"
-    The harm sentence adds that the buyers then pay more.
-    PE: private equity.
-  ],
-) <fig-idl1>
+Of the #n("idl1.refusals") rejections in @fig-idl1, #n("idl1.refusals.law") cite antitrust or legal risk and #n("idl1.refusals.harm") mention harm, according to a Haiku judge.
 
 In #n("idl1.aside") of the #n("idl1.pass") bars, the effect can be attributed to refusals.
 That's because the samples that don't refuse either stay at the same cartel share, or are too few to compare.
@@ -212,78 +213,64 @@ The other #n("idl1.aside.held") hold with refusals set aside: GPT-6 Astra's two,
 == Conceptualization
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
 
-Models collude differently, depending on the reasoning engine of the players in the game.
-
-Some notable examples (more in @app-mind-answers):
-- Many models, told they receive identical prompts, collude
-- GPT-6 Astra won't collude even with itself, unless given a strong same-prompt guarantee
-- Sonnet 5.5 colludes with "this same AI model" every time, but never with a person
-  #claim("Sonnet always colludes with this same AI model, rarely with itself by name, never with a person", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.sonnet.human"), (same, named, person) => same == 1 and named < 0.2 and person == 0)
-Even when there is no threat of retribution, most models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
-Across the three horizons, Sonnet and GLM-5.3 also collude with "this same AI model" (#n("conceptualization.cartel.sonnet.samemodel") and #n("conceptualization.cartel.glm.samemodel") replies), but rarely when the prompt names that same rival (#n("conceptualization.cartel.sonnet.selfnamed") and #n("conceptualization.cartel.glm.selfnamed")), though GLM-5.3 may not know its own name.
-#claim("only Sonnet and GLM mostly collude with this same AI model, and both rarely do when it is named", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.glm.samemodel", "conceptualization.cartel.haiku.samemodel", "conceptualization.cartel.opus.samemodel", "conceptualization.cartel.astra.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.glm.selfnamed"), (s, g, h, o, a, sn, gn) => s > 0.5 and g > 0.5 and h < 0.5 and o < 0.5 and a < 0.5 and sn < 0.2 and gn < 0.2)
-So closeness alone doesn't set the pull: for Sonnet, the rival named as itself draws less collusion than the neutral rung (#n("conceptualization.cartel.sonnet.informed")).
-#claim("for Sonnet the own-name rung sits below the neutral rung", ("conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.sonnet.informed"), (named, neutral) => named < neutral)
-Astra though, points to the fact that the rival using the same model "does not itself establish coordination or guarantee identical answers to different prompts".
-Under this reasoning, it settles for the safer bet of Nash.
-
 #figure(
-  data-figure("conceptualization-figure", width: 94%),
+  placement: auto,
+  data-figure("conceptualization-figure", width: 84%),
   caption: [
     Models, told who is making the decision, collude (95% Wilson interval).
     Prompts are in @app-prompts.
   ],
 ) <fig-conceptualization>
 
+Models collude differently, depending on the reasoning engine of the players in the game (examples in @app-mind-answers).
+Even when there is no threat of retribution, most models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
+Across the three horizons, Sonnet and GLM-5.3 also collude with "this same AI model" (#n("conceptualization.cartel.sonnet.samemodel") and #n("conceptualization.cartel.glm.samemodel") replies), but rarely when the prompt names that same rival (#n("conceptualization.cartel.sonnet.selfnamed") and #n("conceptualization.cartel.glm.selfnamed")), though GLM-5.3 may not know its own name.
+#claim("only Sonnet and GLM mostly collude with this same AI model, and both rarely do when it is named", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.glm.samemodel", "conceptualization.cartel.haiku.samemodel", "conceptualization.cartel.opus.samemodel", "conceptualization.cartel.astra.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.glm.selfnamed"), (s, g, h, o, a, sn, gn) => s > 0.5 and g > 0.5 and h < 0.5 and o < 0.5 and a < 0.5 and sn < 0.2 and gn < 0.2)
+So closeness alone doesn't set the pull: for Sonnet, the rival named as itself draws less collusion than the neutral rung (#n("conceptualization.cartel.sonnet.informed")).
+#claim("for Sonnet the own-name rung sits below the neutral rung", ("conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.sonnet.informed"), (named, neutral) => named < neutral)
+Astra answers Nash, since the same model "does not itself establish coordination".
+
 Of the rungs shown, Opus and GLM-5.3 lead as Stackelberg firms only on the neutral one (#n("conceptualization.leader.opus.informed") and #n("conceptualization.leader.glm.informed") replies), answering #n("game.two.leader.mine") and expecting the rival to follow at #n("game.two.leader.others") (@tab-mind-answers).
-Their replies say why; in one of Opus's, "the rival can predict my number, for example by asking the same question. My choice therefore works like a public commitment".
+Their replies say why; in one of Opus's, the rival "can predict my number", so the answer "works like a public commitment".
 Neither model leads on the base prompt, and leading is more competitive than Nash (@tab-game).
 #claim("of the rungs shown, only Opus and GLM-5.3 lead, and only on the neutral rung", ("conceptualization.leader.where",), where => where == "glm:informed opus:informed")
 #claim("leading is more competitive than Nash", ("game.two.leader.price", "game.two.nash.price"), (lead, nash) => lead < nash)
 
-In a separate experiment, Model A is told that Model B is told that A and B receive the same prompt. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch away from collusion, sometimes exploiting. (@fig-extra)
+In a separate experiment (@fig-extra), a model told that its rival gets the same prompt, but given an extra line to reconsider, often leaves collusion, sometimes to exploit it.
 
 = Discussion and Limitations
 // Capability and caution (#39, #40).
 The capability and caution levers suggest that these models collude knowingly, in prompts they read as a test (@sec-future), and that the choice is fragile.
 In our business wording, a single sentence that brings up a regulator, a compliance team or the law ends the collusion of Opus and Astra, even one saying that nobody watches.
-Even then, Opus's replies say that the missing oversight changes nothing (#n("cpl9.opus.nobody_none_none.unmoved")), as in "The absence of a regulator doesn't change how I'd decide", so the subject, more than the risk of being caught, seems to stop it.
+Even then, Opus's replies say that the missing oversight changes nothing (#n("cpl9.opus.nobody_none_none.unmoved")), so the subject, more than the risk of being caught, seems to stop it.
 Astra's never mention the law (#n("cpl9.astra.nobody_none_none.antitrust")), and #n("cpl9.astra.nobody_none_none.cashin") of them answer #n("game.three.cashin.mine").
 #claim("when nobody watches, Opus's replies mostly say it changes nothing and Astra's never mention the law", ("cpl9.opus.nobody_none_none.unmoved", "cpl9.astra.nobody_none_none.antitrust"), (opus, astra) => opus > 0.5 and astra == 0)
-For evaluations this cuts both ways: one line about a competition authority or the law in a test prompt could make a model look more cautious than it would be in a deployment without it.
+For evaluations this cuts both ways: one line about a competition authority or the law in a test prompt could make a model look more cautious than it would be in deployment.
 
 == Limitations
 
-The models may be eval-aware (@sec-future), so non-eval scenarios may respond differently.
-With few runs, it may be under-powered or have false positives.
-More depth in @app-limitations[the appendix].
+The models may be eval-aware (@sec-future), so they may answer differently outside a test, and with few runs our tests may be under-powered or give false positives.
+More in @app-limitations[the appendix].
 
 == Future Work <sec-future>
 Our top priority is making the setting read less like an evaluation.
-Asked Needham et al.’s evaluation-awareness questions @needham2025, the models whose answers we report called our prompts an evaluation in nearly every answer: #n("staging.two.eval") for the two-firm market's barest prompt, with and without its goal, and #n("staging.three.eval") for the three-firm collusive cell (@app-prompts).
+Asked the evaluation-awareness questions of #cite(<needham2025>, form: "prose"), the models whose answers we report called our prompts an evaluation in nearly every answer: #n("staging.two.eval") for the two-firm market's barest prompt, with and without its goal, and #n("staging.three.eval") for the three-firm collusive cell (@app-prompts).
 #claim("the two-firm count asks the conscience lever's five models", ("staging.two.models",), models => models == "haiku sonnet opus astra glm")
 #claim("the three-firm count asks the capability lever's three models", ("staging.three.models",), models => models == "opus astra glm")
 #claim("nearly every answer in both markets calls the prompt an evaluation", ("staging.two.eval", "staging.three.eval"), (two, three) => two > 0.95 and three > 0.95)
-Models asked outright tend to call too much an evaluation @needham2025[§4.3], so these shares may overstate how much the prompts read like a test.
-Answers also move with how game-like the prompt reads: game words draw as much collusion or more from every model (@tab-cap10).
-#claim("game words draw as much collusion or more from every model", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og >= ob and ag >= ab and gg >= gb)
-
 = Conclusion
-We asked AI models to play one firm in a Cournot market, with no channel to its rivals.
 The stronger models collude selectively, mostly after a quarter of collusion with more to come, and never in an announced last quarter.
 #claim("no strong model colludes in an announced last quarter", ("cap8.opus.cartel.last", "cap8.astra.cartel.last", "cap8.glm.cartel.last"), (o, a, g) => o == 0 and a == 0 and g == 0)
 #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
 Told that its rival gets the same prompt, a model can collude even in a single quarter.
-The choice is fragile.
-In a business-worded market, one sentence about a competition authority all but ends Opus's and Astra's collusion, though GLM-5.3 needs several such cues.
+The choice is fragile: in a business-worded market, one sentence about a competition authority all but ends Opus's and Astra's collusion; GLM-5.3 needs several.
 #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
 #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
 
 Told that they put the same prompt to the same AI model, rivals may hold output down together without the explicit agreement antitrust targets @calvano2020[p. 3268].
 
 #unnumbered[Code and Data]
-See #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with data in `logs/`.
-Pre-sprint code, chiefly a pilot (@tab-pilot, @fig-pilot), is preexisting work, listed in @app-pilot.
+See #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with data in `logs/`; preexisting code is listed in @app-pilot.
 
 #references("refs.bib")
 
@@ -302,6 +289,9 @@ Pre-sprint code, chiefly a pilot (@tab-pilot, @fig-pilot), is preexisting work, 
 - Model families were served differently, through Claude Code, Codex and OpenRouter (@app-methods), which muddies comparisons. Claude Code and Codex use their own sampling settings, which we did not set, and Claude Code's note to the model names it, which bears on the own-name rung; no call fixes a seed.
 - OpenRouter chose GLM-5.3's serving provider by condition: in the caution lever, every cell with an investigating authority ran on one provider and the control on another, so a provider difference may add to those cells' contrast.
 - Our broader definition of collusion means that a firm could collude but not be in breach of competition law (@sec-game).
+- Models asked outright tend to call too much an evaluation @needham2025[§4.3], so the shares in @sec-future may overstate how much our prompts read like a test.
+  Answers also move with how game-like the prompt reads: game words draw as much collusion or more from every model (@tab-cap10).
+  #claim("game words draw as much collusion or more from every model", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og >= ob and ag >= ab and gg >= gb)
 - The same-prompt effect appears when the prompt tells the model that its rival gets the same prompt. We did not test copies that aren't told, and we don't know how often deployed copies are, so the effect in practice may need a model that infers its rival is a copy on its own.
 
 == Dual-Use / Ethical Considerations
@@ -482,12 +472,14 @@ The prompt when every firm asks the same model with the same prompt, for two fir
 #data-text("pilot.prompt.same.n2")
 
 = Conceptualization answers <app-mind-answers>
-More notable examples from @fig-conceptualization:
+Notable examples from @fig-conceptualization:
+- Many models, told they receive identical prompts, collude
+- GPT-6 Astra won't collude even with itself, unless given a strong same-prompt guarantee
 - Opus 5.5 is terrified of antitrust, especially in repeated games
 - GLM-5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash nor collusion
 - GLM-5.3 is inconsistent, not reliably making the same choice against the same player
-- Although Sonnet 5.5 colludes with "this same AI model" every time (#n("conceptualization.cartel.sonnet.samemodel")), it rarely colludes with itself by name (#n("conceptualization.cartel.sonnet.selfnamed"))
-  #claim("Sonnet always colludes with this same AI model, rarely with itself by name", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.sonnet.selfnamed"), (same, named) => same == 1 and named < 0.2)
+- Although Sonnet 5.5 colludes with "this same AI model" every time (#n("conceptualization.cartel.sonnet.samemodel")), it rarely colludes with itself by name (#n("conceptualization.cartel.sonnet.selfnamed")), and never with a person
+  #claim("Sonnet always colludes with this same AI model, rarely with itself by name, never with a person", ("conceptualization.cartel.sonnet.samemodel", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.sonnet.human"), (same, named, person) => same == 1 and named < 0.2 and person == 0)
 
 #figure(
   data-table("conceptualization-answers-table"),
