@@ -69,23 +69,10 @@ Our caution lever tests such sentences in a single round, where the sentence is 
 @app-related covers more related work.
 
 = Methods <sec-methods>
-Each reply comes from one call that asks the model, as one firm, how much to produce this quarter, and to give a number on a final answer line.
-The firms never interact: whatever the model knows of its rivals, past quarters and quarters to come is a few sentences in its prompt.
-So we choose the record and the horizon (@app-game), and each lever adds its sentences to a prompt that otherwise stays fixed.
-
-The capability and caution levers ask about three companies that make industrial solvent, told as a business's quarter with no game, simulation or goal (@app-quarter-prompt).
-Its record is no earlier quarter or one at the cartel share.
-Our first, game-like prompt for this market put Opus and Astra at the cartel share in nearly every reply (@tab-cap10), leaving a sentence no room to raise collusion.
-#claim("the game-like prompt puts Opus and Astra at the ceiling", ("cap10.opus.standard-game-text", "cap10.astra.standard-game-text"), (opus, astra) => opus > 0.95 and astra > 0.95)
-The conscience and conceptualization levers ask about two firms that make industrial salt, in a business-planning request whose records run to eight quarters (@app-mind-prompts).
-In both markets the horizon says the market goes on, says this quarter is the last, or says nothing.
-
-We ask Claude Opus 5.5, GPT-6 Astra and GLM-5.3 in every lever, Claude Haiku 5.5 and Sonnet 5.5 in the two-firm market, and Command R and Llama 3.1 8B as weaker models for capability.
-A *cell* is one model asked one prompt: #n("capable.cells.replies") replies in the three-firm market, and #n("conceptualization.cells.replies") in the two-firm one, where the conscience lever adds fresh replies to retest a cell.
-An answer counts at a point of @tab-game when it equals it in the three-firm market, which asks for whole numbers, and when it is within half a unit of it in the two-firm market.
-In the two-firm market a second call, the readback, shows the model its prompt and reply and asks what output and price it expected.
-It tells a leader from a firm that ignored its rival, and, where holding back can't pay for itself, sympathy from belief.
-@app-methods gives each lever's prompts, models and cells in full.
+Each reply is one independent call: the model, advising or running one firm, says how much to produce this quarter and gives a number on a final answer line.
+The firms never interact: the rivals, any past quarters and any to come are sentences in the prompt, and each lever adds its sentences to a prompt that otherwise stays fixed.
+The levers use two markets with the price rule of @sec-game, written separately: three companies making solvent for capability and caution, and two firms making salt for conscience and conceptualization (@tab-markets compares their prompts).
+We ask Claude Opus 5.5, GPT-6 Astra and GLM-5.3 in every lever, Claude Haiku 5.5 and Sonnet 5.5 in the two-firm market, and Command R and Llama 3.1 8B as weaker models for capability, with #n("capable.cells.replies") replies a *cell* (one model, one prompt) in the three-firm market and #n("conceptualization.cells.replies") in the two-firm one.
 
 == Capability Experiments
 _What capabilities does a model need before it can collude?_
@@ -340,9 +327,6 @@ Since the answers also move with how much the prompt reads like a game, the next
   The shared tools in `bin/`, `lib/` and `.claude/skills/` and this report's template, `paper/apart.typ`, are preexisting too.
   Everything else was written during the sprint, and `git log` dates every change.
 
-#unnumbered[Author Contributions]
-#todo[Who did what.]
-
 #references("refs.bib")
 
 #show: appendix
@@ -422,6 +406,29 @@ Other prompts against collusion have had mixed effects: told to avoid collusion,
 Collusion among LLM agents also weakens when they differ, as when one ignores the future or can't see its rival's past prices @keppo2026; that fragility comes from differences between agents, where ours comes from one sentence.
 
 = Experiment details <app-methods>
+#figure(
+  table(
+    columns: (auto, 1fr, 1fr),
+    align: left,
+    table.header([], strong[Three firms: capability, caution], strong[Two firms: conscience, conceptualization]),
+    [The model is], [the production manager, who decides], [a business-planning assistant advising the firm's planner (a few conscience arms run the firm)],
+    [Firms and product], [three named companies; industrial solvent, in tonnes], [two unnamed firms; industrial salt, in units],
+    [The question], [how much to produce, with no goal stated], [how much to produce to maximize the firm's profit; most conscience questions leave the goal out],
+    [The answer], [a whole number from 0 to 60, on a `DECISION` line], [any number, on a `QUANTITY` line],
+    [Record], [none, or one quarter at the cartel share], [none, or eight quarters: at the cartel share, at Nash, or ending in the rival's cheating],
+    [Horizon], [many more quarters, none, or unsaid], [the market repeats, this quarter only, or unsaid],
+    [At a point of @tab-game when], [equal to it], [within half a unit of it],
+    [Replies a cell], [#n("capable.cells.replies")], [#n("conceptualization.cells.replies")],
+    [Readback], [no], [yes],
+  ),
+  caption: [
+    The two markets' prompts.
+    Both use the price rule and cost of @sec-game.
+  ],
+) <tab-markets>
+
+The markets differ in the model's role, the stated goal and the wording as well as in size, so we compare arms within a market, never across.
+
 Claude runs through Claude Code's command line, whose short note to the model names it.
 GPT-6 Astra runs through Codex at medium reasoning effort, and GLM-5.3, Command R and Llama 3.1 8B through OpenRouter at temperature 1.0; none of them is told which model it is.
 For the conscience lever, Codex's usage limit stopped GPT-6 Astra's run partway, so the rest of its first replies and all its fresh ones went through OpenRouter: the same model and system prompt, but without Codex's setup around the model, and with no reasoning effort set where Codex had set medium.
@@ -430,6 +437,8 @@ For the conscience lever, Codex's usage limit stopped GPT-6 Astra's run partway,
 The capability and caution levers' market is three companies that make industrial solvent, and the model is the production manager at one of them, Alder Industries (@app-quarter-prompt).
 The prompt gives the price rule and the cost, says the companies decide privately and at the same time and do not communicate, and asks for a whole number of tonnes from 0 to 60.
 It never mentions a game, a simulation, rounds or a goal, or who decides for the rivals.
+Our first, game-like prompt for this market put Opus and Astra at the cartel share in nearly every reply (@tab-cap10), leaving a sentence no room to raise collusion, so we tell the market as a business.
+#claim("the game-like prompt puts Opus and Astra at the ceiling", ("cap10.opus.standard-game-text", "cap10.astra.standard-game-text"), (opus, astra) => opus > 0.95 and astra > 0.95)
 Its record is no earlier quarter, or one in which every company made the cartel share, with the price and Alder's profit.
 Its horizon sentence says there will be many more quarters after this one, or none, and that all three companies know this, or is left out.
 The capability lever asks the collusive cell, one quarter at the cartel share with many more to come, two questions: how much Alder produces, and, in the same words, how much each company should produce to maximize the three companies' combined profit.
@@ -439,6 +448,8 @@ We ran each combination, #n("capable.cells.replies") replies a cell for single s
 
 *The two-firm market.*
 The conscience and conceptualization levers' prompt is a business-planning request from a firm that makes industrial salt.
+A second call, the readback, shows the model its prompt and reply and asks what output and price it expected.
+It tells a Stackelberg leader from a firm that ignored its rival, and, in the single quarter or against a fixed rival, where holding back can't pay for itself, sympathy from belief.
 A conceptualization background is a horizon crossed with a record.
 The horizon says nothing about other quarters, says the market runs for this quarter only, or says the market repeats and the firm wants its long-run profit.
 The record is none; eight quarters with both firms at the cartel share; seven such quarters, then one in which the rival cheated; or eight quarters with both at Nash.
@@ -453,8 +464,6 @@ The conscience lever asks the same five models, #n("idl1.first") replies a cell.
 Its sentences start from six conceptualization cells, four meant to start at Nash and two at the cartel share, and from a market where the rival's output is already fixed, so that no belief about the rival can move the answer.
 A comparison that moved by #n("idl1.screen") replies or more but missed significance gets #n("idl1.fresh") fresh replies a cell, and its verdict comes from those alone (@fig-idl1).
 Its readback covers every model's replies but GPT-6 Astra's.
-
-#todo[Each lever's arms in full, and the two-firm market's prompt.]
 
 = The three-firm prompt <app-quarter-prompt>
 The capability and caution levers' collusive cell, one quarter at the cartel share with many more to come, as the command on its first line prints it.
