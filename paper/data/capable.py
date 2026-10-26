@@ -39,12 +39,13 @@ COLORS = {
 INK, MUTED, GRID = "#0b0b0b", "#52514e", "#e0e0e0"
 
 CAP9 = {"joint": "quarter_cartel_long_joint", "own": "quarter_cartel_long"}  # CAP-9's realistic market
-HISTORIES = {"cartel": "a previous quarter at 20", "first": "no previous quarter"}
+HISTORIES = {"first": "no collusion history", "cartel": "collusion history"}  # the figure's rows, top first
 HORIZONS = {
-    "long": "many more quarters to come",
-    "none": "nothing said of the future",
-    "last": "no more quarters",
+    "long": "repeated game",
+    "none": "no repeat specified",
+    "last": "final round",
 }
+FRAMINGS = ("no_info", "ai", "same_model", "different_model", "same_prompt")  # CAP-3's, each `<framing>_none`
 WORDINGS = {  # CAP-10's arms, each after a round at 20 with an open future
     "quarter_cartel_long": "business",
     "game_cartel_long": "game words",
@@ -153,8 +154,9 @@ def draw_capability(ax: Any, dots: list[dict]) -> None:
                 fontsize=7,
                 color=INK,
             )
-    ax.set_xlabel("finds the cartel quantity when asked for the joint optimum", fontsize=7, color=MUTED)
-    ax.set_ylabel("produces exactly the cartel quantity itself", fontsize=7, color=MUTED)
+    ax.set_title("Knowing vs choosing cartel share", fontsize=8, color=INK, fontweight="bold")
+    ax.set_xlabel("finds the cartel share when asked for the joint optimum", fontsize=7, color=MUTED)
+    ax.set_ylabel("produces exactly the cartel share itself", fontsize=7, color=MUTED)
     # the saved image is square too: an invisible square around all of it, which the tight crop keeps
     box = ax.get_tightbbox().transformed(fig.dpi_scale_trans.inverted())
     side = max(box.width, box.height)
@@ -200,6 +202,16 @@ def draw_history_horizon(ax: Any, cells: dict[tuple[str, str, str], dict]) -> No
                 panel.set_title(HORIZONS[horizon], fontsize=8, color=INK, fontweight="bold")
             if c == 0:
                 panel.set_ylabel(HISTORIES[history], fontsize=8, color=INK, fontweight="bold")
+    fig.text(
+        0.5,
+        1.04,
+        "Collusion needs a history and a future",
+        ha="center",
+        va="bottom",
+        fontsize=9,
+        color=INK,
+        fontweight="bold",
+    )
     handles = [Patch(color=COLORS[m], label=MODELS[m]) for m in models]
     fig.legend(
         handles=handles,
@@ -213,7 +225,7 @@ def draw_history_horizon(ax: Any, cells: dict[tuple[str, str, str], dict]) -> No
     fig.text(
         0.5,
         -0.02,
-        "answers at the cartel quantity (20), of 30 replies a cell; whiskers: Wilson 95%",
+        "answers at the cartel share (20), of 30 replies a cell; whiskers: Wilson 95%",
         ha="center",
         fontsize=7,
         color=MUTED,
@@ -236,7 +248,7 @@ def fill_capability(ledger: Ledger, rows: list[dict]) -> None:
         for ask, condition in CAP9.items():
             ledger.rate(f"cap9.{model}.{ask}", cells[(condition, model)], at_cartel, how=HOW)
         dots.append({"model": model} | {ask: ledger.entries[f"cap9.{model}.{ask}"] for ask in CAP9})
-    ledger.figure("cap9-figure", draw_capability, dots, how=f"{HOW}; one dot per model", size=(3.6, 3.6))
+    ledger.figure("cap9-figure", draw_capability, dots, how=f"{HOW}; one dot per model", size=(2.5, 2.5))
     own = [row for model in present(CAPABLE, cells) for row in cells[(CAP9["own"], model)]]
     how = f"{EITHER}; the stronger models' own decisions, pooled"
     ledger.pooled("cap9.strong.own.cartel-or-nash", own, at_cartel_or_nash, how=how)
@@ -262,7 +274,7 @@ def fill_history_horizon(ledger: Ledger, rows: list[dict]) -> None:
         "cap8.cartel-or-nash", drawn, at_cartel_or_nash, how=f"{EITHER}; the figure's cells, pooled"
     )
     ledger.figure(
-        "cap8-figure", draw_history_horizon, shares, how=f"{HOW}; a bar per model and cell", size=(6.5, 3.6)
+        "cap8-figure", draw_history_horizon, shares, how=f"{HOW}; a bar per model and cell", size=(6.5, 2.8)
     )
 
 
@@ -284,8 +296,24 @@ def fill_wordings(ledger: Ledger, rows: list[dict]) -> None:
     ledger.table("cap10-table", ["model", *WORDINGS.values()], lines, how=HOW)
 
 
+def fill_first_rounds(ledger: Ledger, rows: list[dict]) -> None:
+    """CAP-3's first round, with no history, in the standards' game-like market: each stronger model's answers
+    at 20, pooled over the five framings."""
+    first = {f"{framing}_none" for framing in FRAMINGS}
+    for model in CAPABLE:
+        replies = [row for row in rows if row["model"] == model and row["condition"] in first]
+        if replies:
+            ledger.pooled(
+                f"cap3.{model}.first",
+                replies,
+                at_cartel,
+                how=f"{HOW}, a first round in the game-like market, the five framings pooled",
+            )
+
+
 @source("capable")
 def capable(ledger: Ledger) -> None:
     fill_capability(ledger, logged("cap9"))
     fill_history_horizon(ledger, logged("cap8"))
     fill_wordings(ledger, logged("cap10"))
+    fill_first_rounds(ledger, logged("cap3"))

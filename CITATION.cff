@@ -6,9 +6,9 @@ authors:
   - family-names: Carver
     given-names: Jason
     orcid: "https://orcid.org/0009-0004-5744-0522"
-  # TODO before the first release: Thomas's ORCID.
   - family-names: Redfern
     given-names: Thomas
+    orcid: "https://orcid.org/0009-0007-1698-4082"
 repository-code: "https://github.com/carver/apart-research-collusion-sprint-2026"
 url: "https://github.com/carver/apart-research-collusion-sprint-2026"
 license: CC-BY-4.0

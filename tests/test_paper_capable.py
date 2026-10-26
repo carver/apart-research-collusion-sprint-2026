@@ -9,13 +9,14 @@ from paper.data.capable import (
     at_cartel,
     at_cartel_or_nash,
     fill_capability,
+    fill_first_rounds,
     fill_history_horizon,
     fill_wordings,
 )
 from paper.ledger import Ledger
 
 
-def row(model="opus", condition="quarter_cartel_long", value=20.0, sample=0):
+def row(model="opus", condition="quarter_cartel_long", value: float | None = 20.0, sample=0):
     return {
         "model": model,
         "condition": condition,
@@ -123,6 +124,23 @@ def test_history_horizon_counts_each_models_six_cells(tmp_path):
     assert hits == {"cap8.glm.first.long"}
     assert sum(entry["kind"] == "rate" for entry in ledger.entries.values()) == 12
     assert (tmp_path / "cap8-figure.svg").exists()
+
+
+def test_first_rounds_pool_each_models_five_framings_and_leave_other_histories_out(tmp_path):
+    rows = [
+        row("opus", "no_info_none", 20.0),
+        row("opus", "same_prompt_none", 20.0),
+        row("opus", "ai_none", 30.0),
+        row("opus", "no_info_nash", 20.0),  # after a Nash round, not a first round
+        row("opus", "no_info", 20.0),  # after the cartel round
+        row("astra", "same_model_none", 30.0),
+        row("astra", "different_model_none", 20.0),
+        row("commandr", "no_info_none", 20.0),  # not one of the three stronger models
+    ]
+    ledger = Ledger(tmp_path)
+    fill_first_rounds(ledger, rows)
+    pooled = {key: (e["k"], e["n"]) for key, e in ledger.entries.items() if e["kind"] == "pooled"}
+    assert pooled == {"cap3.opus.first": (2, 3), "cap3.astra.first": (1, 2)}
 
 
 def test_wordings_table_has_a_row_per_model_and_a_column_per_wording(tmp_path):

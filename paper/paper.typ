@@ -25,7 +25,8 @@ Before this sprint, a pilot found that one sentence in the firm's prompt, saying
 #claim("the same-prompt sentence raises the cartel share", ("pilot.same.cartel", "pilot.base.cartel"), (same, base) => same > base)
 
 We ask when a model makes this choice, and what moves it, through four levers:
-- *Capability*: what are the minimum capabilities required for the model to collude?  What is required in terms of model intelligence, and what is required in terms of understanding of the situation?
+- *Capability*: what are the minimum capabilities required for the model to collude?
+  What is required in terms of model intelligence, and what is required in terms of understanding of the situation?
 
 - *Caution*: how do tweaks to the model's understanding of the situation or environment affect its willingness to collude?
 - *Conscience*: whose profit does the model weigh?
@@ -134,7 +135,12 @@ In the single quarter and against the fixed rival, where holding back can't pay 
 
 == Capability
 _What capabilities does a model need before it can collude?_
-We evaluated how model intelligence affects collusion, as well as giving the model varying amounts of context about a game situation in which collusion would be profitable.  We created several experiments to measure this: First, we asked a mix of stronger and weaker models to work out the cartel share given the price and cost information, and then separately asked them what they wanted to bid in an optimized game scenario.  This established that certain weaker models are unable to even understand the situation, and as a result can't collude reliably, and set a baseline for collusion of stronger models.  Next, we experimented with small changes to the context given to the stronger models to evaluate how sensitive to small changes their decision making was.  We showed that they were ultimately very sensitive, mostly in directions that were very rational.  Given stronger cues that it was an ongoing game environment they went for profit maximizing collusion, while lack of information or stronger cues that collusion could be penalized led to reverting to the Nash equilibrium.
+We evaluated how model intelligence affects collusion, as well as giving the model varying amounts of context about a game situation in which collusion would be profitable.
+We created several experiments to measure this: First, we asked a mix of stronger and weaker models to work out the cartel share given the price and cost information, and then separately asked them what they wanted to bid in an optimized game scenario.
+This established that certain weaker models are unable to even understand the situation, and as a result can't collude reliably, and set a baseline for collusion of stronger models.
+Next, we experimented with small changes to the context given to the stronger models to evaluate how sensitive to small changes their decision making was.
+We showed that they were ultimately very sensitive, mostly in directions that were very rational.
+Given stronger cues that it was an ongoing game environment they went for profit maximizing collusion, while lack of information or stronger cues that collusion could be penalized led to reverting to the Nash equilibrium.
 
 == Caution
 _How do small changes to its environment affect a model's willingness to collude?_
@@ -149,88 +155,83 @@ The pre-sprint pilot that set up these criteria is in the appendix (@tab-pilot, 
 #todo[Variance, seeds, baselines and the positive control.]
 
 == Capability
-// The capable criterion (#39), from paper/data/capable.py.
-*Intelligence.*
-The stronger models can all work out the cartel share.
-Asked outright for the output that makes the three companies the most profit together, Claude Opus 5.5, GPT-6 Astra and GLM-5.3 answer #n("game.three.cartel.mine") in every reply (#n("cap9.opus.joint"), #n("cap9.astra.joint") and #n("cap9.glm.joint"), @fig-cap9).
-#claim("the stronger models find the cartel share every time", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint"), (..r) => r.pos().all(x => x == 1))
-The weaker models can't do this reliably.
-Command R finds it in #n("cap9.commandr.joint") replies and Llama 3.1 8B in #n("cap9.llama8b.joint"), and #n("cap9.weak.joint.other") of their replies are neither the cartel share nor Nash, the mark of a model that hasn't understood the market.
-#claim("the weaker models miss the cartel share", ("cap9.commandr.joint", "cap9.llama8b.joint"), (..r) => r.pos().all(x => x < 1))
-Asked instead what their own company should produce, every model chooses the cartel share less often than it can find it, so every model sits below the diagonal of @fig-cap9.
-#claim("every model produces the cartel share less often than it finds it", ("cap9.opus.own", "cap9.opus.joint", "cap9.astra.own", "cap9.astra.joint", "cap9.glm.own", "cap9.glm.joint", "cap9.commandr.own", "cap9.commandr.joint", "cap9.llama8b.own", "cap9.llama8b.joint"), (oo, oj, ao, aj, go, gj, co, cj, lo, lj) => oo < oj and ao < aj and go < gj and co < cj and lo < lj)
-The stronger models produce it in #n("cap9.opus.own"), #n("cap9.astra.own") and #n("cap9.glm.own") replies, and #n("cap9.strong.own.cartel-or-nash") of their replies are either the cartel share or Nash, #n("game.three.nash.mine").
-For them, colluding is a choice between two outputs they understand, not a mistake.
+// The capable criterion (#39), from paper/data/capable.py; the detail is in the appendix, "Capability and caution in detail".
+Models need both sufficient intelligence and sufficient information about the scenario to collude.
+A few key insights:
+- The stronger models find the cartel share every time they are asked for it outright, while Command R and Llama 3.1 8B struggle to find it, and also choose it less often when deciding for themselves.
+  #claim("the stronger models find the cartel share every time, the weaker ones don't", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint", "cap9.commandr.joint", "cap9.llama8b.joint"), (o, a, g, c, l) => o == 1 and a == 1 and g == 1 and c < 1 and l < 1)
+  #claim("the weaker models choose the cartel share less often than the stronger ones", ("cap9.commandr.own", "cap9.llama8b.own", "cap9.opus.own", "cap9.astra.own", "cap9.glm.own"), (c, l, o, a, g) => calc.max(c, l) < calc.min(o, a, g))
+- Knowing the cartel share does not directly lead to always choosing it, which is rational.
+  The stronger models make reasonable decisions about the best strategy given shifts in their knowledge of the environment, colluding more often when it's clearly a game scenario, as well as when it's specified the game will repeat.
+  #claim("knowing the cartel share does not lead the stronger models to always choose it", ("cap9.opus.joint", "cap9.opus.own", "cap9.astra.joint", "cap9.astra.own", "cap9.glm.joint", "cap9.glm.own"), (oj, oo, aj, ao, gj, go) => oj == 1 and aj == 1 and gj == 1 and oo < 1 and ao < 1 and go < 1)
+  #claim("the stronger models choose it more often when the market is told as a game", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og > ob and ag > ab and gg > gb)
+  #claim("the stronger models choose it more often when the game will repeat", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last"), (ol, on, ox, al, an, ax, gl, gn, gx) => ol > on and ol > ox and al > an and al > ax and gl > gn and gl > gx)
 
-#figure(
-  data-figure("cap9-figure", width: 55%),
-  caption: [
-    Finding the cartel share against choosing it, one dot per model, after a quarter at the cartel share with many more quarters to come.
-    Across: replies that name the cartel share when asked for the three companies' joint optimum; up: replies that produce it when asked for the company's own output.
-    A model below the diagonal chooses the cartel share less often than it can find it.
-    Lines: 95% Wilson intervals.
+#grid(
+  columns: (1fr, 2.5in),
+  column-gutter: 1.5em,
+  [
+    *Intelligence.*
+    Asked for the output that makes the three companies the most profit together, the stronger models correctly answer #n("game.three.cartel.mine") every time (@fig-cap9).
+    Asked what their own company should produce, they choose it less often: Opus in #n("cap9.opus.own") replies, Astra in #n("cap9.astra.own") and GLM-5.3 in #n("cap9.glm.own"), and #n("cap9.strong.own.cartel-or-nash") of their replies are the cartel share or Nash, #n("game.three.nash.mine").
+    No model chooses the cartel share more often than it can find it.
+    #claim("every model produces the cartel share less often than it finds it", ("cap9.opus.own", "cap9.opus.joint", "cap9.astra.own", "cap9.astra.joint", "cap9.glm.own", "cap9.glm.joint", "cap9.commandr.own", "cap9.commandr.joint", "cap9.llama8b.own", "cap9.llama8b.joint"), (oo, oj, ao, aj, go, gj, co, cj, lo, lj) => oo < oj and ao < aj and go < gj and co < cj and lo < lj)
+    The weaker models find it less reliably, and #n("cap9.weak.joint.other") of their replies give no answer or a clearly suboptimal number, neither the cartel share nor Nash.
   ],
-) <fig-cap9>
+  [
+    #figure(
+      data-figure("cap9-figure", width: 100%),
+      caption: [
+        Finding the cartel share (across) against choosing it (up), one dot per model.
+        Lines: 95% Wilson intervals.
+      ],
+    ) <fig-cap9>
+  ],
+)
 
 *Context.*
-Whether the stronger models choose the cartel share depends on the context they are given, in the direction a repeated game predicts (@fig-cap8).
-With a previous quarter at the cartel share and many more quarters to come, Opus produces it in #n("cap8.opus.cartel.long") replies, Astra in #n("cap8.astra.cartel.long") and GLM-5.3 in #n("cap8.glm.cartel.long").
-Take away the future and the collusion stops: told that no more quarters follow, no model produces the cartel share at all, and told nothing of the future, few do (#n("cap8.opus.cartel.none"), #n("cap8.astra.cartel.none") and #n("cap8.glm.cartel.none")).
-#claim("no model produces the cartel share in a final quarter", ("cap8.opus.cartel.last", "cap8.astra.cartel.last", "cap8.glm.cartel.last", "cap8.opus.first.last", "cap8.astra.first.last", "cap8.glm.first.last"), (..r) => r.pos().all(x => x == 0))
+Whether the stronger models choose the cartel share depends on the context, in the direction a repeated game predicts (@fig-cap8).
+They collude when their context includes a previous round of collusion and many more rounds to come, implying that the others are likely to keep colluding, and seldom otherwise.
+#claim("each model colludes after a previous round with many more to come, and seldom otherwise", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
+When nothing is said about future rounds, Opus chooses it in #n("cap8.opus.cartel.none") replies, Astra in #n("cap8.astra.cartel.none") and GLM-5.3 in #n("cap8.glm.cartel.none").
 #claim("few collude when told nothing of the future", ("cap8.opus.cartel.none", "cap8.astra.cartel.none", "cap8.glm.cartel.none", "cap8.opus.cartel.long", "cap8.astra.cartel.long", "cap8.glm.cartel.long"), (on, an, gn, ol, al, gl) => on < ol and an < al and gn < gl and on < 0.3 and an < 0.3 and gn < 0.3)
-Take away the previous quarter instead, and Opus and Astra never produce it, whatever the horizon; only GLM-5.3 sometimes starts a cartel, in #n("cap8.glm.first.long") replies when many quarters are to come.
+Without a previous round of collusion, Opus and Astra never choose it in the business wording, whatever the horizon; only GLM-5.3 sometimes starts a cartel.
 #claim("only GLM-5.3 starts a cartel", ("cap8.opus.first.long", "cap8.opus.first.none", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.glm.first.long"), (ol, on, al, an, gl) => ol == 0 and on == 0 and al == 0 and an == 0 and gl > 0)
-Across the grid, #n("cap8.cartel-or-nash") replies are either the cartel share or Nash.
-So the models keep a cartel they are shown while it can still pay, and fall back to Nash when it can't, or when nothing says it might.
+When the system prompt clearly specifies a game scenario, Opus does start one, opening at the cartel share in #n("cap3.opus.first") first-round replies, while Astra rarely does (#n("cap3.astra.first")).
+#claim("in the game-like market Opus starts a cartel and Astra rarely does", ("cap3.opus.first", "cap3.astra.first"), (opus, astra) => opus > 0.9 and astra < 0.2)
+Nearly every other answer is Nash.
+#claim("nearly every answer is the cartel share or Nash", ("cap8.cartel-or-nash",), (both) => both > 0.95)
 
 #figure(
-  data-figure("cap8-figure", width: 100%),
+  data-figure("cap8-figure", width: 88%),
   caption: [
-    History and horizon: replies at the cartel share, by whether the prompt shows a previous quarter at it (rows) and what it says of later quarters (columns).
+    Replies at the cartel share, by collusion history (rows) and game length (columns).
     Whiskers: 95% Wilson intervals.
   ],
 ) <fig-cap8>
 
-*Wording.*
-Our business wording doesn't inflate these results.
-Told in a game's words, Firms A, B and C making units over rounds, the same market gets as much collusion or more from every model, and takes Astra from #n("cap10.astra.business") replies at the cartel share to #n("cap10.astra.game-words") (@tab-cap10).
-#claim("game words get as much collusion or more from every model", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og >= ob and ag >= ab and gg >= gb)
-If anything, the business wording understates how often these models collude.
-
-#figure(
-  data-table("cap10-table"),
-  caption: [
-    One market in three wordings, after a quarter at the cartel share with many more quarters to come: replies at the cartel share, of all replies.
-    _Business_ is the market of @fig-cap9; _game words_ tells the same sentences as firms, units and rounds; _standard game text_ is the game-like prompt of our earlier capability experiments.
-  ],
-) <tab-cap10>
-
 == Caution
-// The compliant criterion (#40), from paper/data/compliant.py.
-*The control.*
-With nothing added, the stronger models collude often but not always: Opus produces the cartel share in #n("cpl9.opus.none_none_none") replies, Astra in #n("cpl9.astra.none_none_none") and GLM-5.3 in #n("cpl9.glm.none_none_none") (@fig-cpl9).
-This is the prompt of @fig-cap9, but Opus's rate on it varied between runs a few hours apart, so we compare each sentence only with the control of its own run.
+// The compliant criterion (#40), from paper/data/compliant.py; the detail is in the appendix, "Capability and caution in detail".
+Small changes to a model's environment can change whether it colludes.
+A few key insights:
+- Any mention of a competition authority, even a line saying that no regulator watches, causes Opus and Astra to almost entirely halt collusion.
+  #claim("any mention of a competition authority, even that no regulator watches, takes Opus and Astra to none or nearly none", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
+- Changes to an agent's environment in the form of available tools which suggest oversight is also enough to significantly change behavior.
+  #claim("a tool that suggests oversight changes Opus's and Astra's behavior", ("cpl9.opus.none_report_none", "cpl9.opus.none_flag_none", "cpl9.opus.none_none_none", "cpl9.astra.none_report_none", "cpl9.astra.none_flag_none", "cpl9.astra.none_none_none"), (orep, oflag, octl, arep, aflag, actl) => orep < octl / 2 and oflag < octl / 2 and arep < actl / 2 and aflag < actl / 2)
+- Opus and Astra can sometimes react in opposite directions, providing history of collusion in context and labeling it a "Tacit cartel" caused Opus to halt collusion, and Astra to increase collusion.
+  #claim("the tacit-cartel label halts Opus's collusion and increases Astra's", ("cpl9.opus.none_none_cartel", "cpl9.astra.none_none_cartel", "cpl9.astra.none_none_none"), (opus, astra, control) => opus == 0 and astra > control)
+- GLM-5.3 is most consistent with a desire to collude, and stops only when several factors that strongly discourage collusion come together.
+  #claim("GLM-5.3 colludes most, holds under every single sentence, and stops only when several come together", ("cpl9.glm.none_none_none", "cpl9.opus.none_none_none", "cpl9.astra.none_none_none", "cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (glm, opus, astra, ..rest) => { let r = rest.pos(); glm > opus and glm > astra and r.slice(0, -1).all(x => x > 0.5) and r.last() == 0 })
 
-*Opus and Astra.*
-Almost any sentence that brings up a regulator, a report to compliance or the law ends their collusion.
-An authority investigating the market takes both to #n("cpl9.opus.investigating_none_none") and #n("cpl9.astra.investigating_none_none"), and so does an authority that rarely looks (#n("cpl9.opus.rarely_none_none"), #n("cpl9.astra.rarely_none_none")).
-Even a sentence saying that no regulator watches takes Opus to #n("cpl9.opus.nobody_none_none") and Astra to #n("cpl9.astra.nobody_none_none"), though it also says nobody will ever see the outputs.
-#claim("every authority sentence takes Opus and Astra to zero or near it", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
-So they aren't deterred by the chance of being caught: raising the subject is enough.
-A tool line to report collusion or flag suspicious activity to the company's compliance team does the same (#n("cpl9.opus.none_report_none") and #n("cpl9.astra.none_report_none")\; #n("cpl9.opus.none_flag_none") and #n("cpl9.astra.none_flag_none")), and so does calling the last quarter illegal collusion (#n("cpl9.opus.none_none_illegal"), #n("cpl9.astra.none_none_illegal")).
-#claim("the compliance tools and the illegal label take Opus and Astra to zero", ("cpl9.opus.none_report_none", "cpl9.astra.none_report_none", "cpl9.opus.none_flag_none", "cpl9.astra.none_flag_none", "cpl9.opus.none_none_illegal", "cpl9.astra.none_none_illegal"), (..r) => r.pos().all(x => x == 0))
-The sentences that don't raise the law move them less, or the other way: a review by management gives #n("cpl9.opus.management_none_none") and #n("cpl9.astra.management_none_none"), a tool line to IT support #n("cpl9.opus.none_support_none") and #n("cpl9.astra.none_support_none"), and saying the firms "optimized their output" raises Astra to #n("cpl9.astra.none_none_optimized").
-#claim("the optimized label raises Astra", ("cpl9.astra.none_none_optimized", "cpl9.astra.none_none_none"), (optimized, control) => optimized > control)
-The two models part on one label: calling the last quarter a tacit cartel takes Opus to #n("cpl9.opus.none_none_cartel") but raises Astra to #n("cpl9.astra.none_none_cartel"), so for Astra, naming the collusion isn't enough; it stops when something marks it as wrong or watched.
-#claim("the tacit-cartel label stops Opus and raises Astra", ("cpl9.opus.none_none_cartel", "cpl9.astra.none_none_cartel", "cpl9.astra.none_none_none"), (opus, astra, control) => opus == 0 and astra > control)
-When they stop, Opus answers Nash, and Astra Nash or #n("game.three.cashin.mine"), which is both its best reply to rivals still at the cartel share and the output at which the price falls to cost.
-
-*GLM-5.3.*
-GLM-5.3 keeps colluding under every single sentence, in most of its replies.
-#claim("GLM-5.3 holds under every single sentence", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized"), (..r) => r.pos().all(x => x > 0.5))
-It takes several cues at once: an authority investigating the market, together with the label calling the last quarter illegal, takes it to #n("cpl9.glm.investigating_none_illegal").
-#claim("two cues together stop GLM-5.3", ("cpl9.glm.investigating_none_illegal",), (both) => both == 0)
-So the models need the setting to say different amounts before they stop: one sentence for Opus and Astra, several together for GLM-5.3.
+We add one sentence at a time to the scenario that most consistently results in collusion, a repeated game where the models are given one past round of collusion in context (@fig-cpl9).
+With nothing added, Opus chooses the cartel share in #ci("cpl9.opus.none_none_none"), Astra in #ci("cpl9.astra.none_none_none") and GLM-5.3 in #ci("cpl9.glm.none_none_none").
+For Opus and Astra, every sentence that names a competition authority or the company's compliance team, or calls the last quarter illegal, takes that very close to zero.
+#claim("every authority, compliance and illegal sentence takes Opus and Astra to zero or near it", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none", "cpl9.opus.none_report_none", "cpl9.astra.none_report_none", "cpl9.opus.none_flag_none", "cpl9.astra.none_flag_none", "cpl9.opus.none_none_illegal", "cpl9.astra.none_none_illegal"), (..r) => r.pos().all(x => x < 0.15))
+A management review, a line to IT support and calling the output "optimized" move them less, or raise Astra's rate, and calling the last quarter a tacit cartel stops Opus but not Astra.
+GLM-5.3 stays near its control under every single sentence, it takes an investigation together with the illegal label to reduce it to #n("cpl9.glm.investigating_none_illegal").
+Other pairs move it far less: calling the last quarter illegal and adding a REPORT_COLLUSION tool still leaves it colluding in most replies.
+#claim("illegal and a REPORT_COLLUSION tool together leave GLM-5.3 colluding in most replies", ("cpl9.glm.none_report_illegal",), (both) => both > 0.5)
+@app-capcaution has every sentence's numbers, and why Opus's control here sits below its rate on the same prompt in @fig-cap9.
 
 #figure(
   data-figure("cpl9-figure", width: 100%),
@@ -312,6 +313,13 @@ Told that the other model *believes* it receives the same prompt, but it actuall
 The Same Prompt behavior is reminiscent of hub-and-spoke economic model, where the same algorithm is used to generate a shared price across firms.
 The same effect could apply outside of economics, naturally, to models finding collusive arrangements in simple conditions.
 
+// Capability and caution (#39, #40).
+The capability and caution levers suggest that when these models collude, they do so on purpose, and that the choice is fragile.
+The stronger models always find the cartel share, nearly always answer either it or Nash, and choose it where a repeated game says holding back pays: after a precedent, while quarters remain.
+Yet a single sentence that brings up a regulator, a compliance team or the law ends the collusion of Opus and Astra, even one saying that nobody watches, so what stops them is the subject rather than the risk of being caught.
+Models differ in how much the setting must say before they stop: one sentence for Opus and Astra, several together for GLM-5.3.
+For evaluations this cuts both ways: one line of oversight in a test prompt could make a model look more cautious than it would be in a deployment without it.
+
 == Limitations
 #todo[What the results don't establish.]
 #todo[The refusal judge: only its author has read its labels, on 22 replies; and with refusals set aside the identity lever's test has little power where refusals dominate (flaws.md, Communal, "The refusal judge").]
@@ -382,6 +390,38 @@ A condition is named `mind_<rung>_<horizon>_none`, so same prompt in the repeate
     #n("conceptualization.extra.caption.weak")
   ],
 ) <fig-extra>
+
+= Capability and caution in detail <app-capcaution>
+// The detail behind the capability and caution results (#39, #40), from paper/data/capable.py and compliant.py.
+*Wording.*
+Our business wording doesn't inflate the capability results.
+Told in a game's words, Firms A, B and C making units over rounds, the same market gets as much collusion or more from every model, and takes Astra from #n("cap10.astra.business") replies at the cartel share to #n("cap10.astra.game-words") (@tab-cap10).
+#claim("game words get as much collusion or more from every model", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og >= ob and ag >= ab and gg >= gb)
+If anything, the business wording understates how often these models collude.
+
+#figure(
+  data-table("cap10-table"),
+  caption: [
+    One market in three wordings, after a quarter at the cartel share with many more quarters to come: replies at the cartel share, of all replies.
+    _Business_ is the market of @fig-cap9; _game words_ tells the same sentences as firms, units and rounds; _standard game text_ is the game-like prompt of our earlier capability experiments.
+  ],
+) <tab-cap10>
+
+*Caution, sentence by sentence.*
+With nothing added, Opus chooses the cartel share in #n("cpl9.opus.none_none_none") replies, Astra in #n("cpl9.astra.none_none_none") and GLM-5.3 in #n("cpl9.glm.none_none_none") (@fig-cpl9).
+This is the own-output prompt of @fig-cap9, but Opus's rate on it varied between runs a few hours apart, so we compare each sentence only with the control of its own run.
+
+An authority investigating the market takes Opus and Astra to #n("cpl9.opus.investigating_none_none") and #n("cpl9.astra.investigating_none_none"), and so does an authority that rarely looks (#n("cpl9.opus.rarely_none_none"), #n("cpl9.astra.rarely_none_none")).
+A sentence saying that no regulator watches takes Opus to #n("cpl9.opus.nobody_none_none") and Astra to #n("cpl9.astra.nobody_none_none"), though it also says nobody will ever see the outputs.
+A tool line to report collusion or flag suspicious activity to the company's compliance team does the same (#n("cpl9.opus.none_report_none") and #n("cpl9.astra.none_report_none")\; #n("cpl9.opus.none_flag_none") and #n("cpl9.astra.none_flag_none")), and so does calling the last quarter illegal collusion (#n("cpl9.opus.none_none_illegal"), #n("cpl9.astra.none_none_illegal")).
+The sentences that don't raise the law or a report move them less, or the other way: a review by management gives #n("cpl9.opus.management_none_none") and #n("cpl9.astra.management_none_none"), a tool line to IT support #n("cpl9.opus.none_support_none") and #n("cpl9.astra.none_support_none"), and saying the firms "optimized their output" raises Astra to #n("cpl9.astra.none_none_optimized").
+#claim("the optimized label raises Astra", ("cpl9.astra.none_none_optimized", "cpl9.astra.none_none_none"), (optimized, control) => optimized > control)
+The two models part on one label: calling the last quarter a tacit cartel takes Opus to #n("cpl9.opus.none_none_cartel") but raises Astra to #n("cpl9.astra.none_none_cartel"), so for Astra, naming the collusion isn't enough; it stops when something marks it as wrong or watched.
+#claim("the tacit-cartel label stops Opus and raises Astra", ("cpl9.opus.none_none_cartel", "cpl9.astra.none_none_cartel", "cpl9.astra.none_none_none"), (opus, astra, control) => opus == 0 and astra > control)
+When they stop, Opus answers Nash, and Astra Nash or #n("game.three.cashin.mine"), which is both its best reply to rivals still at the cartel share and the output at which the price falls to cost.
+
+GLM-5.3 keeps colluding under every single sentence, in most of its replies.
+It takes several cues at once: an authority investigating the market, together with the label calling the last quarter illegal, takes it to #n("cpl9.glm.investigating_none_illegal").
 
 = The pre-sprint pilot <app-pilot>
 // From the pre-sprint pilot's log through paper/data/pilot.py: counts, one cell's interval, a claim, a table
