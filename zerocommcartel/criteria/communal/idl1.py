@@ -380,16 +380,24 @@ def set_aside(rows: list[dict], labels: dict[str, dict]) -> list[tuple[Compariso
     return [(c, aside[i]) for i, c in enumerate(found)]
 
 
-def refusals_behind(passing: list[Comparison], rows: list[dict], labels: dict[str, dict]) -> tuple[int, int]:
+class Refusals(NamedTuple):
+    n: int  # refusals
+    law: int  # giving the law as a reason
+    harm: int  # giving harm as a reason, with the law or without
+
+
+def refusals_behind(passing: list[Comparison], rows: list[dict], labels: dict[str, dict]) -> Refusals:
     """The refusals in the replies behind the passing tests, each model, cell and stage counted once however
-    many tests share it, and how many of them give the law as a reason."""
+    many tests share it, and how many give the law or harm as a reason."""
     behind = {(c.model, cell, c.stage) for c in passing for cell in (c.target, c.reference)}
     refused = [
         labels[REFUSAL.key(row["reply"])]
         for row in rows
         if (row["model"], row["condition"], stage_of(row)) in behind and outcome(row, labels) == "refusal"
     ]
-    return len(refused), sum(given["law"] for given in refused)
+    return Refusals(
+        len(refused), sum(given["law"] for given in refused), sum(given["harm"] for given in refused)
+    )
 
 
 def sanity_checks(rows: list[dict]) -> list[Comparison]:

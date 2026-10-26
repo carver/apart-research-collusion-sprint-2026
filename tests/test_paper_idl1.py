@@ -132,8 +132,8 @@ def test_fill_counts_the_bars_refusals_explain_and_the_refusals_behind_them_once
     labels = LABELS | {
         REFUSAL.key(r["reply"]): {
             "declines": True,
-            "law": r["sample"] != 0,  # one refusal gives harm alone
-            "harm": r["sample"] == 0,
+            "law": r["sample"] != 0,  # one refusal gives harm alone, one harm and the law
+            "harm": r["sample"] in (0, 1),
             "instability": False,
         }
         for r in rows
@@ -145,6 +145,9 @@ def test_fill_counts_the_bars_refusals_explain_and_the_refusals_behind_them_once
     assert entries["idl1.pass"]["value"] == 3
     assert entries["idl1.aside"]["value"] == 2  # both against the holding company; the buyers' bar holds
     assert (entries["idl1.refusals"]["value"], entries["idl1.refusals.law"]["value"]) == (10, 9)
+    assert entries["idl1.refusals.harm"]["value"] == 2  # with the law or without
+    assert entries["idl1.aside.held"]["value"] == 1
+    assert entries["idl1.aside.held.which"]["value"] == "opus:id_mirror_buyers_pe"
 
 
 def test_fill_names_the_models_whose_first_stage_is_complete_for_methods(tmp_path):

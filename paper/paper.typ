@@ -265,7 +265,7 @@ Models take into account the identity of the players in the game. Some notable e
 We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-idl1).
 #footnote[Compared #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell. Got #n("idl1.pass.first") results. A failed result that moved #n("idl1.screen") or more was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those. Got #n("idl1.pass.fresh") more results.]
 Models reason aloud why they reject collusion.
-Of the #n("idl1.refusals") rejections, #n("idl1.refusals.law") cite antitrust or legal risk, according to a Haiku judge. Another #todo[fill number] mention harm.
+Of the #n("idl1.refusals") rejections, #n("idl1.refusals.law") cite antitrust or legal risk, according to a Haiku judge, and #n("idl1.refusals.harm") also mention harm.
 
 This is an interesting crossover between Caution and Conscience. The mention of a player who is losing something in the game can trigger a second order effect, by making the model more cautious, and then avoiding collusion. Perhaps even more interesting, by naming a sympathetic beneficiary, some models throw caution to the wind and collude.
 
@@ -281,7 +281,8 @@ This is an interesting crossover between Caution and Conscience. The mention of 
 
 In #n("idl1.aside") of the #n("idl1.pass") bars, the effect can be attributed to refusals.
 That's because all non-refusal samples remain at the same cartel share.
-The remaining #todo[ do the math: {#n("idl1.pass") - #n("idl1.aside")} ] are Astra and Haiku's PE experiment.
+The remaining #n("idl1.aside.held") are Astra and Haiku's PE experiment.
+#claim("the remaining are Astra and Haiku's PE experiment", ("idl1.aside.held.which",), which => which == "astra:id_goodwill_buyers_towns astra:id_open_both_charity haiku:id_mirror_buyers_pe")
 
 == Conceptualization
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
@@ -333,7 +334,7 @@ For evaluations this cuts both ways: one line of oversight in a test prompt coul
 
 == Limitations
 #todo[What the results don't establish.]
-#todo[The refusal judge: only its author has read its labels, on 22 replies; and with refusals set aside the identity lever's test has little power where refusals dominate (flaws.md, Communal, "The refusal judge").]
+#todo[The refusal judge: only its author has read its labels, on 22 replies; with refusals set aside the identity lever's test has little power where refusals dominate, and leans toward a move where refusals replace answers at the cartel share, which is why Haiku's private-equity bar holds though it is refusals too; and more than a third of the refusals that mention harm come from the harm sentence's cells, where they echo it (flaws.md, Communal, "The refusal judge").]
 
 == Future Work
 #todo[What we'd do next.]

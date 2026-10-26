@@ -7,8 +7,8 @@ replies its verdict used, with Newcombe's 95% interval as a whisker, labelled in
 (Context), the reference (Baseline) and the identity (Experiment). A bar that ends at 0% or 100% and is no
 longer than CAP is marked * past its whisker, since the floor or the ceiling may have cut it short. The table
 lists every test, then the sanity checks (one owner over both firms against the bare start), which the
-correction leaves out. The ledger also counts the bars that refusals explain (`set_aside`) and the refusals
-behind the bars, for the prose."""
+correction leaves out. The ledger also counts, for the prose, the bars that refusals explain (`set_aside`)
+and those that hold without them, and the refusals behind the bars, with those giving the law and harm."""
 
 from typing import Any, NamedTuple
 
@@ -208,13 +208,23 @@ def fill(ledger: Ledger, rows: list[dict], labels: dict[str, dict]) -> None:
         sum(c.passes and not a.passes for c, a in pairs),
         how="passing comparisons that miss with refusals set aside (communal.idl1.set_aside)",
     )
-    refused, law = refusals_behind(passing, rows, labels)
+    held = sorted(f"{c.model}:{c.target}" for c, a in pairs if c.passes and a.passes)
+    ledger.value(
+        "idl1.aside.held", len(held), how="passing comparisons that still pass with refusals set aside"
+    )
+    ledger.value(
+        "idl1.aside.held.which", " ".join(held), how="those comparisons, as model:target, for a claim"
+    )
+    refused, law, harm = refusals_behind(passing, rows, labels)
     ledger.value(
         "idl1.refusals",
         refused,
         how="refusals in the replies behind the passing bars, each model, cell and stage once",
     )
     ledger.value("idl1.refusals.law", law, how="those refusals that give the law as a reason")
+    ledger.value(
+        "idl1.refusals.harm", harm, how="those refusals that give harm as a reason, with the law or without"
+    )
     ledger.value(
         "idl1.pass.first",
         sum(c.stage == "first" for c in passing),
