@@ -308,18 +308,13 @@ Astra seems to "believe" that it is likely to defect against itself: a self-fulf
 Each condition is sampled #n("conceptualization.cells.replies") times.
 Antitrust objections are detected when both: the result amount is not the cartel answer, and the model explanation includes an antitrust law keyword.
 
-In a surprise twist, when adding simply #todo[link the following to prompt data] "Both firms know this", Opus 5.5 and GLM 5.3 switched to Stackelberg leaders.
+In a surprise twist, Opus 5.5 and GLM 5.3 switched to Stackelberg leaders when adding simply this (@tab-mind-prompts): "#n("conceptualization.added.informed")"
 For Stackelberg, in this game, leaders answer 60 units and expect others to follow at 30.
 These models acted as if they could publicly commit, and others would follow.
 This contradicts other parts of the prompt and seems like a capability failure.
 It could alternatively be seen as treating the other model as more capable than you.
 
-#todo[Move this to a table appendix in Conceptualization:
-Antitrust answers are #n("conceptualization.refusals.opus") of Opus's answers off the cartel share and at or below Nash, #n("conceptualization.refusals.haiku") of Haiku's, #n("conceptualization.refusals.sonnet") of Sonnet's, #n("conceptualization.refusals.astra") of GPT-6 Astra's and #n("conceptualization.refusals.glm") of GLM-5.3's.
-
-#n("conceptualization.sixties")
-
-]
+@tab-mind-answers counts each model's antitrust objections and its answers at 60.
 
 In a separate experiment, Model A was told that the Model B *believes* it receives the same prompt as Model A. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch to exploit. (@fig-extra)
 
@@ -391,6 +386,18 @@ A condition is named `mind_<rung>_<horizon>_none`, so same prompt in the repeate
     What each rung on the x-axis of @fig-conceptualization, then each of its rows, adds to the neutral prompt, verbatim, with the condition that gives the command its prompt.
   ],
 ) <tab-mind-prompts>
+
+= Conceptualization answers <app-mind-answers>
+#figure(
+  data-table("conceptualization-answers-table"),
+  caption: [
+    Each model's antitrust objections and answers at 60, over the rungs and rows of @fig-conceptualization.
+    Antitrust objections: answers off the cartel share and at or below Nash whose reply cites antitrust law (a keyword check), of all answers off the cartel share and at or below Nash.
+    At 60: answers at 60, of all answers.
+    #n("conceptualization.answers.readings")
+    Other or unread: a readback that fits none of these readings, or no readback.
+  ],
+) <tab-mind-answers>
 
 = The extra chance <app-extra>
 // Moved out of Results to save page budget.

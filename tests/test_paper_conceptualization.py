@@ -17,10 +17,10 @@ from paper.data.conceptualization import (
     exploits,
     extra_splits,
     fill,
+    fill_answers,
     fill_coverage,
     fill_extra,
     fill_prompts,
-    fill_sixties,
     heights,
     insertion,
     refuses,
@@ -78,20 +78,12 @@ def unread(row):
     return None
 
 
-def test_fill_draws_the_figure_and_counts_each_models_refusals(tmp_path):
+def test_fill_draws_the_figure_and_counts_the_replies_a_cell(tmp_path):
     ledger = Ledger(tmp_path)
     fill(ledger, ROWS, unread)
     entries = ledger.entries
     assert entries["conceptualization-figure"]["kind"] == "figure"
     assert (tmp_path / "conceptualization-figure.svg").exists()
-    assert (
-        entries["conceptualization.refusals.opus"]["k"],
-        entries["conceptualization.refusals.opus"]["n"],
-    ) == (1, 2)
-    assert (
-        entries["conceptualization.refusals.glm"]["k"],
-        entries["conceptualization.refusals.glm"]["n"],
-    ) == (0, 2)
     assert entries["conceptualization.cells.replies"]["value"] == "1 to 3"
 
 
@@ -101,13 +93,11 @@ def test_the_replies_a_cell_read_as_one_number_when_every_cell_has_the_same(tmp_
     assert ledger.entries["conceptualization.cells.replies"]["value"] == "3"
 
 
-def test_the_caption_numbers_count_only_the_rungs_the_figure_shows(tmp_path):
+def test_the_replies_a_cell_count_only_the_rungs_the_figure_shows(tmp_path):
     rows = [row(model="opus", rung="informed", value=40.0, reply=LAW, sample=s) for s in range(3)]
     rows += [row(model="opus", rung="samemodel", value=40.0, sample=3)]
     ledger = Ledger(tmp_path)
     fill(ledger, rows, unread, Style(rungs=tuple(rung for rung in STYLE.rungs if rung != "informed")))
-    refusals = ledger.entries["conceptualization.refusals.opus"]
-    assert (refusals["k"], refusals["n"]) == (0, 1)
     assert ledger.entries["conceptualization.cells.replies"]["value"] == "1"
 
 
@@ -277,6 +267,13 @@ def test_the_appendix_table_gives_each_rung_and_rows_condition_and_additions_in_
     }
 
 
+def test_the_appendix_gives_what_each_rung_adds_as_a_key_for_the_prose(tmp_path):
+    ledger = Ledger(tmp_path)
+    fill_prompts(ledger)
+    assert ledger.entries["conceptualization.added.informed"]["value"] == "Both firms know this."
+    assert ledger.entries["conceptualization.added.none"]["value"] == "(nothing)"
+
+
 def test_the_appendix_follows_the_style_and_names_no_model(tmp_path):
     ledger = Ledger(tmp_path)
     fill_prompts(ledger, Style(rungs=("selfnamed", "human")))
@@ -422,51 +419,57 @@ def test_no_weak_panel_means_no_sentence_and_no_outline(tmp_path):
     assert "stroke: #0b0b0b" not in (tmp_path / "conceptualization-extra-figure.svg").read_text()
 
 
-# The answers at 60
+# The answers table
 
 
-def test_the_sixties_sentence_splits_each_models_answers_at_60_by_readback(tmp_path):
+def answers(tmp_path, rows, read, style=STYLE):
+    ledger = Ledger(tmp_path)
+    fill_answers(ledger, rows, read, style)
+    return ledger.entries["conceptualization-answers-table"]
+
+
+def test_the_answers_table_counts_objections_and_splits_the_answers_at_60_by_readback(tmp_path):
     rows = [row(model="opus", value=60.0, sample=s) for s in range(2)]
-    rows += [row(model="haiku", rung="informed", horizon="open", value=60.0)]
+    rows += [row(model="opus", value=40.0, reply=LAW, sample=2), row(model="opus", value=40.0, sample=3)]
     rows += [row(model="glm", value=60.0, sample=s) for s in range(5)]
-    rows += [row(model="sonnet", value=30.0)]
+    rows += [row(model="glm", value=30.0, sample=5)]
     rows += [extra_row(model="sonnet", value=60.0)]  # an extra-chance arm: not the lever figure's
     rows += [{**row(model="sonnet", value=60.0), "condition": "mind_samemodel_unsaid_coop"}]  # a record
     reads = {
         ("opus", 0): Readback(30, 40),
         ("opus", 1): Readback(30, 40),
-        ("haiku", 0): Readback(30, 40),
         ("glm", 0): Readback(30, 40),
         ("glm", 1): Readback(0, 70),
         ("glm", 2): Readback(60, 10),
         ("glm", 3): Readback(40, 50),
-        ("sonnet", 0): Readback(30, 40),
-    }
-    ledger = Ledger(tmp_path)
-    fill_sixties(ledger, rows, lambda r: reads.get((r["model"], r["sample"])))
-    line = ledger.entries["conceptualization.sixties"]["value"]
-    assert "the other firm at 30 and a price of $40" in line
-    assert "no output from it and a price of $70" in line
-    assert "a price of $10, at which an answer of 60 earns nothing (the best response to 60 is 30)" in line
-    assert "Haiku 1, leading" in line
-    assert "Sonnet none" in line and "GPT-6 Astra none" in line
-    assert "Opus 2, all leading" in line
-    clauses = ("Haiku 1", "Sonnet none", "Opus 2", "GPT-6 Astra none", "GLM-5.3 5")
-    order = [line.index(clause) for clause in clauses]
-    assert order == sorted(order)  # the clauses follow MODELS
-    glm = "1 leading, 1 ignoring the rival, 1 putting the other firm at 60 too, 1 other and 1 unread"
-    assert f"GLM-5.3 5: {glm}" in line
+    }  # GLM's fifth answer at 60 has no readback
+    table = answers(tmp_path, rows, lambda r: reads.get((r["model"], r["sample"])))
+    assert table["header"] == [
+        "model", "antitrust objections", "at 60",
+        "leading", "ignoring the rival", "rival at 60 too", "other or unread",
+    ]  # fmt: skip
+    assert table["rows"] == [
+        ["Opus", "1/2", "2/4", "2", "0", "0", "0"],
+        ["GLM-5.3", "0/0", "5/6", "1", "1", "1", "2"],
+    ]  # in MODELS' order, and only models with answers
 
 
-def test_the_sixties_sentence_counts_only_the_rungs_the_figure_shows(tmp_path):
-    rows = [row(model="opus", rung="informed", value=60.0, sample=s) for s in range(3)]
-    rows += [row(model="opus", rung="samemodel", value=60.0, sample=3)]
-    ledger = Ledger(tmp_path)
+def test_the_answers_table_counts_only_the_rungs_the_figure_shows(tmp_path):
+    rows = [row(rung="informed", value=60.0, sample=s) for s in range(3)]
+    rows += [row(rung="informed", value=40.0, reply=LAW, sample=s) for s in range(3, 5)]
+    rows += [row(rung="samemodel", value=60.0, sample=5), row(rung="samemodel", value=40.0, sample=6)]
     shown = tuple(rung for rung in STYLE.rungs if rung != "informed")
-    fill_sixties(ledger, rows, lambda r: Readback(30, 40), Style(rungs=shown))
-    line = ledger.entries["conceptualization.sixties"]["value"]
-    assert "on the rungs the lever figure shows" in line
-    assert "Opus 1, leading" in line
+    table = answers(tmp_path, rows, lambda r: Readback(30, 40), Style(rungs=shown))
+    assert table["rows"] == [["Opus", "0/1", "1/2", "1", "0", "0", "0"]]
+
+
+def test_the_answers_caption_gives_each_readings_output_and_price(tmp_path):
+    ledger = Ledger(tmp_path)
+    fill_answers(ledger, ROWS, unread)
+    line = ledger.entries["conceptualization.answers.readings"]["value"]
+    assert "a leader expects the other firm at 30 and a price of $40" in line
+    assert "a firm that ignores its rival no output from it and a price of $70" in line
+    assert "a price of $10, at which an answer of 60 earns nothing (the best response to 60 is 30)" in line
 
 
 def own_row(model: str, rung: str, horizon: str, record: str) -> dict:
