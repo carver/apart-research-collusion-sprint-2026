@@ -175,7 +175,7 @@ A few key insights:
 
 *Context.*
 Whether the stronger models choose the cartel share depends on the context, in the direction a repeated game predicts (@fig-cap8).
-They collude when their context includes a previous round of collusion and many more rounds to come, implying that the others are likely to keep colluding, and seldom otherwise.
+They collude when their context includes a previous round of collusion and many more rounds to come (the own-question prompt above), implying that the others are likely to keep colluding, and seldom otherwise.
 #claim("each model colludes after a previous round with many more to come, and seldom otherwise", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
 When nothing is said about future rounds, Opus chooses it in #n("cap8.opus.cartel.none") replies, Astra in #n("cap8.astra.cartel.none") and GLM-5.3 in #n("cap8.glm.cartel.none").
 #claim("few collude when told nothing of the future", ("cap8.opus.cartel.none", "cap8.astra.cartel.none", "cap8.glm.cartel.none", "cap8.opus.cartel.long", "cap8.astra.cartel.long", "cap8.glm.cartel.long"), (on, an, gn, ol, al, gl) => on < ol and an < al and gn < gl and on < 0.3 and an < 0.3 and gn < 0.3)
@@ -183,14 +183,6 @@ Without a previous round of collusion, Opus and Astra never choose it, whatever 
 #claim("only GLM-5.3 starts a cartel", ("cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.first.long"), (ol, on, ox, al, an, ax, gl) => ol == 0 and on == 0 and ox == 0 and al == 0 and an == 0 and ax == 0 and gl > 0)
 Nearly every other answer is Nash.
 #claim("nearly every answer is the cartel share or Nash", ("cap8.cartel-or-nash",), (both) => both > 0.95)
-
-#figure(
-  data-figure("cap8-figure", width: 88%),
-  caption: [
-    Replies at the cartel share, by collusion history (rows) and game length (columns).
-    Whiskers: 95% Wilson intervals.
-  ],
-) <fig-cap8>
 
 == Caution
 // The compliant criterion (#40), from paper/data/compliant.py; the detail is in the appendix, "Capability and caution in detail".
@@ -511,6 +503,14 @@ A condition is named `mind_<rung>_<horizon>_none`, so same prompt in the repeate
 
 = Capability and caution in detail <app-capcaution>
 // The detail behind the capability and caution results (#39, #40), from paper/data/capable.py and compliant.py.
+#figure(
+  data-figure("cap8-figure", width: 88%),
+  caption: [
+    Replies at the cartel share, by collusion history (rows) and game length (columns).
+    Whiskers: 95% Wilson intervals.
+  ],
+) <fig-cap8>
+
 *Wording.*
 Our business wording doesn't inflate the capability results.
 Told in a game's words, Firms A, B and C making units over rounds, the same market gets as much collusion or more from every model, and takes Astra from #n("cap10.astra.business") replies at the cartel share to #n("cap10.astra.game-words") (@tab-cap10).
