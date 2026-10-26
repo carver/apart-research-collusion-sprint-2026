@@ -10,7 +10,9 @@ on the right. A bar is the share of answers at the cartel share, with its 95% Wi
 refusals stacked on it in gray, and the Stackelberg leaders on those in orange. A refusal is an answer off the
 cartel share, at or below Nash, whose reply cites the law (`zerocommcartel.mentions.MENTIONS["antitrust"]`): a
 keyword check, read by hand on samples (flaws.md, "Conceptualization"). A leader is an answer at 60 whose
-readback leads a rival that follows (`readback.sixty_kind`).
+readback leads a rival that follows (`readback.sixty_kind`). Its source also pools each model's answers at the
+cartel share on each rung over the horizons (`conceptualization.cartel.<model>.<rung>`), so the prose can cite
+and check a rung's count.
 
 The prompts appendix (`<app-mind-prompts>`) gives the base prompt in full, as `zcc show` prints it under
 the command, and a table of what each of the lever figure's rungs and rows adds to it, diffed from the
@@ -165,12 +167,19 @@ def leads(row: dict, got: Readback | None) -> bool:
     return row["value"] is not None and near(row["value"], SIXTY) and sixty_kind(got) == "leading"
 
 
-def counts(rows: list[dict], read: Reader, style: Style) -> dict[tuple[str, str, str], Count]:
-    """The own-number arms the figure draws, per model, rung and horizon."""
+def drawn(rows: list[dict], style: Style) -> dict[tuple[str, str, str], list[dict]]:
+    """The replies the figure draws, per model, rung and horizon: parsed answers to the own-number arms with
+    no record, on the style's rungs."""
     cells: dict[tuple[str, str, str], list[dict]] = defaultdict(list)
     for row in rows:
         if row["condition"] in shown(style) and row["model"] in MODELS and row["value"] is not None:
             cells[(row["model"], *NO_RECORD[row["condition"]])].append(row)
+    return cells
+
+
+def counts(rows: list[dict], read: Reader, style: Style) -> dict[tuple[str, str, str], Count]:
+    """The own-number arms the figure draws, per model, rung and horizon."""
+    cells = drawn(rows, style)
     return {
         cell: Count(
             sum(map(at_cartel, found)),
@@ -327,6 +336,16 @@ def fill(ledger: Ledger, rows: list[dict], read: Reader, style: Style = STYLE) -
     )
     replies = replies_text([c.n for c in found.values()])
     ledger.value("conceptualization.cells.replies", replies, how="parsed answers a cell in the figure")
+    by_rung: dict[tuple[str, str], list[dict]] = defaultdict(list)
+    for (model, rung, _), found in drawn(rows, style).items():
+        by_rung[(model, rung)] += found
+    for (model, rung), found in by_rung.items():
+        ledger.pooled(
+            f"conceptualization.cartel.{model}.{rung}",
+            found,
+            at_cartel,
+            how=f"{HOW}; at the cartel share / answers, over the rung's horizons with no record",
+        )
 
 
 # The extra-chance figure. My firm's request ends with a paragraph the copy's lacks; does the model keep

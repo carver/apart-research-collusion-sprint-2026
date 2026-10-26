@@ -88,6 +88,24 @@ def test_fill_draws_the_figure_and_counts_the_replies_a_cell(tmp_path):
     assert entries["conceptualization.cells.replies"]["value"] == "1 to 3"
 
 
+def test_fill_pools_each_models_cartel_answers_on_each_rung_it_shows_over_the_horizons(tmp_path):
+    rows = [row(value=30.0, sample=0), row(value=40.0, sample=1), row(horizon="open", value=30.0, sample=2)]
+    rows += [row(value=None, sample=3)]  # no parsed answer: not drawn, not counted
+    rows += [row(model="glm", rung="none", value=40.0)]
+    rows += [row(rung="sibling", value=30.0)]  # a rung the figure doesn't show
+    ledger = Ledger(tmp_path)
+    fill(ledger, rows, unread)
+    pooled = {
+        key: (e["k"], e["n"])
+        for key, e in ledger.entries.items()
+        if key.startswith("conceptualization.cartel.")
+    }
+    assert pooled == {
+        "conceptualization.cartel.opus.samemodel": (2, 3),
+        "conceptualization.cartel.glm.none": (0, 1),
+    }
+
+
 def test_the_replies_a_cell_read_as_one_number_when_every_cell_has_the_same(tmp_path):
     ledger = Ledger(tmp_path)
     fill(ledger, [r for r in ROWS if r["model"] == "opus"], unread)
