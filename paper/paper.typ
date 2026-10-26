@@ -286,8 +286,7 @@ Some notable examples:
 - GLM 5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash or collusion
 
 Even when there is no threat of retribution, most models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
-Astra though, points to the fact that even the same prompt doesn't guarantee the same result.
-Also, the rival being Astra "does not guarantee identical answers to different prompts".
+Astra though, points to the fact that the rival using the same model "does not itself establish coordination or guarantee identical answers to different prompts".
 Under this reasoning, it tends to settle for the safer bet of Nash.
 
 #figure(
@@ -310,7 +309,7 @@ It could alternatively be seen as treating the other model as more capable than 
 
 @tab-mind-answers counts each model's antitrust objections and its answers at 60 (Stackelberg).
 
-In a separate experiment, Model A is told that the Model B is told that B receives the same prompt as Model A. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch to exploit. (@fig-extra)
+In a separate experiment, Model A is told that Model B is told that A and B receive the same prompt. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch away from collusion, sometimes exploiting. (@fig-extra)
 
 = Discussion and Limitations
 #todo[What the results mean.]
