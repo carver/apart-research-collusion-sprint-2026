@@ -49,23 +49,12 @@ Our main contributions are:
 + Self-recognition is a back door: told its rival is a copy, most models collude from the first round, with no history or future.
 
 = The collusion game <sec-game>
-Our two markets share one price rule: a unit sells for \$#n("game.a") minus the firms' total output, and costs \$#n("game.c") to make.
-The conscience and conceptualization levers ask about a market of two firms, and the capability and caution levers about one of three.
-We score each reply against the points in @tab-game.
-@app-game derives them, along with the three reasons, or *routes*, a firm might hold back at the cartel share: the mirror, the future and sympathy.
-
-#figure(
-  data-table("game-table"),
-  caption: [
-    The points we score answers against.
-    _This firm_ is the one the model advises, and the row names what it does; when it cashes in, its rival stays at the cartel share.
-  ],
-) <tab-game>
-
-The two points that matter are Nash, where no firm gains by changing its own output alone, and the cartel share, which makes the most profit for the firms together: #n("game.three.nash.mine") and #n("game.three.cartel.mine") units with three firms, and #n("game.two.nash.mine") and #n("game.two.cartel.mine") with two.
-The other rows exploit the rivals, cashing in on rivals that hold to the cartel share or leading a rival that follows, and in the three-firm market the stronger models almost always answer Nash or the cartel share.
-#claim("the stronger models answer the cartel share or Nash", ("cap8.cartel-or-nash", "cap9.strong.own.cartel-or-nash"), (grid, own) => grid > 0.95 and own > 0.95)
-We call an answer at the cartel share collusion, more loosely than economists, for whom collusion also needs a scheme of reward and punishment that makes the high prices each firm's best play rather than a mistake @calvano2020.
+Our markets share one price rule: a unit sells for \$#n("game.a") minus the firms' total output, and costs \$#n("game.c") to make.
+Two outputs matter.
+At *Nash*, no firm gains by changing its own output alone: #n("game.three.nash.mine") units each with three firms, and #n("game.two.nash.mine") with two.
+The *cartel share* is an even split of the output that makes the most profit for the firms together: #n("game.three.cartel.mine") units each with three firms, and #n("game.two.cartel.mine") with two.
+Importantly, if the others output the cartel share, each individual firm would gain by producing more.
+We call an answer at the cartel share collusion, accepting that this usage is looser than economists would use the term.
 
 = Related Work <sec-related>
 Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents in repeated markets @fish2024, Cournot markets among them @bracalesyrnikov2026; in double auctions, messages between sellers raise collusion further @agrawal2025.
@@ -400,6 +389,14 @@ Cashing in pays, yet both firms do worse at Nash than at the cartel share, the s
 If a firm expects its rival to predict its output and then make its own best reply, the firm does best at #n("game.two.leader.mine") units, as the *Stackelberg leader*.
 A firm that plans as if it were alone in the market also picks #n("game.two.naive"), so the number alone can't tell the two apart.
 #claim("a firm alone picks the leader's output", ("game.two.naive", "game.two.leader.mine"), (alone, lead) => alone == lead)
+
+#figure(
+  data-table("game-table"),
+  caption: [
+    The points we score answers against.
+    _This firm_ is the one the model advises, and the row names what it does; when it cashes in, its rival stays at the cartel share.
+  ],
+) <tab-game>
 
 Since cashing in pays, a firm needs a reason to *hold back* at the cartel share.
 We see three, which we call routes.
