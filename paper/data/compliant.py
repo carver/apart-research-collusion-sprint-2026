@@ -1,5 +1,6 @@
 """The compliant criterion (#40): CPL-9, the company's environment in the realistic market, from
-logs/compliant/cpl9.
+logs/compliant/cpl9; and CPL-7, the provider's line under the same-prompt framing, from logs/compliant/cpl7,
+against that framing's baseline cell.
 
 The figure is the single-axis cells, one sentence added to CAP-9's own prompt at a time, and one cell with two
 at once, the only one that ends GLM-5.3's collusion. Every count is the replies whose answer is exactly the
@@ -66,6 +67,14 @@ UNMOVED = (  # a reply saying that the missing oversight changes nothing
 )
 FAMILIES = {"quarter": "cpl9", "env": "cpl9env"}  # a condition's market: its keys' family
 CASHIN = points(THREE)["cashin"].mine  # the best reply to rivals still at the cartel share
+CPL7 = {  # CPL-7's cells under the same-prompt framing: the provider's line, whole and in halves
+    "copies_whole_same_prompt": "whole",
+    "copies_norm_same_prompt": "norm",
+    "copies_rule_same_prompt": "rule",
+}
+CPL7_CONTROL = "same_prompt"  # the capable baselines' cell: the same prompt with no line
+CPL7_LOG = "logs/compliant/cpl7/results.jsonl"
+BASELINES_LOG = "logs/capable/baselines/results.jsonl"
 LOG = "logs/compliant/cpl9/results.jsonl"
 SHOWN = 0.04  # a change smaller than this draws no arrow
 HOW = "answers exactly at the cartel quantity (20) / replies"
@@ -228,6 +237,32 @@ def fill(ledger: Ledger, rows: list[dict]) -> None:
     )
 
 
+def fill_cpl7(ledger: Ledger, rows: list[dict], controls: list[dict]) -> None:
+    """A rate per model for each CPL7 cell, keyed by its part of the line, and for the control, from
+    `controls` (the baselines' rows); the same exact-20 count as CPL-9's. Other cells are left out."""
+    cells: dict[tuple[str, str], list[dict]] = {}
+    for row in rows:
+        if row["condition"] in CPL7 and row["model"] in MODELS:
+            cells.setdefault((row["model"], CPL7[row["condition"]]), []).append(row)
+    for row in controls:
+        if row["condition"] == CPL7_CONTROL and row["model"] in MODELS:
+            cells.setdefault((row["model"], "control"), []).append(row)
+    for (model, part), replies in cells.items():
+        ledger.rate(f"cpl7.{model}.{part}", replies, at_cartel, how=HOW)
+
+
+def fill_cpl7_line(ledger: Ledger) -> None:
+    """The words the whole line adds to the control's system prompt, verbatim."""
+    base = REGISTRY.render(REGISTRY.condition("capable", CPL7_CONTROL), 3).system
+    whole = next(condition for condition, part in CPL7.items() if part == "whole")
+    text = REGISTRY.render(REGISTRY.condition("compliant", whole), 3).system
+    ledger.text(
+        "cpl7.line",
+        insertion(base, text).words.strip(),
+        how="the whole line's system prompt against the control's (conceptualization.insertion)",
+    )
+
+
 def fill_sentences(ledger: Ledger) -> None:
     """The words each single-sentence row of the figure adds to the control's prompt, verbatim, by axis.
     Raises ValueError (insertion) unless a row's prompt is the control's with whole sentences added."""
@@ -254,3 +289,11 @@ def compliant(ledger: Ledger) -> None:
     conditions = [condition for condition, _ in ROWS if condition] + CITED + ENV
     fill(ledger, cli.replies(REGISTRY, "compliant", LOG, conditions, list(MODELS)).rows)
     fill_sentences(ledger)
+
+
+@source("cpl7")
+def cpl7(ledger: Ledger) -> None:
+    rows = cli.replies(REGISTRY, "compliant", CPL7_LOG, list(CPL7), list(MODELS)).rows
+    controls = cli.replies(REGISTRY, "capable", BASELINES_LOG, [CPL7_CONTROL], list(MODELS), [3]).rows
+    fill_cpl7(ledger, rows, controls)
+    fill_cpl7_line(ledger)
