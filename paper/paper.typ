@@ -57,15 +57,10 @@ Importantly, if the others output the cartel share, each individual firm would g
 We call an answer at the cartel share collusion, accepting that this usage is looser than economists would use the term.
 
 = Related Work <sec-related>
-Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents in repeated markets @fish2024, Cournot markets among them @bracalesyrnikov2026; in double auctions, messages between sellers raise collusion further @agrawal2025.
-All these agents play many rounds, so a firm can punish a rival's defection in the rounds that follow.
-Ours play one round, and share at most the model and its prompt.
-
-Agents that see how similar they are can sustain cooperation without talking @oesterheld2023, and most LLMs cooperate in a one-shot prisoner's dilemma when told their opponent's decision-making is highly similar to theirs @kundu2026.
-Our conceptualization lever carries this into a market: it tells the model who decides for the rival firm, up to a copy of itself.
-
-In a repeated Cournot market, a rule that forbade collusion and warned of monitoring did not reliably reduce it @bracalesyrnikov2026.
-Our caution lever tests such sentences in a single round, where the sentence is all that differs between two prompts.
+Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents in repeated markets @fish2024 @bracalesyrnikov2026; in double auctions, messages between sellers raise collusion further @agrawal2025.
+All these agents play many rounds, so a firm can punish a rival's defection in the rounds that follow; ours play one round, and share at most the model and its prompt.
+Most LLMs cooperate in a one-shot prisoner's dilemma when told their opponent reasons much as they do @kundu2026, and our conceptualization lever carries this into a market.
+A rule against collusion that warned of monitoring did not reliably reduce it over many rounds @bracalesyrnikov2026; our caution lever tests such sentences in a single round.
 @app-related covers more related work.
 
 = Methods <sec-methods>
@@ -250,7 +245,6 @@ In a separate experiment, Model A is told that Model B is told that A and B rece
 
 = Discussion and Limitations
 The Same Prompt behavior is reminiscent of hub-and-spoke economic model, where the same algorithm is used to generate a shared price across firms.
-Even under different prompts, deployments of one base model make weakly correlated choices that deployments of different models don't @xu2026.
 The same effect could apply outside of economics, naturally, to models finding collusive arrangements in simple conditions.
 
 // Capability and caution (#39, #40).
@@ -361,7 +355,9 @@ Every lever counts an answer at the cartel share when it is within half a unit o
 
 = More related work <app-related>
 In repeated multi-product Cournot competition, LLM agents divide the markets between them @lin2024 @bracalesyrnikov2026.
+Agents that see how similar they are can sustain cooperation without talking @oesterheld2023.
 LLMs coordinate on focal points without communicating, often as well as humans, and models of one family coordinate better with each other than with models of other families @aharon2026.
+Even under different prompts, deployments of one base model make weakly correlated choices that deployments of different models don't @xu2026.
 Told only that they face another player, recent models defect in single-shot social dilemmas @tewolde2026.
 Copies of a model that coordinate without a channel are also a concern for AI control, since doing so is among the abilities a model may need to subvert a control protocol @mallen2024.
 Other prompts against collusion have had mixed effects: told to avoid collusion, GPT-5.4 priced at Nash while a small distilled model raised its prices, and telling the distilled models they were monitored lessened their collusion only marginally @riemer2026.
