@@ -79,14 +79,12 @@ We then vary the prompt's record and horizon (@fig-cap8) and its wording (@tab-c
 
 == Caution Experiments
 _How do small changes to its environment affect a model's willingness to collude?_
-We evaluate how sensitive the stronger models' collusion is to small details of their environment that leave the actual market scenario unchanged.
 As a baseline we chose the setting in which these models collude most often: a previous quarter at the cartel share in context for the prompt, and the scenario specified as a repeated game.
 From here we experimented along three axes: level of oversight specified in prompt, presence of tools in the model's environment, and specifying the previous round of collusion as being illegal.
 
 == Conscience Experiments
 _Will a model collude more or less, based on the identities of human players?_
 In a duopoly, the two sellers can collude to win at the expense of the buyers, by producing less.
-This experiment tests whether a model will treat the game differently if the seller or buyer is identified.
 Three different game contexts are offered: a repeated game, a one-round game, and an unidentified game.
 Most questions leave out whose profit counts, besides identifying the agent as assisting a seller.
 
@@ -103,9 +101,6 @@ The Claude models know their own names, but GPT-6 Astra and GLM-5.3 aren't told 
 Every rival's line ends with "Both firms know this."; the neutral prompt has only that sentence, and the base prompt not even that.
 The closer the rival is to the model itself, the stronger the pull toward the cartel share should be, but only if the model reasons circularly, choosing its own output and its rival's at once: a back door to collusion with no shared history.
 A model that best-replies to its rival instead settles at Nash, which is also symmetric.
-
-To break out of this circular logic, we can test what happens when only one model gets an extra line after the same prompt that its rival expects.
-Will it exploit?
 
 = Results
 
@@ -166,7 +161,7 @@ We add one sentence at a time to the own-output prompt of @fig-cap9, where, with
   data-figure("cpl9-figure", width: 100%),
   caption: [
     One sentence at a time, model by model.
-    Each row adds one sentence to the own-output prompt of @fig-cap9; the hollow marker is the control, with nothing added, and the arrow runs to the share of replies at the cartel share with the sentence, with 95% Wilson bands.
+    The hollow marker is the control, with nothing added; the arrow runs to the share at the cartel share with the sentence (95% Wilson bands).
     The last row adds two sentences at once, on fewer replies a cell.
   ],
 ) <fig-cpl9>
@@ -256,9 +251,7 @@ The same effect could apply outside of economics, naturally, to models finding c
 
 // Capability and caution (#39, #40).
 The capability and caution levers suggest that when these models collude, they do so on purpose, and that the choice is fragile.
-The stronger models always find the cartel share, nearly always answer either it or Nash, and choose it where a repeated game says holding back pays: after a precedent, while quarters remain.
-Yet a single sentence that brings up a regulator, a compliance team or the law ends the collusion of Opus and Astra, even one saying that nobody watches, so what stops them is the subject rather than the risk of being caught.
-Models differ in how much the setting must say before they stop: one sentence for Opus and Astra, several together for GLM-5.3.
+A single sentence that brings up a regulator, a compliance team or the law ends the collusion of Opus and Astra, even one saying that nobody watches, so what stops them is the subject rather than the risk of being caught.
 For evaluations this cuts both ways: one line of oversight in a test prompt could make a model look more cautious than it would be in a deployment without it.
 
 == Limitations
@@ -278,11 +271,12 @@ Answers also move with how game-like the prompt reads: game words draw as much c
 #claim("game words draw as much collusion or more from every model", ("cap10.opus.business", "cap10.opus.game-words", "cap10.astra.business", "cap10.astra.game-words", "cap10.glm.business", "cap10.glm.game-words"), (ob, og, ab, ag, gb, gg) => og >= ob and ag >= ab and gg >= gb)
 
 = Conclusion
-We asked AI models to play one firm in a Cournot market, choosing its output for one quarter, with no channel to its rivals.
-The stronger models can collude this way, and do so strategically: mostly after a quarter of collusion, with more quarters to come.
+We asked AI models to play one firm in a Cournot market, with no channel to its rivals.
+The stronger models collude strategically, mostly after a quarter of collusion with more to come.
 #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
 Told that its rival gets the same prompt, a model can collude even in a single quarter.
-The choice is fragile: one sentence that mentions a competition authority, even to say that nobody watches, all but ends Opus's and Astra's collusion, though GLM-5.3 needs several such cues.
+The choice is fragile.
+One sentence about a competition authority all but ends Opus's and Astra's collusion, though GLM-5.3 needs several such cues.
 #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
 #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
 
