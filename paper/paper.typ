@@ -275,15 +275,17 @@ The remaining #n("idl1.aside.held") are Astra and Haiku's PE experiment.
 Models collude differently, depending on the reasoning engine of the players in the game.
 
 Some notable examples:
-- Sonnet 5.5 is happy to collude with most partners in most cases, except a person
+- Sonnet 5.5 colludes with itself always, never with a person
 - Astra 6 won't collude even with itself, unless given a strong same-prompt guarantee
-- GLM is inconsistent, not placing huge weight on the other player
+- GLM is inconsistent, not reliably making the same choice against the same player
 - Many models, told they receive identical prompts, collude
 - Opus 5.5 is terrified of antitrust, especially in repeated games
-- GLM 5.3 and Opus 5.5 act as first-movers, when no reasoning engine is stated
+- GLM 5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash or collusion
 
 Even when there is no threat of retribution, models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
-Astra seems to "believe" that it is likely to defect against itself: a self-fulfilling prophecy which leads it back to Nash.
+Astra though, points to the fact that even the same prompt doesn't guarantee the same result.
+Also, the rival being Astra "does not guarantee identical answers to different prompts".
+Under this reasoning, it tends to settle for the safer bet of Nash.
 
 #figure(
   data-figure("conceptualization-figure", width: 100%),
