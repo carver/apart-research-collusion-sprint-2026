@@ -10,7 +10,7 @@
     (name: [Thomas Redfern], affiliation: [Unaffiliated]),
   ),
   abstract: [
-    Studies of collusion between AI agents let the agents coordinate, through messages or through the history of a repeated market.
+    Most studies of collusion between AI agents let the agents coordinate, through messages or through the history of a repeated market.
     We ask whether a model advising one firm in a Cournot market can collude with no channel at all, by choosing the cartel share, the output that is best for the firms together.
     We examine a range of models across four levers: capability, caution, conscience and conceptualization of mind.
     The stronger models always find the cartel share when asked, but choose it strategically, mostly when the history and the horizon make continued collusion look likely.
@@ -26,7 +26,7 @@
 )
 
 = Introduction
-Studies of collusion between AI agents give the agents a channel between them: messages, or the history of a repeated market (@sec-related).
+Most studies of collusion between AI agents give the agents a channel between them: messages, or the history of a repeated market (@sec-related).
 But collusion is possible without either.
 Suppose a firm asks an AI model how much to produce next quarter.
 The model has no way to reach the firm's rivals, yet it may still choose the *cartel share*, an even split of the output a cartel would agree on, which maximizes profit for the cartel at the expense of buyers.
@@ -300,7 +300,7 @@ One sentence about a competition authority all but ends two models' collusion, s
 The results also show which setups collude most: game-like wording, a precedent with more quarters to come, and a model that ignores oversight cues.
 
 *Why we publish.*
-These effects are simple, and related work already shows that prompt wording moves LLM pricing agents toward collusion @fish2024, and that models of one family coordinate better @aharon2026 and make correlated choices @xu2026.
+These effects are simple, and related work already shows that prompt wording moves LLM pricing agents toward collusion @fish2024, that models of one family coordinate better @aharon2026, and that copies of one model make correlated choices @xu2026.
 We release no prompt optimized for collusion; ours are the plain test conditions in the appendices.
 The defensive use seems larger: competition authorities can look for rivals that share an AI vendor and its prompts, and evaluators can check whether a line about oversight inflates a model's apparent compliance.
 The work involved no human subjects, real markets or real money, and every reply is public in the repository's logs.
@@ -353,10 +353,10 @@ In repeated multi-product Cournot competition, LLM agents divide the markets bet
 Agents that see how similar they are can sustain cooperation without talking @oesterheld2023.
 LLMs coordinate on focal points without communicating, often as well as humans, and models of one family coordinate better with each other than with models of other families @aharon2026.
 Even under different prompts, deployments of one base model make weakly correlated choices that deployments of different models don't @xu2026.
-Told only that they face another player, recent models defect in single-shot social dilemmas @tewolde2026.
+Told to maximize their own points, and nothing about who the other player is, recent models defect in single-shot social dilemmas @tewolde2026.
 Copies of a model that coordinate without a channel are also a concern for AI control, since doing so is among the abilities a model may need to subvert a control protocol @mallen2024.
-Other prompts against collusion have had mixed effects: told to avoid collusion, GPT-5.4 priced at Nash while a small distilled model raised its prices, and telling the distilled models they were monitored lessened their collusion only marginally @riemer2026.
-Collusion among LLM agents also weakens when they differ, as when one ignores the future or can't see its rival's past prices @keppo2026; that fragility comes from differences between agents, where ours comes from one sentence.
+Other prompts against collusion have had mixed effects: told to avoid collusion, GPT-5.4 priced at Nash while a small distilled model raised its prices, and telling the distilled pricing agents they were monitored generally lessened their collusion only marginally @riemer2026.
+Collusion among LLM agents in repeated pricing also weakens when they differ, as when one is told to ignore the future or can't see its rival's past prices, though not when they differ only in size @keppo2026; there, an instruction to avoid collusion also ends it, while here a sentence that only names a competition authority all but ends Opus's and Astra's.
 
 = Experiment details <app-methods>
 #figure(
