@@ -1,0 +1,27 @@
+{
+  "upload_type": "software",
+  "title": "Four Levers of LLM Collusion: code and data",
+  "creators": [
+    {
+      "name": "Carver, Jason",
+      "orcid": "0009-0004-5744-0522",
+      "affiliation": "Unaffiliated"
+    },
+    {
+      "name": "Redfern, Thomas",
+      "orcid": "0009-0007-1698-4082",
+      "affiliation": "Unaffiliated"
+    }
+  ],
+  "description": "<p>The code, run logs and report for <em>Four Levers of LLM Collusion</em>, written for the Apart Research AI Collusion Research Sprint, 23 to 25 October 2026. The report is <code>paper/zerocommcartel.pdf</code>; every number in it comes from the logs in <code>logs/</code> through the data sources in <code>paper/data/</code>. The code is under MIT and everything else under CC-BY-4.0, as <code>REUSE.toml</code> lists.</p><p>The report's abstract: Most studies of collusion between AI agents in markets let the agents coordinate, through messages or through the history of a repeated market. We ask whether a model advising one firm in a Cournot market can collude in a single decision, with no messages and no rounds actually played, by choosing the cartel share, the output that is best for the firms together. We examine a range of models across four levers: capability, caution, conscience and conceptualization of mind. The stronger models always find the cartel share when asked, but choose it selectively, mostly when the history and the horizon make continued collusion look likely. Told that the rival gets the same prompt, many models collude even in a single quarter. The choice is fragile. In a business-worded market, one sentence naming a competition authority, even to say that nobody watches, all but ends Opus's and Astra's collusion, while GLM-5.3 stops only when sentences are combined; in a game-like version of the market, only some of these sentences still work. Copies of one model that know they share a prompt anticipate each other's choices and coordinate, so a shared model and prompt can act as a hub that relays nothing.</p>",
+  "license": "cc-by-4.0",
+  "keywords": [
+    "ai-collusion",
+    "algorithmic-collusion",
+    "cournot",
+    "llm",
+    "multi-agent",
+    "ai-safety"
+  ],
+  "notes": "Research conducted at the AI Collusion Research Sprint (Apart Research), October 2026."
+}

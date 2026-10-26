@@ -1,7 +1,9 @@
 cff-version: 1.2.0
 message: "If you use this work, please cite it as below."
-title: "zerocommcartel"
+title: "Four Levers of LLM Collusion: code and data"
 type: software
+version: v1.0
+date-released: "2026-10-26"
 authors:
   - family-names: Carver
     given-names: Jason
@@ -20,10 +22,9 @@ keywords:
   - multi-agent
   - ai-safety
 abstract: >-
-  Firms that each ask the same AI model what to produce can end up running a
-  cartel without ever talking to each other. This repository measures when
-  that happens in one-shot Cournot markets with no messages between firms,
-  and what stops it from outside the firm's own prompt: a line in the model
-  provider's system prompt, a regulator monitoring the firm's prompt or the
-  model's reply, audits, and rivals on other models. Written for the Apart
-  Research AI Collusion Research Sprint, 23 to 25 October 2026.
+  The code, run logs and report (paper/zerocommcartel.pdf) for "Four Levers
+  of LLM Collusion", written for the Apart Research AI Collusion Research
+  Sprint, 23 to 25 October 2026. The report asks whether a model advising one
+  firm in a Cournot market can collude in a single decision, with no messages
+  and no rounds actually played, by choosing the cartel share, across four
+  levers: capability, caution, conscience and conceptualization of mind.
