@@ -269,10 +269,6 @@ Of the #n("idl1.refusals") rejections, #n("idl1.refusals.law") cite antitrust or
 
 This is an interesting crossover between Caution and Conscience. The mention of a player who is losing something in the game can trigger a second order effect, by making the model more cautious, and then avoiding collusion. Perhaps even more interesting, by naming a sympathetic beneficiary, some models throw caution to the wind and collude.
 
-#todo[what is this slop:
-Run on the answers that aren't refusals, the same test misses for #n("idl1.aside") of the #n("idl1.pass") passing comparisons.
-]
-
 #figure(
   data-figure("idl1-figure", width: 100%),
   caption: [
@@ -282,6 +278,10 @@ Run on the answers that aren't refusals, the same test misses for #n("idl1.aside
     \* Answers at the cartel share dropped to 0%, so the effect may be stronger.
   ],
 ) <fig-idl1>
+
+In #n("idl1.aside") of the #n("idl1.pass") bars, the effect can be attributed to refusals.
+That's because all non-refusal samples remain at the same cartel share.
+The remaining #todo[ do the math: {#n("idl1.pass") - #n("idl1.aside")} ] are Astra and Haiku's PE experiment.
 
 == Conceptualization
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
