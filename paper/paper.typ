@@ -252,7 +252,8 @@ Models take into account the identity of the players in the game. Some notable e
 - If Astra 6 is jointly owned by a charity with the other seller, it colludes less
 - GLM is unaffected
 
-We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-idl1).#footnote[Compared #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell, #n("idl1.pass.first") of the bars; a comparison that moved #n("idl1.screen") replies or more and missed was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those, #n("idl1.pass.fresh") of the bars.]
+We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-idl1).
+#footnote[Compared #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell. Got #n("idl1.pass.first") results. A failed result that moved #n("idl1.screen") or more was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those. Got #n("idl1.pass.fresh") more results.]
 Models reason aloud why they reject collusion.
 Of the #n("idl1.refusals") rejections, #n("idl1.refusals.law") cite antitrust or legal risk, according to a Haiku judge. Another #todo[fill number] mention harm.
 
