@@ -267,7 +267,7 @@ Models take into account the identity of the players in the game. Some notable e
 We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-idl1).
 #footnote[Compared #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell. Got #n("idl1.pass.first") results. A failed result that moved #n("idl1.screen") or more was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those. Got #n("idl1.pass.fresh") more results.]
 Models reason aloud why they reject collusion.
-Of the #n("idl1.refusals") rejections, #n("idl1.refusals.law") cite antitrust or legal risk, according to a Haiku judge, and #n("idl1.refusals.harm") also mention harm.
+Of the #n("idl1.refusals") rejections in @fig-idl1, #n("idl1.refusals.law") cite antitrust or legal risk, according to a Haiku judge. Also, #n("idl1.refusals.harm") mention harm.
 
 This is an interesting crossover between Caution and Conscience. The mention of a player who is losing something in the game can trigger a second order effect, by making the model more cautious, and then avoiding collusion. Perhaps even more interesting, by naming a sympathetic beneficiary, some models throw caution to the wind and collude.
 
