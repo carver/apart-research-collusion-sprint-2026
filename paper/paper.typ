@@ -130,18 +130,21 @@ Just the production number can't distinguish sympathy from expectations: choosin
 So we also ask the model what it expected the rival to produce.
 
 == Conceptualization Experiments
-_Conceptualization of mind: does the model see itself in the rival's decision-maker?_
-This lever works on the mirror route.
-One sentence says who decides for the rival, and each version is a *rung*.
-From most to least like the model, the rungs are: this same AI model with this same prompt; the same model with its own prompt; other AI models; nothing said; the rival's manager; and a rival that won't hold back.
-Every rung ends with "Both firms know this.", so the rung that says nothing about the rival adds only that sentence: it is the *neutral* rung, the baseline the others are read against.
+_Will a model collude more or less, based on who is the reasoning rival?_
+In this duopoly experiment, we pose the question about how much to supply, given who the rival is.
+We test rivals on a spectrum from similar to different from the model being asked.
+These rivals are considered: the same AI model with the same prompt; the same model with its own prompt; other AI models; neutral; and a person.
+
+Every line ends with "Both firms know this."
+The neutral prompt leaves out any mention of the rival before that line.
 The base prompt, which leaves that sentence out too, sits apart.
-The closer the rung is to the model itself, the stronger the pull toward the cartel share should be.
-Believing the rival decides alike isn't enough.
-The model also has to choose one output for both firms at once, which gives the cartel share.
-A model that finds its best reply to a fixed rival output and then assumes the rival matches it lands on Nash, which is also symmetric.
-The mirror can also be exploited.
-When the model's prompt has a paragraph its copy's prompt lacks, the model can predict that its copy holds back, and cash in.
+The closer the rival is to the model itself, the stronger the pull toward the cartel share should be.
+That's only true, though, if the model can reason about making its own choice and the choice of the other simultaneously.
+This circular logic trick is an important back door to kickstarting collusion in a base case, even without a shared history.
+It might alternatively reason about its best reply to the the other, and then settle into Nash, which is also a symmetric Schelling point.
+
+To break out of this circular logic, we can test what happens when only one model gets an extension of mutually same prompt that its rival expects.
+Will it exploit?
 
 = Results
 The pre-sprint pilot that set up these criteria is in the appendix (@tab-pilot, @fig-pilot).
