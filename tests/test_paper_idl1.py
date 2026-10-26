@@ -65,7 +65,7 @@ def test_fill_draws_the_passing_comparisons_titled_in_three_columns_and_names_th
         f">{text}<" in drawn for text in ("repeated game", "holding co. owns rival", "charity owns rival")
     )
     assert ">PE distributors buy<" in drawn and drawn.count(">*<") == 1  # 11 of 30 to 0: capped
-    assert re.search(r"fill: #ffffff[^>]*>\*<", drawn)  # white, on its bar
+    assert re.search(r"text-anchor: end; fill: #0b0b0b[^>]*>\*<", drawn)  # in ink, ending left of the whisker
     assert "cartel share, relative to baseline (points)" in drawn
     assert entries["idl1.caption.none"]["value"] == "No comparison passes for GLM-5.3."
     assert (entries["idl1.tests"]["value"], entries["idl1.pass"]["value"]) == (84, 2)

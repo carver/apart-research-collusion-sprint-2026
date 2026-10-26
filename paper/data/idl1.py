@@ -70,7 +70,7 @@ COLUMNS = {"Context": 0.01, "Baseline": 0.16, "Experiment": 0.355}  # heads, at 
 BARS = (0.56, 0.98)  # where the panels start and end, in the figure: the columns sit to their left
 PANEL_GAP = 0.35  # between panels, as a share of a panel's height: room for each model's name
 HEAD_GAP, TITLE_GAP = 14, 30  # points above the first panel's top: past its model's name, then past the heads
-STAR_INSET = 0.02  # how far inside its bar's end the * sits, in the axis's units
+STAR_GAP = 0.03  # how far past its whisker's far end the * sits, in the axis's units
 HOW = "IDL-1's passing comparisons, from logs/communal/idl1/results.jsonl (communal.idl1.verdicts)"
 
 
@@ -129,9 +129,9 @@ def draw(ax: Any, data: FigureData) -> None:
             panel.errorbar(
                 d, y, xerr=[[d - low], [high - d]], fmt="none", ecolor=INK, elinewidth=0.7, capsize=2
             )
-            if capped(c):  # on the bar, just inside its end
-                end, side = (d + STAR_INSET, "left") if d < 0 else (d - STAR_INSET, "right")
-                panel.text(end, y, "*", ha=side, va="center", fontsize=9.5, color="white", fontweight="bold")
+            if capped(c):  # past the whisker's far end, on the bar's side of zero
+                x, align = (low - STAR_GAP, "right") if d < 0 else (high + STAR_GAP, "left")
+                panel.text(x, y, "*", ha=align, va="center", fontsize=8, color=INK)
             labels = columns(c)
             for head, x in COLUMNS.items():
                 panel.text(
