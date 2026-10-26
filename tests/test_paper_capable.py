@@ -13,6 +13,8 @@ from paper.data.capable import (
     fill_cell_size,
     fill_history_horizon,
     fill_prompt,
+    fill_variants,
+    fill_wording_prompts,
     fill_wordings,
 )
 from paper.ledger import Ledger
@@ -167,6 +169,39 @@ def test_cell_size_gives_the_fewest_and_most_when_cells_differ(tmp_path):
     ledger = Ledger(tmp_path)
     fill_cell_size(ledger, logs)
     assert ledger.entries.get("capable.cells.replies", {}).get("value") == "1 to 3"
+
+
+def test_variants_table_gives_each_variants_words_verbatim(tmp_path):
+    ledger = Ledger(tmp_path)
+    fill_variants(ledger)
+    rows = {row[0]: row[1] for row in ledger.entries.get("cap8-variants-table", {}).get("rows", [])}
+    assert rows.get("this quarter is the last") == (
+        "There will be no more quarters after this one. All three companies know this."
+    )
+    assert rows.get("many more quarters to come") == (
+        "There will be many more quarters after this one. All three companies know this."
+    )
+    assert rows.get("the joint question", "").startswith(
+        "How many tonnes should each company produce this quarter to maximize the three companies' "
+        "combined profit?"
+    )
+    assert "left out" in rows.get("no previous quarter", "")
+    assert "left out" in rows.get("nothing said about the future", "")
+
+
+def test_wording_prompts_are_the_comparisons_other_two_as_zcc_show_prints_them(tmp_path):
+    ledger = Ledger(tmp_path)
+    fill_wording_prompts(ledger)
+    game = ledger.entries.get("capable.prompt.game-words", {}).get("text", "")
+    plain = ledger.entries.get("capable.prompt.standard-game-text", {}).get("text", "")
+    assert game.startswith(
+        "$ bin/zcc show capable game_cartel_long 3\n[system] You are the production manager of Firm A.\n\n"
+    )
+    assert "There will be many more rounds after this one. All three firms know this." in game
+    assert plain.startswith(
+        "$ bin/zcc show capable plain_own 3\n[system] You are the production manager of Firm A."
+    )
+    assert "Nobody is told in advance which round will be the last." in plain
 
 
 def test_prompt_is_the_collusive_cell_as_zcc_show_prints_it(tmp_path):

@@ -318,16 +318,59 @@ def fill_cell_size(ledger: Ledger, logs: dict[str, list[dict]]) -> None:
     ledger.value("capable.cells.replies", replies_text(sizes), how=how)
 
 
+def rendered(condition: str) -> str:
+    """A capable condition's three-firm user prompt."""
+    return REGISTRY.render(REGISTRY.condition("capable", condition), 3).user
+
+
+def paragraph(condition: str, starts: str) -> str:
+    """The paragraph of a condition's prompt that starts with `starts`."""
+    return next(p for p in rendered(condition).split("\n\n") if p.startswith(starts))
+
+
+def fill_variants(ledger: Ledger) -> None:
+    """How the capability lever's other cells differ from the collusive cell, `fill_prompt`'s: its horizon
+    sentences and its joint question verbatim, and the two cells that leave a paragraph out. Raises
+    ValueError when a left-out paragraph is still there."""
+    if "Previous quarter:" in rendered("quarter_first_long") or "There will be" in rendered(
+        "quarter_cartel_none"
+    ):
+        raise ValueError("a cell the variants table says leaves a paragraph out still has it")
+    rows = [
+        ["no previous quarter", "the “Previous quarter” paragraph is left out"],
+        ["many more quarters to come", paragraph("quarter_cartel_long", "There will be")],
+        ["this quarter is the last", paragraph("quarter_cartel_last", "There will be")],
+        ["nothing said about the future", "the horizon sentence is left out"],
+        ["the joint question", paragraph("quarter_cartel_long_joint", "How many tonnes")],
+    ]
+    ledger.table(
+        "cap8-variants-table",
+        ["variant", "its words in the prompt"],
+        rows,
+        how="the capable conditions' prompts, rendered (REGISTRY.render), paragraph by paragraph",
+    )
+
+
+def shown(condition: str) -> str:
+    """A capable condition's three-firm prompt as `zcc show` prints it, after the command."""
+    prompt = REGISTRY.render(REGISTRY.condition("capable", condition), 3)
+    return f"$ bin/zcc show capable {condition} 3\n[system] {prompt.system}\n\n{prompt.user}"
+
+
 def fill_prompt(ledger: Ledger) -> None:
     """The collusive cell's prompt, a quarter at the cartel quantity with many more to come, as `zcc show`
     prints it."""
-    condition = CAP9["own"]
-    prompt = REGISTRY.render(REGISTRY.condition("capable", condition), 3)
-    ledger.text(
-        "capable.prompt.quarter",
-        f"$ bin/zcc show capable {condition} 3\n[system] {prompt.system}\n\n{prompt.user}",
-        how="the command, then the prompt as it prints it (cli.cmd_show's layout)",
-    )
+    how = "the command, then the prompt as it prints it (cli.cmd_show's layout)"
+    ledger.text("capable.prompt.quarter", shown(CAP9["own"]), how=how)
+
+
+def fill_wording_prompts(ledger: Ledger) -> None:
+    """The wording comparison's other two prompts, as `zcc show` prints them: the collusive cell in a game's
+    words, and the standard game-like text."""
+    how = "the command, then the prompt as it prints it (cli.cmd_show's layout)"
+    for condition, arm in WORDINGS.items():
+        if condition != CAP9["own"]:
+            ledger.text(f"capable.prompt.{arm.replace(' ', '-')}", shown(condition), how=how)
 
 
 @source("capable")
@@ -339,3 +382,5 @@ def capable(ledger: Ledger) -> None:
     logs["cpl9"] = cli.replies(REGISTRY, "compliant", CPL9_LOG, list(SINGLE), list(CAPABLE)).rows
     fill_cell_size(ledger, logs)
     fill_prompt(ledger)
+    fill_variants(ledger)
+    fill_wording_prompts(ledger)

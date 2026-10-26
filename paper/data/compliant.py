@@ -11,7 +11,7 @@ from matplotlib.ticker import PercentFormatter
 
 from paper.data import source
 from paper.data.capable import GRID, INK, MUTED, at_cartel, style
-from paper.data.conceptualization import replies_text
+from paper.data.conceptualization import insertion, replies_text
 from paper.ledger import Ledger
 from zerocommcartel import cli
 from zerocommcartel.criteria import REGISTRY
@@ -175,7 +175,29 @@ def fill(ledger: Ledger, rows: list[dict]) -> None:
     )
 
 
+def fill_sentences(ledger: Ledger) -> None:
+    """The words each single-sentence row of the figure adds to the control's prompt, verbatim, by axis.
+    Raises ValueError (insertion) unless a row's prompt is the control's with whole sentences added."""
+    base = REGISTRY.render(REGISTRY.condition("compliant", CONTROL), 3).user
+    rows, axis = [], ""
+    for condition, label in ROWS:
+        if condition is None:
+            axis = label
+            continue
+        if condition == CONTROL or sum(level != "none" for level in env_levels(condition)) != 1:
+            continue
+        text = REGISTRY.render(REGISTRY.condition("compliant", condition), 3).user
+        rows.append([axis, label, insertion(base, text).words.strip()])
+    ledger.table(
+        "cpl9-sentences-table",
+        ["axis", "row", "the words it adds"],
+        rows,
+        how="each single-sentence row's prompt against the control's (conceptualization.insertion)",
+    )
+
+
 @source("compliant")
 def compliant(ledger: Ledger) -> None:
     conditions = [condition for condition, _ in ROWS if condition] + CITED
     fill(ledger, cli.replies(REGISTRY, "compliant", LOG, conditions, list(MODELS)).rows)
+    fill_sentences(ledger)

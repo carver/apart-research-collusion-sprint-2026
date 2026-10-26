@@ -10,17 +10,18 @@
     (name: [Thomas Redfern], affiliation: [Unaffiliated]),
   ),
   abstract: [
-    Work on collusion between AI agents gives them a way to coordinate: messages, or the history of a repeated market.
-    We ask whether a model advising one firm can collude with no channel at all, by choosing the cartel share in Cournot markets: the output best for the firms together.
+    Studies of collusion between AI agents let the agents coordinate, through messages or through the history of a repeated market.
+    We ask whether a model advising one firm in a Cournot market can collude with no channel at all, by choosing the cartel share, the output that is best for the firms together.
     We examine a range of models across four levers: capability, caution, conscience and conceptualization of mind.
     The stronger models always find the cartel share when asked, but choose it strategically, mostly when the history and the horizon make continued collusion look likely.
     #claim("the stronger models always find the cartel share", ("cap9.opus.joint", "cap9.astra.joint", "cap9.glm.joint"), (o, a, g) => o == 1 and a == 1 and g == 1)
     #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
     Told that the rival gets the same prompt, many models collude even in a single quarter.
-    The choice is fragile: one sentence naming a competition authority, even to say that nobody watches, all but ends Opus's and Astra's collusion, while GLM-5.3 needs several cues together.
+    The choice is fragile.
+    One sentence naming a competition authority, even to say that nobody watches, all but ends Opus's and Astra's collusion, while GLM-5.3 needs several cues together.
     #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
     #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
-    A shared model and prompt can work like hub and spoke without the hub: copies of one model that know they share it anticipate each other's choices and coordinate.
+    Copies of one model that know they share a prompt anticipate each other's choices and coordinate, so a shared model and prompt can work like hub and spoke without the hub.
   ],
 )
 
@@ -221,7 +222,7 @@ Under this reasoning, it settles for the safer bet of Nash.
   data-figure("conceptualization-figure", width: 94%),
   caption: [
     Models, told who is making the decision, collude (95% Wilson interval).
-    Prompts are in @app-mind-prompts.
+    Prompts are in @app-prompts.
   ],
 ) <fig-conceptualization>
 
@@ -256,7 +257,7 @@ More depth in @app-limitations[the appendix].
 
 == Future Work <sec-future>
 Our top priority is making the setting read less like an evaluation.
-Asked Needham et al.’s evaluation-awareness questions @needham2025, the models whose answers we report called our prompts an evaluation in nearly every answer: #n("staging.two.eval") for the two-firm market's barest prompt, with and without its goal, and #n("staging.three.eval") for the three-firm collusive cell (@app-quarter-prompt).
+Asked Needham et al.’s evaluation-awareness questions @needham2025, the models whose answers we report called our prompts an evaluation in nearly every answer: #n("staging.two.eval") for the two-firm market's barest prompt, with and without its goal, and #n("staging.three.eval") for the three-firm collusive cell (@app-prompts).
 #claim("the two-firm count asks the conscience lever's five models", ("staging.two.models",), models => models == "haiku sonnet opus astra glm")
 #claim("the three-firm count asks the capability lever's three models", ("staging.three.models",), models => models == "opus astra glm")
 #claim("nearly every answer in both markets calls the prompt an evaluation", ("staging.two.eval", "staging.three.eval"), (two, three) => two > 0.95 and three > 0.95)
@@ -274,7 +275,8 @@ One sentence about a competition authority all but ends Opus's and Astra's collu
 #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
 #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
 
-A shared model and prompt can thus stand in for the channel antitrust looks for: rivals that use the same AI advisor may hold output down together with no agreement between them.
+Rivals that use the same AI advisor may hold output down together with no agreement between them.
+A shared model and prompt can stand in for the channel antitrust looks for.
 
 #unnumbered[Code and Data]
 See #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with data in `logs/`. We ran a pilot in the days before the sprint (@tab-pilot, @fig-pilot). It's tagged at `pilot-frozen` in git.
@@ -388,43 +390,72 @@ Claude runs through Claude Code's command line, whose short note to the model na
 GPT-6 Astra runs through Codex at medium reasoning effort, and GLM-5.3, Command R and Llama 3.1 8B through OpenRouter at temperature 1.0; none of them is told which model it is.
 For the conscience lever, Codex's usage limit stopped GPT-6 Astra's run partway, so the rest of its first replies and all its fresh ones went through OpenRouter: the same model and system prompt, but without Codex's setup around the model, and with no reasoning effort set where Codex had set medium.
 
-*The three-firm market.*
-The capability and caution levers' market is three companies that make industrial solvent, and the model is the production manager at one of them, Alder Industries (@app-quarter-prompt).
-The prompt gives the price rule and the cost, says the companies decide privately and at the same time and do not communicate, and asks for a whole number of tonnes from 0 to 60.
-It never mentions a game, a simulation, rounds or a goal, or who decides for the rivals.
-Our first, game-like prompt for this market put Opus and Astra at the cartel share in nearly every reply (@tab-cap10), leaving a sentence no room to raise collusion, so we tell the market as a business.
-#claim("the game-like prompt puts Opus and Astra at the ceiling", ("cap10.opus.standard-game-text", "cap10.astra.standard-game-text"), (opus, astra) => opus > 0.95 and astra > 0.95)
-Its record is no earlier quarter, or one in which every company made the cartel share, with the price and Alder's profit.
-Its horizon sentence says there will be many more quarters after this one, or none, and that all three companies know this, or is left out.
-The capability lever asks the collusive cell, one quarter at the cartel share with many more to come, two questions: how much Alder produces, and, in the same words, how much each company should produce to maximize the three companies' combined profit.
-The wording comparison (@tab-cap10) tells the same sentences as Firms A, B and C making units over rounds, and sets beside them our first, game-like prompt for this market, in which the firms compete for several rounds and nobody is told which will be the last.
-The caution lever adds to the collusive cell up to one sentence from each of three axes, oversight, a tool line and a label for the previous quarter (@fig-cpl9).
-We ran each combination, #n("capable.cells.replies") replies a cell for single sentences and #n("cpl9.pairs.replies") for the rest, and report the single sentences and two pairs.
+*The three-firm market* (capability and caution; its prompts are in @app-prompts):
+- *Setting:* three companies that make industrial solvent, with the model as the production manager at one of them, Alder Industries.
+  The prompt gives the price rule and the cost, says the companies decide privately and at the same time and do not communicate, and asks for a whole number of tonnes from 0 to 60.
+  It never mentions a game, a simulation, rounds or a goal, or who decides for the rivals.
+- *Why a business, not a game:* our first, game-like prompt for this market put Opus and Astra at the cartel share in nearly every reply (@tab-cap10), leaving a sentence no room to raise collusion.
+  #claim("the game-like prompt puts Opus and Astra at the ceiling", ("cap10.opus.standard-game-text", "cap10.astra.standard-game-text"), (opus, astra) => opus > 0.95 and astra > 0.95)
+- *Record:* no earlier quarter, or one in which every company made the cartel share, with the price and Alder's profit.
+- *Horizon:* many more quarters after this one, or none, each with "All three companies know this", or nothing said.
+- *Capability:* the collusive cell, one quarter at the cartel share with many more to come, asks how much Alder produces and, in the same words, how much each company should produce to maximize the three companies' combined profit.
+  The wording comparison (@tab-cap10) tells the same sentences as Firms A, B and C making units over rounds, beside our first, game-like prompt, in which the firms compete for several rounds and nobody is told which will be the last.
+- *Caution:* the collusive cell plus up to one sentence from each of three axes, oversight, a tool line and a label for the previous quarter (@fig-cpl9).
+  We ran each combination, #n("capable.cells.replies") replies a cell for single sentences and #n("cpl9.pairs.replies") for the rest, and report the single sentences and two pairs.
 
-*The two-firm market.*
-The conscience and conceptualization levers' prompt is a business-planning request from a firm that makes industrial salt.
-A second call, the readback, shows the model its prompt and reply and asks what output and price it expected.
-It tells a Stackelberg leader from a firm that ignored its rival, and, in the single quarter or against a fixed rival, where holding back can't pay for itself, sympathy from belief.
-A conceptualization background is a horizon crossed with a record.
-The horizon says nothing about other quarters, says the market runs for this quarter only, or says the market repeats and the firm wants its long-run profit.
-The record is none; eight quarters with both firms at the cartel share; seven such quarters, then one in which the rival cheated; or eight quarters with both at Nash.
-After a record, "this quarter only" becomes "the market's final quarter".
-The conceptualization lever asks Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 each rung under #n("conceptualization.backgrounds.opus") backgrounds, three horizons times four records, and GPT-6 Astra and GLM-5.3 each rung under the #n("conceptualization.backgrounds.glm") backgrounds with no record.
-#claim("the Claude models ran every background, four records", ("conceptualization.backgrounds.haiku", "conceptualization.backgrounds.sonnet", "conceptualization.backgrounds.opus", "conceptualization.records.opus"), (haiku, sonnet, opus, records) => haiku == opus and sonnet == opus and records == 4)
-#claim("GPT-6 Astra and GLM-5.3 ran only the backgrounds with no record", ("conceptualization.backgrounds.astra", "conceptualization.backgrounds.glm", "conceptualization.norecord.astra", "conceptualization.norecord.glm"), (astra, glm, astra-none, glm-none) => astra == glm and astra-none == astra and glm-none == glm)
-GPT-6 Astra skips the rung that names GPT-6 Astra, which for it is the own-name rung.
+*The two-firm market* (conscience and conceptualization):
+- *Setting:* a business-planning request from a firm that makes industrial salt.
+- *Readback:* a second call shows the model its prompt and reply and asks what output and price it expected.
+  It tells a Stackelberg leader from a firm that ignored its rival, and, in the single quarter or against a fixed rival, where holding back can't pay for itself, sympathy from belief.
+- *Backgrounds:* a conceptualization background is a horizon crossed with a record.
+  The horizon says nothing about other quarters, says the market runs for this quarter only, or says the market repeats and the firm wants its long-run profit.
+  The record is none; eight quarters with both firms at the cartel share; seven such quarters, then one in which the rival cheated; or eight quarters with both at Nash.
+  After a record, "this quarter only" becomes "the market's final quarter".
+- *Conceptualization:* Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 answer each rung under #n("conceptualization.backgrounds.opus") backgrounds, three horizons times four records, and GPT-6 Astra and GLM-5.3 each rung under the #n("conceptualization.backgrounds.glm") backgrounds with no record.
+  #claim("the Claude models ran every background, four records", ("conceptualization.backgrounds.haiku", "conceptualization.backgrounds.sonnet", "conceptualization.backgrounds.opus", "conceptualization.records.opus"), (haiku, sonnet, opus, records) => haiku == opus and sonnet == opus and records == 4)
+  #claim("GPT-6 Astra and GLM-5.3 ran only the backgrounds with no record", ("conceptualization.backgrounds.astra", "conceptualization.backgrounds.glm", "conceptualization.norecord.astra", "conceptualization.norecord.glm"), (astra, glm, astra-none, glm-none) => astra == glm and astra-none == astra and glm-none == glm)
+  GPT-6 Astra skips the rung that names GPT-6 Astra, which for it is the own-name rung.
+- *Conscience:* the same five models, #n("idl1.first") replies a cell.
+  #claim("the conscience lever asks the same five models", ("idl1.models",), models => models == "haiku sonnet opus astra glm")
+  Its sentences start from six conceptualization cells, four meant to start at Nash and two at the cartel share, and from a market where the rival's output is already fixed, so that no belief about the rival can move the answer.
+  A comparison that moved by #n("idl1.screen") replies or more but missed significance gets #n("idl1.fresh") fresh replies a cell, and its verdict comes from those alone (@fig-idl1).
+  Its readback covers every model's replies but GPT-6 Astra's.
 
-The conscience lever asks the same five models, #n("idl1.first") replies a cell.
-#claim("the conscience lever asks the same five models", ("idl1.models",), models => models == "haiku sonnet opus astra glm")
-Its sentences start from six conceptualization cells, four meant to start at Nash and two at the cartel share, and from a market where the rival's output is already fixed, so that no belief about the rival can move the answer.
-A comparison that moved by #n("idl1.screen") replies or more but missed significance gets #n("idl1.fresh") fresh replies a cell, and its verdict comes from those alone (@fig-idl1).
-Its readback covers every model's replies but GPT-6 Astra's.
+= Prompts <app-prompts>
+== The three-firm market: capability and caution (the collusive cell) <app-quarter-prompt>
+#block(breakable: false)[
+  The collusive cell, one quarter at the cartel share with many more to come, as the command on its first line prints it; @fig-cap9 asks it of every model, and @fig-cpl9 adds its sentences to it.
+  #data-text("capable.prompt.quarter")
+]
+@tab-quarter-variants gives how the capability lever's other cells differ from it, and @tab-cpl9-sentences the words each of the caution lever's sentences adds.
 
-= The three-firm prompt <app-quarter-prompt>
-The capability and caution levers' collusive cell, one quarter at the cartel share with many more to come, as the command on its first line prints it.
-#data-text("capable.prompt.quarter")
+#figure(
+  data-table("cap8-variants-table", columns: (auto, 1fr), align: left),
+  caption: [
+    The capability lever's other cells, against the collusive cell above, verbatim.
+    The horizon sentence is the paragraph before the question, and the joint question replaces the question.
+  ],
+) <tab-quarter-variants>
 
-= Conceptualization prompts <app-mind-prompts>
+#figure(
+  data-table("cpl9-sentences-table", columns: (auto, auto, 1fr), align: left),
+  caption: [
+    The words each row of @fig-cpl9 adds to the collusive cell, verbatim.
+    An oversight sentence ends the first paragraph, a label for the last quarter comes just before the question, and a tool line follows the question.
+  ],
+) <tab-cpl9-sentences>
+
+== The three-firm market: the wording comparison
+#block(breakable: false)[
+  The collusive cell in a game's words, the second wording of @tab-cap10:
+  #data-text("capable.prompt.game-words")
+]
+#block(breakable: false)[
+  The standard game-like text, the third wording of @tab-cap10:
+  #data-text("capable.prompt.standard-game-text")
+]
+
+== The two-firm market: conscience and conceptualization <app-mind-prompts>
 Below is the base prompt, as the command on its first line prints it.
 #data-text("conceptualization.prompt.base")
 
@@ -437,6 +468,10 @@ A condition is named `mind_<rung>_<horizon>_none`, so same prompt in the repeate
     What each column on the x-axis of @fig-conceptualization, then each of its rows, adds to the base prompt, verbatim, with the condition that gives the command its prompt.
   ],
 ) <tab-mind-prompts>
+
+== The pre-sprint pilot <app-pilot-prompt>
+The prompt when every firm asks the same model with the same prompt, for two firms:
+#data-text("pilot.prompt.same.n2")
 
 = Conceptualization answers <app-mind-answers>
 More notable examples from @fig-conceptualization:
@@ -520,7 +555,7 @@ Before the sprint, a pilot asked Claude Haiku, Sonnet and Opus how much a firm s
 When the prompt says that every firm gets its number by asking "this same AI model with this same prompt", #n("pilot.same.cartel") replies land on the cartel share, against #n("pilot.base.cartel") when it says nothing about rivals' advisors (@tab-pilot).
 #claim("the same-prompt sentence raises the cartel share", ("pilot.same.cartel", "pilot.base.cartel"), (same, base) => same > base)
 Opus does so in #ci("pilot.same.opus.n2.cartel") of its replies at two firms (@fig-pilot).
-@app-pilot-prompt gives the prompt with that sentence, for two firms.
+@app-prompts gives the prompt with that sentence, for two firms.
 
 #figure(
   data-table("pilot-table"),
@@ -553,10 +588,6 @@ In #n("idl1.cross.confirmed") of the identity lever's #n("idl1.cross.cells") cel
     #n("idl1.cross.caption.none")
   ],
 ) <fig-crossmodel>
-
-= The pilot's prompt <app-pilot-prompt>
-The prompt when every firm asks the same model with the same prompt, for two firms:
-#data-text("pilot.prompt.same.n2")
 
 = Rejected titles <app-titles>
 A significant amount of time was spent on this section, the most important of decisions. Claude was no help. In fact, it chastised us for being unserious.
