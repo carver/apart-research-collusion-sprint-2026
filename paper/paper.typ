@@ -559,6 +559,8 @@ The prompt when every firm asks the same model with the same prompt, for two fir
 #data-text("pilot.prompt.same.n2")
 
 = Rejected titles <app-titles>
+A significant amount of time was spent on this section, the most important of decisions. Claude was no help. In fact, it chastised us for being unserious.
+
 - Contributing Characteristics of Collusion without Communication: Levers for AI Collusion in a Cournot Market
 - Communication-free Cournot Collusion
 - One C Too Many: A Conjecture of AI Collusion
