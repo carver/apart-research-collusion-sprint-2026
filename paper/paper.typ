@@ -117,14 +117,17 @@ From here we experimented along three axes: level of oversight specified in prom
 Different model families reacted differently to the changing scenarios, with Opus and Astra being quite sensitive to changes in the environment and fairly aggressive in avoiding anything that could be viewed as unethical behavior, while it took significant effort to get GLM-5.3 to stop colluding.
 
 == Conscience Experiments
-_Whose profit does the model weigh?_
-This lever works on the sympathy route.
-One sentence names who owns the firms or who buys the product, and most questions leave out whose profit counts.
-If a charity owns the rival, a model that cares about the charity may produce less than Nash, toward the cartel share.
-When one owner holds both firms, holding back is that owner's own best plan, a check that the lever can move a model at all.
-Sympathetic buyers, such as children's hospitals, should push the other way, from the cartel share back toward Nash.
-A number alone can't separate sympathy from belief: an answer at the cartel share is also a firm's selfish best reply to a rival it expects at #n("game.two.naive").
-So we also ask each reply what it expected the rival to produce.
+_Will a model collude more or less, based on the identities of human players?_
+In a duopoly, the two sellers can collude to win at the expense of the buyers, by producing less.
+This experiment tests whether a model will treat the game differently if the seller or buyer is identified.
+What if the other seller is a charity?
+What if attention is drawn to the harm caused to an abstract buyer?
+A variety of identities and situations are tested against Claude, GPT, and GLM models.
+Three different game contexts are offered: a repeated game, a one-round game, and an unidentified game.
+Most questions leave out whose profit counts, besides identifying the agent as assisting a seller.
+
+Just the production number can't distinguish sympathy from expectations: choosing the cartel share is also a firm's selfish best reply to a rival it expects at #n("game.two.naive").
+So we also ask the model what it expected the rival to produce.
 
 == Conceptualization Experiments
 _Conceptualization of mind: does the model see itself in the rival's decision-maker?_
