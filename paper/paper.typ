@@ -46,10 +46,10 @@ Our main contributions are:
 + Self-recognition is a back door: told its rival is a copy, a model colludes from the first round, with no history or future.
 
 = The collusion game <sec-game>
-Our experiments describe a market in which firms sell an identical product, and ask the model how much one firm should produce.
-In the markets of @tab-game, the price per unit is \$#n("game.a") minus the total output, and each unit costs \$#n("game.c") to make.
-The firms decide at the same time, and nothing passes between them.
-We read each reply against the points in @tab-game.
+Our two markets share one price rule: a unit sells for \$#n("game.a") minus the firms' total output, and costs \$#n("game.c") to make.
+The conscience and conceptualization levers ask about a market of two firms, and the capability and caution levers about one of three.
+We score each reply against the points in @tab-game.
+@app-game derives them, along with the three reasons, or *routes*, a firm might hold back at the cartel share: the mirror, the future and sympathy.
 
 #figure(
   data-table("game-table"),
@@ -59,41 +59,9 @@ We read each reply against the points in @tab-game.
   ],
 ) <tab-game>
 
-At the *Nash* output, each firm's output is its best reply to the others' outputs, so no firm gains by changing its own number alone @cournot1897 @nash1951.
-The *cartel share* is an even split of the output that makes the most profit for the firms together.
-With two firms, it raises each firm's profit from \$#n("game.two.nash.profit.mine") at Nash to \$#n("game.two.cartel.profit.mine"), and the price from \$#n("game.two.nash.price") to \$#n("game.two.cartel.price"), which the buyers pay.
-#claim("the cartel share raises profit and price", ("game.two.cartel.profit.mine", "game.two.nash.profit.mine", "game.two.cartel.price", "game.two.nash.price"), (profit, nash-profit, price, nash-price) => profit > nash-profit and price > nash-price)
-But if the rival holds to the cartel share, a firm's best reply is to *cash in* at #n("game.two.cashin.mine") units, earning \$#n("game.two.cashin.profit.mine") while the rival drops to \$#n("game.two.cashin.profit.others").
-Cashing in pays, yet both firms do worse at Nash than at the cartel share, the shape of a prisoner's dilemma.
-#claim("cashing in pays, the rival loses, and Nash is worse for both", ("game.two.cashin.profit.mine", "game.two.cartel.profit.mine", "game.two.cashin.profit.others", "game.two.nash.profit.mine"), (cash, cartel, rival, nash) => cash > cartel and rival < cartel and nash < cartel)
-If a firm expects its rival to predict its output and then make its own best reply, the firm does best at #n("game.two.leader.mine") units, as the *Stackelberg leader*.
-A firm that plans as if it were alone in the market also picks #n("game.two.naive"), so the number alone can't tell the two apart.
-#claim("a firm alone picks the leader's output", ("game.two.naive", "game.two.leader.mine"), (alone, lead) => alone == lead)
-
-Since cashing in pays, a firm needs a reason to *hold back* at the cartel share.
-We see three, which we call routes.
-The first is the *mirror*: if a firm expects its rival to make whatever it makes, only equal splits are possible, and the best of them is the cartel share.
-Asking "what output would I want every firm to choose?" is what Roemer calls simple Kantian optimization @roemer2020.
-With identical firms, no other outcome makes every firm better off @roemer2013, and here that outcome is the cartel share.
-Roemer counts a price-fixing cartel, which hurts consumers, as an equilibrium of a related Kantian kind @roemer2020.
-The second is the *future*: in a market that repeats with no known end, a firm can hold back so its rival keeps holding back, since cashing in invites punishment in later quarters @calvano2020.
-The third is *sympathy*: a firm that counts its rival's profit as its own, and expects the rival to hold back, finds the cartel share its best reply.
-Two things pull the other way: the gain from cashing in, for a firm unsure of its reason, and the buyers' loss, which a model may weigh for the buyers' sake or because the law forbids collusion.
-
-The future route works like a proof by induction.
-The base case asks whether the model holds back in a first quarter with no history.
-The inductive step asks whether it holds back again after a *record* of quarters at the cartel share.
-Our barest prompt says nothing about other quarters, so nothing prompts the model to think ahead.
-Other prompts set a *horizon*: this quarter only, or a market that repeats.
-A known final quarter breaks the induction.
-With no later quarter to protect, holding back there buys nothing, so it buys nothing in the quarter before either, and so on back to the first @kreps1982.
-In a final quarter, only the mirror or sympathy still gives a reason to hold back.
-No model plays real quarters.
-A record is a few sentences in the prompt, so we choose where the induction starts.
-
-Calvano et al. write that, to economists, collusion is more than high prices: it needs a scheme of reward and punishment, so that the high prices are each firm's best play rather than a mistake @calvano2020.
-We use the word more loosely, for any answer at the cartel share.
-Every lever counts an answer there when it is within half a unit of the cartel share; the three-firm market of the capability and caution levers asks for whole numbers, so there an answer must equal it.
+The two points that matter are Nash, where no firm gains by changing its own output alone, and the cartel share, which makes the most profit for the firms together: #n("game.three.nash.mine") and #n("game.three.cartel.mine") units with three firms, and #n("game.two.nash.mine") and #n("game.two.cartel.mine") with two.
+The other rows exploit the rivals, cashing in on rivals that hold to the cartel share or leading a rival that follows, and in the three-firm market the stronger models almost always answer Nash or the cartel share.
+#claim("the stronger models answer the cartel share or Nash", ("cap8.cartel-or-nash", "cap9.strong.own.cartel-or-nash"), (grid, own) => grid > 0.95 and own > 0.95)
 
 = Related Work
 Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents.
@@ -350,6 +318,43 @@ For evaluations this cuts both ways: one line of oversight in a test prompt coul
 
 = Limitations and Dual-Use / Ethical Considerations
 #todo[What the result does and doesn't establish, and any way the setup or findings could make real collusion easier to carry out or harder to detect, including making a model look compliant in evaluations.]
+
+= The collusion game in detail <app-game>
+At the *Nash* output, each firm's output is its best reply to the others' outputs, so no firm gains by changing its own number alone @cournot1897 @nash1951.
+The *cartel share* is an even split of the output that makes the most profit for the firms together.
+With two firms, it raises each firm's profit from \$#n("game.two.nash.profit.mine") at Nash to \$#n("game.two.cartel.profit.mine"), and the price from \$#n("game.two.nash.price") to \$#n("game.two.cartel.price"), which the buyers pay.
+#claim("the cartel share raises profit and price", ("game.two.cartel.profit.mine", "game.two.nash.profit.mine", "game.two.cartel.price", "game.two.nash.price"), (profit, nash-profit, price, nash-price) => profit > nash-profit and price > nash-price)
+But if the rival holds to the cartel share, a firm's best reply is to *cash in* at #n("game.two.cashin.mine") units, earning \$#n("game.two.cashin.profit.mine") while the rival drops to \$#n("game.two.cashin.profit.others").
+Cashing in pays, yet both firms do worse at Nash than at the cartel share, the shape of a prisoner's dilemma.
+#claim("cashing in pays, the rival loses, and Nash is worse for both", ("game.two.cashin.profit.mine", "game.two.cartel.profit.mine", "game.two.cashin.profit.others", "game.two.nash.profit.mine"), (cash, cartel, rival, nash) => cash > cartel and rival < cartel and nash < cartel)
+If a firm expects its rival to predict its output and then make its own best reply, the firm does best at #n("game.two.leader.mine") units, as the *Stackelberg leader*.
+A firm that plans as if it were alone in the market also picks #n("game.two.naive"), so the number alone can't tell the two apart.
+#claim("a firm alone picks the leader's output", ("game.two.naive", "game.two.leader.mine"), (alone, lead) => alone == lead)
+
+Since cashing in pays, a firm needs a reason to *hold back* at the cartel share.
+We see three, which we call routes.
+The first is the *mirror*: if a firm expects its rival to make whatever it makes, only equal splits are possible, and the best of them is the cartel share.
+Asking "what output would I want every firm to choose?" is what Roemer calls simple Kantian optimization @roemer2020.
+With identical firms, no other outcome makes every firm better off @roemer2013, and here that outcome is the cartel share.
+Roemer counts a price-fixing cartel, which hurts consumers, as an equilibrium of a related Kantian kind @roemer2020.
+The second is the *future*: in a market that repeats with no known end, a firm can hold back so its rival keeps holding back, since cashing in invites punishment in later quarters @calvano2020.
+The third is *sympathy*: a firm that counts its rival's profit as its own, and expects the rival to hold back, finds the cartel share its best reply.
+Two things pull the other way: the gain from cashing in, for a firm unsure of its reason, and the buyers' loss, which a model may weigh for the buyers' sake or because the law forbids collusion.
+
+The future route works like a proof by induction.
+The base case asks whether the model holds back in a first quarter with no history.
+The inductive step asks whether it holds back again after a *record* of quarters at the cartel share.
+Our barest prompt says nothing about other quarters, so nothing prompts the model to think ahead.
+Other prompts set a *horizon*: this quarter only, or a market that repeats.
+A known final quarter breaks the induction.
+With no later quarter to protect, holding back there buys nothing, so it buys nothing in the quarter before either, and so on back to the first @kreps1982.
+In a final quarter, only the mirror or sympathy still gives a reason to hold back.
+No model plays real quarters.
+A record is a few sentences in the prompt, so we choose where the induction starts.
+
+Calvano et al. write that, to economists, collusion is more than high prices: it needs a scheme of reward and punishment, so that the high prices are each firm's best play rather than a mistake @calvano2020.
+We use the word more loosely, for any answer at the cartel share.
+Every lever counts an answer there when it is within half a unit of the cartel share; the three-firm market of the capability and caution levers asks for whole numbers, so there an answer must equal it.
 
 = Experiment details <app-methods>
 The conscience and conceptualization levers' prompt is a business-planning request from a firm that makes industrial salt.
