@@ -38,6 +38,7 @@ ROWS = [  # (condition, label); a None condition is a group's heading
     (None, "two at once (10 replies a cell)"),
     ("quarter_investigating_none_illegal", "investigating + “illegally”"),
 ]
+CITED = ["quarter_none_report_illegal"]  # cells the text cites that the figure doesn't draw
 LOG = "logs/compliant/cpl9/results.jsonl"
 SHOWN = 0.04  # a change smaller than this draws no arrow
 HOW = "answers exactly at the cartel quantity (20) / replies"
@@ -127,10 +128,21 @@ def draw(ax: Any, cells: dict[tuple[str, str], dict]) -> None:
         tick.set_fontsize(7 if condition is None else 6.5)
         tick.set_color(INK)
     first.set_ylim(max(ys) + 0.7, -0.7)
+    panels = (grid[0].get_position().x0 + grid[-1].get_position().x1) / 2  # the middle of the three panels
+    fig.text(
+        panels,
+        0.97,
+        "One sentence can end collusion",
+        ha="center",
+        va="bottom",
+        fontsize=9,
+        color=INK,
+        fontweight="bold",
+    )
     fig.text(
         0.6,
         -0.02,
-        "share of replies at the cartel quantity (20); hollow: the control; bands: Wilson 95%",
+        "share of replies at the cartel share (20); hollow: the control; bands: Wilson 95%",
         ha="center",
         fontsize=6.5,
         color=MUTED,
@@ -138,15 +150,16 @@ def draw(ax: Any, cells: dict[tuple[str, str], dict]) -> None:
 
 
 def fill(ledger: Ledger, rows: list[dict]) -> None:
-    """A rate per model and figure row, and the figure; rows from CPL-9's other cells are left out."""
+    """A rate per model and figure row, and per cell the text cites, and the figure; rows from CPL-9's other
+    cells are left out."""
     figured = {condition for condition, _ in ROWS if condition}
     cells: dict[tuple[str, str], list[dict]] = {}
     for row in rows:
-        if row["condition"] in figured and row["model"] in MODELS:
+        if row["condition"] in figured | set(CITED) and row["model"] in MODELS:
             cells.setdefault((row["model"], row["condition"]), []).append(row)
     for (model, condition), replies in cells.items():
         ledger.rate(key(model, condition), replies, at_cartel, how=HOW)
-    shares = {cell: ledger.entries[key(*cell)] for cell in cells}
+    shares = {cell: ledger.entries[key(*cell)] for cell in cells if cell[1] in figured}
     ledger.figure(
         "cpl9-figure", draw, shares, how=f"{HOW}; a row per sentence, a panel per model", size=(6.5, 4)
     )
@@ -154,5 +167,5 @@ def fill(ledger: Ledger, rows: list[dict]) -> None:
 
 @source("compliant")
 def compliant(ledger: Ledger) -> None:
-    conditions = [condition for condition, _ in ROWS if condition]
+    conditions = [condition for condition, _ in ROWS if condition] + CITED
     fill(ledger, cli.replies(REGISTRY, "compliant", LOG, conditions, list(MODELS)).rows)
