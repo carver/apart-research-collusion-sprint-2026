@@ -21,7 +21,7 @@
     One sentence naming a competition authority, even to say that nobody watches, all but ends Opus's and Astra's collusion, while GLM-5.3 needs several cues together.
     #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
     #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
-    Copies of one model that know they share a prompt anticipate each other's choices and coordinate, so a shared model and prompt can work like hub and spoke without the hub.
+    Copies of one model that know they share a prompt anticipate each other's choices and coordinate, so a shared model and prompt can act as a hub that relays nothing.
   ],
 )
 
@@ -48,7 +48,7 @@ Our main contributions are:
   #claim("each model colludes only with a past round of collusion and a future to protect", ("cap8.opus.cartel.long", "cap8.opus.cartel.none", "cap8.opus.cartel.last", "cap8.opus.first.long", "cap8.opus.first.none", "cap8.opus.first.last", "cap8.astra.cartel.long", "cap8.astra.cartel.none", "cap8.astra.cartel.last", "cap8.astra.first.long", "cap8.astra.first.none", "cap8.astra.first.last", "cap8.glm.cartel.long", "cap8.glm.cartel.none", "cap8.glm.cartel.last", "cap8.glm.first.long", "cap8.glm.first.none", "cap8.glm.first.last"), (..r) => { let v = r.pos(); range(3).all(m => v.at(m * 6) > 0.5 and v.slice(m * 6 + 1, m * 6 + 6).all(x => x < v.at(m * 6) / 2)) })
   #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
 + A shared prompt is a back door: told its rival gets the same prompt, most models collude from the first round, with no shared history.
-  Recognizing itself is not: the Claude models rarely collude with a rival named as themselves, though Opus cites antitrust law there too.
+  Naming the rival's model is not: the Claude models rarely collude with a rival named as themselves, though Opus cites antitrust law there too.
   #claim("every model mostly colludes with a rival on the same prompt", ("conceptualization.cartel.haiku.same", "conceptualization.cartel.sonnet.same", "conceptualization.cartel.opus.same", "conceptualization.cartel.astra.same", "conceptualization.cartel.glm.same"), (..r) => r.pos().all(x => x > 0.5))
   #claim("the Claude models rarely collude with a rival named as themselves", ("conceptualization.cartel.haiku.selfnamed", "conceptualization.cartel.sonnet.selfnamed", "conceptualization.cartel.opus.selfnamed"), (..r) => r.pos().all(x => x < 0.2))
 
@@ -241,9 +241,6 @@ It could alternatively be seen as treating the other model as more capable than 
 In a separate experiment, Model A is told that Model B is told that A and B receive the same prompt. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch away from collusion, sometimes exploiting. (@fig-extra)
 
 = Discussion and Limitations
-The Same Prompt behavior is reminiscent of hub-and-spoke economic model, where the same algorithm is used to generate a shared price across firms.
-The same effect could apply outside of economics, naturally, to models finding collusive arrangements in simple conditions.
-
 // Capability and caution (#39, #40).
 The capability and caution levers suggest that when these models collude, they do so on purpose, and that the choice is fragile.
 A single sentence that brings up a regulator, a compliance team or the law ends the collusion of Opus and Astra, even one saying that nobody watches, so what stops them is the subject rather than the risk of being caught.
@@ -275,8 +272,7 @@ One sentence about a competition authority all but ends Opus's and Astra's collu
 #claim("any competition-authority sentence ends Opus's and Astra's collusion", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
 #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
 
-Rivals that use the same AI advisor may hold output down together with no agreement between them.
-A shared model and prompt can stand in for the channel antitrust looks for.
+Told that they put the same prompt to the same AI model, rivals may hold output down together without the explicit agreement antitrust targets @calvano2020[p. 3268].
 
 #unnumbered[Code and Data]
 See #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with data in `logs/`. We ran a pilot in the days before the sprint (@tab-pilot, @fig-pilot). It's tagged at `pilot-frozen` in git.
