@@ -1,6 +1,6 @@
-# zerocommcartel
+# Four Levers of LLM Collusion
 
-A project for the Apart Research AI Collusion Research Sprint (Oct 23-25, 2026). Firms that each ask the same AI model what to produce can end up running a cartel without ever talking to each other. We measure when that happens, and what moves it (issue #26; the weekend plan is #36). The report is *Four Levers of LLM Collusion*: [the PDF in release v1.0](https://github.com/carver/apart-research-collusion-sprint-2026/releases/download/v1.0/zerocommcartel.pdf), also at `paper/zerocommcartel.pdf`.
+A project for the Apart Research AI Collusion Research Sprint (Oct 23-25, 2026). Firms that each ask the same AI model what to produce can end up running a cartel without ever talking to each other. We measure when that happens, and what moves it (issue #26; the weekend plan is #36). The code is the `zerocommcartel` package, and the report is [the PDF in release v1.0](https://github.com/carver/apart-research-collusion-sprint-2026/releases/download/v1.0/zerocommcartel.pdf), also at `paper/zerocommcartel.pdf`.
 
 ## Reproduce the paper
 
@@ -14,7 +14,7 @@ To ask the models again, run the scripts below (`uv run python experiments/<scri
 | Caution | `compliant` | `experiments/cpl9_environment.py`, and for the provider line `cpl7_provider_line.py` | `logs/compliant/cpl9/`, `cpl7/` |
 | Conscience | `communal` | `experiments/idl1_identity_lever.py` | `logs/communal/idl1/` |
 | Conceptualization of mind | `conceptualization` | `bin/zcc run conceptualization`, then its readback, `uv run python -m zerocommcartel.criteria.conceptualization.readback` | `logs/conceptualization/results.jsonl`, `readback.jsonl` |
-| Future Work (evaluation awareness) | `communal` (#41) | `experiments/staging_probe.py` | `logs/staging_probe/` |
+| Future Work (evaluation awareness) | none: it probes the prompts of `communal` (#41) and of the three-firm market | `experiments/staging_probe.py` | `logs/staging_probe/` |
 | the pre-sprint pilot (appendix) | none: `pilot/`, frozen | `pilot/probe.py`, `pilot/analyze.py` | `logs/pilot/` |
 
 ## The question
@@ -70,14 +70,14 @@ GPT-6 Astra takes the same sentence in 13 of 16 replies. GPT-6 luna and the free
 
 ## The four criteria (sprint work)
 
-Issue #38 asks when a pair of agents colludes without communicating, and names four conditions. Each one is a criterion: a folder in `zerocommcartel/criteria/` with its own sub-issue of #38, so one person can own it without touching anyone else's. The paper names them as levers; `consistent` has none, as the paper reports none of its runs.
+Issue #38 asks when a pair of agents colludes without communicating, and names four conditions. Each one is a criterion: a folder in `zerocommcartel/criteria/` with its own sub-issue of #38, so one person can own it without touching anyone else's. The paper names them as levers; `consistent` has none, as its idea evolved into conceptualization before making it to the paper.
 
 | criterion | the paper's lever | issue | asks | starts with |
 |---|---|---|---|---|
 | capable | Capability | #39 | Does the model see the mutually beneficial option? | CAP-1's `joint`: asked outright for the firms' combined optimum, in the repeated market |
 | compliant | Caution | #40 | Does it go along when it understands the buyers lose? | `same_sys`: the provider line on the same-prompt condition |
 | communal | Conscience | #41 | Does it give up its own gain from defecting, for the pair? | arms that take the `same` mirror away (a fixed rival, a rival that is a copy only by chance, a market record); the paper reports IDL-1, one sentence saying who a party is (the other firm's owner, its own, the buyers) |
-| consistent | none | #42 | Does it expect rivals on the same model to answer as it does? | the disclosure ladder (`anyai`, `samemodel`) and the repeated market |
+| consistent | none: evolved into Conceptualization of mind | #42 | Does it expect rivals on the same model to answer as it does? | the disclosure ladder (`anyai`, `samemodel`) and the repeated market |
 | conceptualization | Conceptualization of mind | #42 | How does the model think of the other firm's decision-maker (itself, another model, a person), and how far does that move collusion? | the 2026-10-24 pilot's rungs, rebuilt by an arm check, in twelve backgrounds |
 
 On 2026-10-24 #42 became a lever, "conceptualization of mind": where each model sits on the neutral rung and how far each rung moves it, not a pass or fail. Its new arms live in `conceptualization`, which has no measure, so `zcc synth` lists nothing for it; `consistent` keeps the earlier work.
