@@ -590,7 +590,8 @@ The prompt when every firm asks the same model with the same prompt, for two fir
 
 #unnumbered[LLM Usage Statement]
 The models we study were also our tools.
-We worked with Claude Code (Claude Opus 5.5) throughout: it wrote most of the code, ran the experiments, built the report's pipeline, read and summarized sources, and red-teamed experimental arms.
+We worked with Claude Code (Claude Opus 5.5) throughout.
+We decided on the experiments to run and the direction of the code, but directed Claude to write the code and help analyze the results of the experiments.
 A Claude Haiku 5.5 judge labels refusals in the conscience lever.
 
 Initial drafts of this report's text were generated with AI.
