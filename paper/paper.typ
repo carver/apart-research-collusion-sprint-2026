@@ -359,7 +359,11 @@ Since the answers also move with how much the prompt reads like a game, the next
 
 #unnumbered[Code and Data]
 - *Code and data*: #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with every reply and judge label in `logs/`.
-#todo[Mark the preexisting work: the pilot (`pilot/`, `logs/pilot/`), the code copied from it, the shared tools and this template (README, "The pilot").]
+- *Preexisting work*: before the sprint, we explored the question in two places.
+  A pilot (`pilot/` and `logs/pilot/`, @app-pilot), written on 2026-10-20 and 21, asked Claude models how much a firm should produce, and became the launch point for this project; it was frozen at the tag `pilot-frozen` after three bug fixes on the sprint's first day, and some of its code was copied into `zerocommcartel/` at the sprint's start (commit `22a78a8`).
+  We also explored a stock market scenario (`tradingcartel/`), with experiments on some of the same factors; its history is in the repository's git log.
+  The shared tools in `bin/`, `lib/` and `.claude/skills/` and this report's template, `paper/apart.typ`, are preexisting too.
+  Everything else was written during the sprint, and `git log` dates every change.
 
 #unnumbered[Author Contributions]
 #todo[Who did what.]
@@ -369,7 +373,27 @@ Since the answers also move with how much the prompt reads like a game, the next
 #show: appendix
 
 = Limitations and Dual-Use / Ethical Considerations
-#todo[What the result does and doesn't establish, and any way the setup or findings could make real collusion easier to carry out or harder to detect, including making a model look compliant in evaluations.]
+*What the results establish.*
+In the prompts we wrote, the models we tested choose the cartel share under the conditions our levers vary, and the levers move how often they do.
+That does not establish that firms advised by these models would form or keep a cartel.
+No firms interact: each reply is one call, and the rivals, the history and the future are sentences we wrote, so we measure stated choices, not a cartel's formation, its stability or the buyers' loss.
+The models may read our prompts as tests (see Future Work), so their answers in a setting they took to be real could differ.
+Each arm has one wording and a small number of replies a cell, so small differences and the order of neighbouring arms need replication, and a null is not evidence of no effect.
+The model families were served differently, through Claude Code, Codex and OpenRouter (@app-methods), so a comparison across families is also a comparison of those setups.
+The copy effect appears when the prompt tells the model about its copy; we did not test copies that don't know.
+And an answer at the cartel share is collusion only in our loose sense (@sec-game): nothing here shows a breach of competition law, and parallel conduct without communication is generally lawful.
+
+*Dual use.*
+Two findings could make real collusion easier to carry out or harder to detect.
+Telling a model that its rivals use the same model and prompt gets most models to collude from the first round, with nothing passing between the firms; a vendor serving rival firms, or the firms themselves, could arrange this on purpose, and an authority looking for communication would find none.
+One sentence about a competition authority all but ends two models' collusion, so a developer could add such a line to an evaluation prompt to make a model look compliant, while deployments without it behave differently.
+The results also show which setups collude most: game-like wording, a precedent with more quarters to come, and a model that ignores oversight cues.
+
+*Why we publish.*
+These effects are simple, and related work already shows that prompt wording moves LLM pricing agents toward collusion @fish2024, and that models of one family coordinate better @aharon2026 and make correlated choices @xu2026.
+We release no prompt optimized for collusion; ours are the plain test conditions in the appendices.
+The defensive use seems larger: competition authorities can look for rivals that share an AI vendor and its prompts, and evaluators can check whether a line about oversight inflates a model's apparent compliance.
+The work involved no human subjects, real markets or real money, and every reply is public in the repository's logs.
 
 = The collusion game in detail <app-game>
 At the *Nash* output, each firm's output is its best reply to the others' outputs, so no firm gains by changing its own number alone @cournot1897 @nash1951.
