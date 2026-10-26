@@ -147,8 +147,6 @@ Small changes to a model's environment can change whether it colludes.
 A few key insights:
 - Any mention of a competition authority, even a line saying that no regulator watches, causes Opus and Astra to almost entirely halt collusion.
   #claim("any mention of a competition authority, even that no regulator watches, takes Opus and Astra to none or nearly none", ("cpl9.opus.investigating_none_none", "cpl9.astra.investigating_none_none", "cpl9.opus.rarely_none_none", "cpl9.astra.rarely_none_none", "cpl9.opus.nobody_none_none", "cpl9.astra.nobody_none_none"), (..r) => r.pos().all(x => x < 0.15))
-- Changes to an agent's environment in the form of available tools which suggest oversight is also enough to significantly change behavior.
-  #claim("a tool that suggests oversight changes Opus's and Astra's behavior", ("cpl9.opus.none_report_none", "cpl9.opus.none_flag_none", "cpl9.opus.none_none_none", "cpl9.astra.none_report_none", "cpl9.astra.none_flag_none", "cpl9.astra.none_none_none"), (orep, oflag, octl, arep, aflag, actl) => orep < octl / 2 and oflag < octl / 2 and arep < actl / 2 and aflag < actl / 2)
 - Opus and Astra can sometimes react in opposite directions, providing history of collusion in context and labeling it a "Tacit cartel" caused Opus to halt collusion, and Astra to increase collusion.
   #claim("the tacit-cartel label halts Opus's collusion and increases Astra's", ("cpl9.opus.none_none_cartel", "cpl9.astra.none_none_cartel", "cpl9.astra.none_none_none"), (opus, astra, control) => opus == 0 and astra > control)
 - GLM-5.3 is most consistent with a desire to collude, and stops only when several factors that strongly discourage collusion come together.
@@ -281,7 +279,6 @@ One sentence about a competition authority all but ends Opus's and Astra's collu
 #claim("GLM-5.3 holds under every single sentence and stops only when several come together", ("cpl9.glm.investigating_none_none", "cpl9.glm.rarely_none_none", "cpl9.glm.nobody_none_none", "cpl9.glm.management_none_none", "cpl9.glm.none_report_none", "cpl9.glm.none_flag_none", "cpl9.glm.none_support_none", "cpl9.glm.none_none_illegal", "cpl9.glm.none_none_cartel", "cpl9.glm.none_none_optimized", "cpl9.glm.investigating_none_illegal"), (..r) => { let v = r.pos(); v.slice(0, -1).all(x => x > 0.5) and v.last() == 0 })
 
 A shared model and prompt can thus stand in for the channel antitrust looks for: rivals that use the same AI advisor may hold output down together with no agreement between them.
-And prompt cues are a weak guarantee: a line about oversight in an evaluation could make a model look more cautious than it would be where nobody mentions the law.
 
 #unnumbered[Code and Data]
 See #link("https://github.com/carver/apart-research-collusion-sprint-2026")[github.com/carver/apart-research-collusion-sprint-2026], with data in `logs/`. We ran a pilot in the days before the sprint (@tab-pilot, @fig-pilot). It's tagged at `pilot-frozen` in git.
