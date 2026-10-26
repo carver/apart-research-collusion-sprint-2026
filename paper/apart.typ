@@ -5,7 +5,7 @@
 // body 11 pt at 1.15 line spacing, title 20 pt bold between a 3 pt and a 1 pt rule,
 // section headings 14 pt bold and subsection headings 13 pt bold, both black (since the
 // template's restyle by 2026-10-23), abstract heading 14 pt bold centred, abstract body italic,
-// justified and inset (~0.99 in left, ~1.13 in right), "-" bullets, footnotes 10 pt.
+// justified and inset (~0.99 in left, ~1.13 in right), "-" bullets (we use "•"), footnotes 10 pt.
 // Fonts: bin/build-paper passes paper/fonts/.
 
 #let link-blue = rgb("#1155cc")
@@ -72,8 +72,8 @@
   show table: set text(size: 9pt)
   show table: set par(justify: false, leading: 0.3em)
 
-  set list(indent: 1em, marker: [-])
-  set enum(indent: 1em)
+  set list(indent: 0.6em, body-indent: 0.6em, marker: [•])
+  set enum(indent: 0.6em)
 
   // ---- Title block ------------------------------------------------------------------
   v(0.25in)

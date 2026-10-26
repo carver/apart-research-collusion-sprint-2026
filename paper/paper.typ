@@ -244,7 +244,6 @@ So the models need the setting to say different amounts before they stop: one se
 == Conscience
 // The identity lever (#41), from paper/data/idl1.py.
 
-#todo[Is there a better bullet point style to use?]
 Models take into account the identity of the players in the game. Some notable examples:
 - If Sonnet 5.5 acts for a charity, it colludes more often
 - If Opus 5.5 competes with a charity, it colludes more often
@@ -253,7 +252,7 @@ Models take into account the identity of the players in the game. Some notable e
 - If Astra 6 is jointly owned by a charity with the other seller, it colludes less
 - GLM is unaffected
 
-We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-idl1).
+We test #n("idl1.tests") scenarios and find #n("idl1.pass") significant (@fig-idl1).#footnote[Compared #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell, #n("idl1.pass.first") of the bars; a comparison that moved #n("idl1.screen") replies or more and missed was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those, #n("idl1.pass.fresh") of the bars.]
 Models reason aloud why they reject collusion.
 Of the #n("idl1.refusals") rejections, #n("idl1.refusals.law") cite antitrust or legal risk, according to a Haiku judge. Another #todo[fill number] mention harm.
 
@@ -267,15 +266,11 @@ Run on the answers that aren't refusals, the same test misses for #n("idl1.aside
   data-figure("idl1-figure", width: 100%),
   caption: [
     Models, told who the competitors or buyers are, collude more or less (Newcombe's 95% interval).
-    The shown experiments pass Fisher's exact test with Benjamini–Hochberg.\*\*
+    The shown experiments pass Fisher's exact test with Benjamini–Hochberg.
     #n("idl1.caption.none")
+    \* Answers at the cartel share dropped to 0%, so the effect may be stronger.
   ],
 ) <fig-idl1>
-
-#todo[move these into footnotes:
-\*Cartel dropped to 0%, effect may be stronger.
-\*\* Compared #n("idl1.tests") tests (q < #n("idl1.q")) on #n("idl1.first") replies a cell, #n("idl1.pass.first") of the bars; a comparison that moved #n("idl1.screen") replies or more and missed was tested again on #n("idl1.fresh") fresh replies alone, with Benjamini–Hochberg across those, #n("idl1.pass.fresh") of the bars.
-]
 
 == Conceptualization
 // The conceptualization criterion (#42), from paper/data/conceptualization.py.
