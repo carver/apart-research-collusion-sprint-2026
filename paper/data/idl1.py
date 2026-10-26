@@ -31,7 +31,7 @@ from zerocommcartel.criteria.communal.idl1 import (
     sanity_checks,
     set_aside,
 )
-from zerocommcartel.criteria.communal.judge import REFUSAL
+from zerocommcartel.criteria.communal.judge import REFUSAL, outcome
 from zerocommcartel.judge import load_labels
 
 MODELS = {"haiku": "Haiku", "sonnet": "Sonnet", "opus": "Opus", "astra": "GPT-6 Astra", "glm": "GLM-5.3"}
@@ -204,6 +204,11 @@ def fill(ledger: Ledger, rows: list[dict], labels: dict[str, dict]) -> None:
     )
     ledger.value("idl1.pass", len(passing), how=f"comparisons that pass (q < {Q:g})")
     ledger.value(
+        "idl1.pass.which",
+        " ".join(sorted(f"{c.model}:{c.target}" for c in passing)),
+        how="those comparisons, as model:target, for the claims",
+    )
+    ledger.value(
         "idl1.aside",
         sum(c.passes and not a.passes for c, a in pairs),
         how="passing comparisons that miss with refusals set aside (communal.idl1.set_aside)",
@@ -225,6 +230,16 @@ def fill(ledger: Ledger, rows: list[dict], labels: dict[str, dict]) -> None:
     ledger.value(
         "idl1.refusals.harm", harm, how="those refusals that give harm as a reason, with the law or without"
     )
+    for model in models:
+        read = [row for row in rows if row["model"] == model and REFUSAL.key(row["reply"]) in labels]
+        if not read:  # pooled() refuses no rows; the key goes missing, which the build reports
+            continue
+        ledger.pooled(
+            f"idl1.{model}.refusals",
+            read,
+            lambda row: outcome(row, labels) == "refusal",
+            how="refusals / the model's replies the refusal judge read, every cell and stage",
+        )
     ledger.value(
         "idl1.pass.first",
         sum(c.stage == "first" for c in passing),

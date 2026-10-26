@@ -27,6 +27,7 @@ def rows_for(model, cartel=None, fresh=None, refusing=None):
             "sample": s,
             "value": 30.0 if s < cartel.get(name, 0) else 40.0,
             "reply": f"{refusing[name]} {s}\n{NASH}" if name in refusing else NASH,
+            "prompt_hash": f"hash-{name}",
         }
         for name in CONDITIONS
         for s in range(10)
@@ -38,6 +39,7 @@ def rows_for(model, cartel=None, fresh=None, refusing=None):
             "sample": s,
             "value": 30.0 if s - 10 < hits else 40.0,
             "reply": NASH,
+            "prompt_hash": f"hash-{name}",
         }
         for name, hits in fresh.items()
         for s in range(10, 40)
@@ -176,3 +178,27 @@ def test_fill_gives_the_price_sentence_verbatim_for_the_caption(tmp_path):
         ledger.entries.get("idl1.sentence.price", {}).get("value")
         == "When the firms produce less, the price rises."
     )
+
+
+def test_fill_counts_each_models_refusals_among_the_replies_the_judge_read(tmp_path):
+    rows = rows_for("glm", refusing={"id_open_base": "Illegal."})
+    rows[0] = rows[0] | {
+        "value": 30.0,
+        "reply": "At the cartel share, so the judge never read it.\nQUANTITY: 30",
+    }
+    labels = LABELS | {
+        REFUSAL.key(r["reply"]): {"declines": True, "law": True, "harm": False, "instability": False}
+        for r in rows
+        if r["reply"].startswith("Illegal.")
+    }
+    ledger = Ledger(tmp_path)
+    fill(ledger, rows, labels)
+    entry = ledger.entries.get("idl1.glm.refusals", {})
+    assert (entry.get("k"), entry.get("n")) == (10, len(rows) - 1)
+
+
+def test_fill_names_the_passing_comparisons_for_the_claims(tmp_path):
+    ledger = Ledger(tmp_path)
+    fill(ledger, ROWS, LABELS)
+    which = ledger.entries.get("idl1.pass.which", {}).get("value")
+    assert which == "opus:id_mirror_buyers_pe opus:id_open_rival_charity"
