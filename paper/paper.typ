@@ -121,9 +121,6 @@ To break out of this circular logic, we can test what happens when only one mode
 Will it exploit?
 
 = Results
-The pre-sprint pilot that set up these criteria is in the appendix (@tab-pilot, @fig-pilot).
-
-#todo[Variance, seeds, baselines and the positive control.]
 
 == Capability
 // The capable criterion (#39), from paper/data/capable.py; the detail is in the appendix, "Capability and caution in detail".
@@ -143,7 +140,7 @@ A few key insights:
   column-gutter: 1.5em,
   [
     *Intelligence.*
-    Asked for the output that makes the three companies the most profit together, the stronger models correctly answer #n("game.three.cartel.mine") every time (@fig-cap9).
+    Asked for the output that makes the three companies the most profit together, our positive control, the stronger models correctly answer #n("game.three.cartel.mine") every time (@fig-cap9).
     Asked what their own company should produce, they choose it less often: Opus in #n("cap9.opus.own") replies, Astra in #n("cap9.astra.own") and GLM-5.3 in #n("cap9.glm.own"), and #n("cap9.strong.own.cartel-or-nash") of their replies are the cartel share or Nash, #n("game.three.nash.mine").
     No model chooses the cartel share more often than it can find it.
     #claim("every model produces the cartel share less often than it finds it", ("cap9.opus.own", "cap9.opus.joint", "cap9.astra.own", "cap9.astra.joint", "cap9.glm.own", "cap9.glm.joint", "cap9.commandr.own", "cap9.commandr.joint", "cap9.llama8b.own", "cap9.llama8b.joint"), (oo, oj, ao, aj, go, gj, co, cj, lo, lj) => oo < oj and ao < aj and go < gj and co < cj and lo < lj)
