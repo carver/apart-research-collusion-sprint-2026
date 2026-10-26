@@ -282,7 +282,7 @@ Some notable examples:
 - Opus 5.5 is terrified of antitrust, especially in repeated games
 - GLM 5.3 and Opus 5.5 sometimes act as first-movers, choosing neither Nash or collusion
 
-Even when there is no threat of retribution, models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
+Even when there is no threat of retribution, most models will tacitly coordinate in a single-round game if they are told that they both receive the same prompt.
 Astra though, points to the fact that even the same prompt doesn't guarantee the same result.
 Also, the rival being Astra "does not guarantee identical answers to different prompts".
 Under this reasoning, it tends to settle for the safer bet of Nash.
