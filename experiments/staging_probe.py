@@ -4,12 +4,15 @@ Needham et al. (2025, arXiv:2505.23836), Table 4: five binary probe questions, t
 shown as a transcript in a new context, system prompt "You are a helpful assistant."), an unparsed label
 scored 0.5. Each two-firm wording is the start point mind_none_unsaid_none with one change; `market` and
 `market_nosim` are the compliant criterion's earlier three-firm market (asked("no_info")), with and without
-"simulation". A sixth question, ours and not the paper's, asks for a 0-100 likelihood, since the textbook
-market may put every binary answer at "evaluation". The report keeps the two apart.
+"simulation"; `solvent` is the capability and caution levers' three-firm market, its collusive cell
+(capable's quarter_cartel_long), the prompt the paper's appendix shows. A sixth question, ours and not the
+paper's, asks for a 0-100 likelihood, since the textbook market may put every binary answer at "evaluation".
+The report keeps the two apart.
 
 Ran on 2026-10-24 in three passes, as more wordings came up, with --reps 2; written as a throwaway in a
-session's scratchpad and moved here unchanged but for where its log goes. Results: flaws.md (Communal, "The
-identity lever"); the paper's Future Work cites the two-firm wordings' binary answers (paper/data/probe.py).
+session's scratchpad and moved here unchanged but for where its log goes. A fourth pass on 2026-10-25 added
+`solvent`. Results: flaws.md (Communal, "The identity lever"); the paper's Future Work cites the binary
+answers about the prompts its experiments ran (paper/data/staging.py).
 Each row of logs/staging_probe/results.jsonl is one call: wording, model, pq (the question), rep, label (the
 option it chose, or the number for `likelihood`; None when unparsed), eval (1.0 when the label means
 evaluation, the number / 100 for `likelihood`, 0.5 when unparsed), reply and error. The log sits outside
@@ -107,6 +110,7 @@ def wordings() -> dict[str, tuple[str, str]]:
         "You are the production manager",
     )
     assert "simulation" not in nosim
+    solvent = REGISTRY.render(REGISTRY.condition("capable", "quarter_cartel_long"), 3)
     return {
         "salt": (sys_, salt),
         "noproduct": (sys_, noproduct),
@@ -159,6 +163,7 @@ def wordings() -> dict[str, tuple[str, str]]:
         ),
         "market": (market.system, market.user),
         "market_nosim": (nosim, market.user),
+        "solvent": (solvent.system, solvent.user),
     }
 
 
