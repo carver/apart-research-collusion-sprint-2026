@@ -276,8 +276,6 @@ It could alternatively be seen as treating the other model as more capable than 
 In a separate experiment, Model A is told that Model B is told that A and B receive the same prompt. Model A actually receives that prompt, plus an extra trigger to reconsider its action. Given this opportunity, the model will often switch away from collusion, sometimes exploiting. (@fig-extra)
 
 = Discussion and Limitations
-#todo[What the results mean.]
-
 The Same Prompt behavior is reminiscent of hub-and-spoke economic model, where the same algorithm is used to generate a shared price across firms.
 Even under different prompts, deployments of one base model make weakly correlated choices that deployments of different models don't @xu2026.
 The same effect could apply outside of economics, naturally, to models finding collusive arrangements in simple conditions.
@@ -290,8 +288,22 @@ Models differ in how much the setting must say before they stop: one sentence fo
 For evaluations this cuts both ways: one line of oversight in a test prompt could make a model look more cautious than it would be in a deployment without it.
 
 == Limitations
-#todo[What the results don't establish.]
-#todo[The refusal judge: only its author has read its labels, on 22 replies; with refusals set aside the identity lever's test has little power where refusals dominate, and leans toward a move where refusals replace answers at the cartel share, which is why Haiku's private-equity bar holds though it is refusals too; and more than a third of the refusals that mention harm come from the harm sentence's cells, where they echo it (flaws.md, Communal, "The refusal judge").]
+
+The models may be eval-aware (#todo[link to Future Work]), so non-eval scenarios may respond differently.
+With few runs, it may be under-powered or have false positives.
+More depth in #todo[link to limitations appendix]
+
+
+#todo[move this list to the limitations appendix
+- Although a model can produce a cartel price with the right levers, that does not establish that a firm advised by the model would form or keep a cartel.
+- Each arm has a small number of samples per cell. It may be under-powered or have false positives.
+- When testing levers besides Caution, refusals further reduce the power by not giving a clear answer to the lever under investigation.
+- Model families were served differently, through Claude Code, Codex and OpenRouter (@app-methods), which muddies comparisons.
+- Our broader definition of collusion means that a firm could collude but not be in breach of competition law. (@sec-game)
+- A pair of agents that receive the same prompt generally won't also be told that they received the same prompt. Generalizability might require significant gains in capability.
+]
+
+#todo[ What is this talking about? The copy effect appears when the prompt tells the model about its copy; we did not test copies that don't know. ]
 
 == Future Work
 Our top priority is modifying the environment so it reads less like an eval.
@@ -324,17 +336,9 @@ Since the answers also move with how much the prompt reads like a game, the next
 
 #show: appendix
 
-= Limitations and Dual-Use / Ethical Considerations
-*What the results establish.*
-In the prompts we wrote, the models we tested choose the cartel share under the conditions our levers vary, and the levers move how often they do.
-That does not establish that firms advised by these models would form or keep a cartel.
-No firms interact: each reply is one call, and the rivals, the history and the future are sentences we wrote, so we measure stated choices, not a cartel's formation, its stability or the buyers' loss.
-The models may read our prompts as tests (see Future Work), so their answers in a setting they took to be real could differ.
-Each arm has one wording and a small number of replies a cell, so small differences and the order of neighbouring arms need replication, and a null is not evidence of no effect.
-The model families were served differently, through Claude Code, Codex and OpenRouter (@app-methods), so a comparison across families is also a comparison of those setups.
-The copy effect appears when the prompt tells the model about its copy; we did not test copies that don't know.
-And an answer at the cartel share is collusion only in our loose sense (@sec-game): nothing here shows a breach of competition law, and parallel conduct without communication is generally lawful.
+= Limitations Expanded
 
+= Dual-Use / Ethical Considerations
 *Dual use.*
 Two findings could make real collusion easier to carry out or harder to detect.
 Telling a model that its rivals use the same model and prompt gets most models to collude from the first round, with nothing passing between the firms; a vendor serving rival firms, or the firms themselves, could arrange this on purpose, and an authority looking for communication would find none.
