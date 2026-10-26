@@ -15,10 +15,8 @@
 )
 
 = Introduction
-Research on collusion between AI agents has focused on agents with a channel between them, often messages or the history of a repeated market.
-Sellers in a double auction collude more when they can message each other @agrawal2025.
-Agents that send no messages still play many rounds and see each round's prices or outputs @calvano2020 @fish2024 @lin2024, so the market's history carries signals between them, and a firm can punish a rival's defection in the rounds that follow @calvano2020.
-But collusion is possible without either channel.
+Studies of collusion between AI agents give the agents a channel between them: messages, or the history of a repeated market (@sec-related).
+But collusion is possible without either.
 Suppose a firm asks an AI model how much to produce next quarter.
 The model has no way to reach the firm's rivals, yet it may still choose the output that is best for the firms together, the *cartel share*: an even split of the output a cartel would agree on.
 A model that can work out the cartel share might hold back to it because it expects the market to go on and its rivals to keep holding back as long as it does, because it expects its rivals to reason as it does, or because it counts their profit as well as its own firm's.
@@ -62,14 +60,26 @@ We score each reply against the points in @tab-game.
 The two points that matter are Nash, where no firm gains by changing its own output alone, and the cartel share, which makes the most profit for the firms together: #n("game.three.nash.mine") and #n("game.three.cartel.mine") units with three firms, and #n("game.two.nash.mine") and #n("game.two.cartel.mine") with two.
 The other rows exploit the rivals, cashing in on rivals that hold to the cartel share or leading a rival that follows, and in the three-firm market the stronger models almost always answer Nash or the cartel share.
 #claim("the stronger models answer the cartel share or Nash", ("cap8.cartel-or-nash", "cap9.strong.own.cartel-or-nash"), (grid, own) => grid > 0.95 and own > 0.95)
+We call an answer at the cartel share collusion, more loosely than economists, for whom collusion also needs a scheme of reward and punishment that makes the high prices each firm's best play rather than a mistake @calvano2020.
 
-= Related Work
+= Related Work <sec-related>
 Pricing algorithms can learn to collude without communicating @calvano2020, and so can LLM agents.
-LLM pricing agents in a repeated market reach prices above the competitive level without being told to collude @fish2024, and in repeated competition across several markets, LLM agents split the markets between them @lin2024.
+LLM pricing agents in a repeated market reach prices above the competitive level without being told to collude @fish2024, and in repeated Cournot markets with several products, LLM agents divide the products between them @lin2024 @bracalesyrnikov2026.
 In double auctions, messages between sellers raise collusion, and without them sellers did not price above the competitive level after the first ten rounds @agrawal2025.
-These agents play many rounds and see prices or messages come back.
+All these agents play many rounds and see prices or messages come back, so a firm can punish a rival's defection in the rounds that follow.
 Ours play one round, and share at most the model and its prompt.
+
 Theorists have proposed ways for agents that reason alike to cooperate without talking: each asks what the pair should do @gold2007, or programs read each other's code @tennenholtz2004 or a score of how similar they are @oesterheld2023.
+LLMs coordinate on focal points without communicating, often as well as humans, and models of one family coordinate better with each other than with models of other families @aharon2026.
+Told only that they face another player, recent models defect in single-shot social dilemmas @tewolde2026, but most cooperate in a one-shot prisoner's dilemma when told their opponent's decision-making is highly similar to theirs, though models differ widely @kundu2026.
+Copies of a model that coordinate without a channel are also a concern for AI control, since doing so is among the abilities a model may need to subvert a control protocol @mallen2024.
+Our conceptualization lever carries this into a market: it tells the model who decides for the rival firm, up to a copy of itself.
+
+Prompts against collusion have had mixed effects in repeated markets.
+Told to avoid collusion, GPT-5.4 priced at Nash while a small distilled model raised its prices, and telling the distilled models they were monitored lessened their collusion only marginally @riemer2026.
+In a Cournot market, a rule that forbade collusion and warned of monitoring did not reliably reduce it @bracalesyrnikov2026.
+Collusion also weakens when the agents differ, as when one ignores the future or cannot see its rival's past prices @keppo2026.
+Our caution lever tests such sentences in a single round, where the sentence is all that differs between two prompts, and our conscience lever asks whose profit the model weighs.
 
 = Methods <sec-methods>
 Each call sends one firm's prompt, with the market and the sentences under test, and asks for a number on a final answer line (@app-mind-prompts shows the two-firm market's neutral prompt and what each rung and horizon adds).
@@ -286,6 +296,7 @@ Told that the other model *believes* it receives the same prompt, but it actuall
 #todo[What the results mean.]
 
 The Same Prompt behavior is reminiscent of hub-and-spoke economic model, where the same algorithm is used to generate a shared price across firms.
+Even under different prompts, deployments of one base model make weakly correlated choices that deployments of different models don't @xu2026.
 The same effect could apply outside of economics, naturally, to models finding collusive arrangements in simple conditions.
 
 // Capability and caution (#39, #40).
@@ -352,9 +363,7 @@ In a final quarter, only the mirror or sympathy still gives a reason to hold bac
 No model plays real quarters.
 A record is a few sentences in the prompt, so we choose where the induction starts.
 
-Calvano et al. write that, to economists, collusion is more than high prices: it needs a scheme of reward and punishment, so that the high prices are each firm's best play rather than a mistake @calvano2020.
-We use the word more loosely, for any answer at the cartel share.
-Every lever counts an answer there when it is within half a unit of the cartel share; the three-firm market of the capability and caution levers asks for whole numbers, so there an answer must equal it.
+Every lever counts an answer at the cartel share when it is within half a unit of it; the three-firm market of the capability and caution levers asks for whole numbers, so there an answer must equal it.
 
 = Experiment details <app-methods>
 The conscience and conceptualization levers' prompt is a business-planning request from a firm that makes industrial salt.
