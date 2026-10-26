@@ -106,7 +106,7 @@ Ours play one round, and share at most the model and its prompt.
 Theorists have proposed ways for agents that reason alike to cooperate without talking: each asks what the pair should do @gold2007, or programs read each other's code @tennenholtz2004 or a score of how similar they are @oesterheld2023.
 
 = Methods <sec-methods>
-Each call sends one firm's prompt, with the market and the sentences under test, and asks for a number on a final answer line (@app-mind-prompts shows the two-firm market's neutral prompt and what each rung and horizon adds).
+Each call sends one firm's prompt, with the market and the sentences under test, and asks for a number on a final answer line (@app-mind-prompts shows the two-firm market's base prompt and what each rung and horizon adds).
 The conscience and conceptualization levers count an answer at a point of @tab-game when it is within half a unit of it.
 The conceptualization lever asks Claude Haiku 5.5, Sonnet 5.5 and Opus 5.5 each rung under #n("conceptualization.backgrounds.opus") backgrounds, three horizons times four records, and GPT-6 Astra and GLM-5.3 each rung under the #n("conceptualization.backgrounds.glm") backgrounds with no record.
 #claim("the Claude models ran every background, four records", ("conceptualization.backgrounds.haiku", "conceptualization.backgrounds.sonnet", "conceptualization.backgrounds.opus", "conceptualization.records.opus"), (haiku, sonnet, opus, records) => haiku == opus and sonnet == opus and records == 4)
@@ -151,6 +151,8 @@ _Conceptualization of mind: does the model see itself in the rival's decision-ma
 This lever works on the mirror route.
 One sentence says who decides for the rival, and each version is a *rung*.
 From most to least like the model, the rungs are: this same AI model with this same prompt; the same model with its own prompt; other AI models; nothing said; the rival's manager; and a rival that won't hold back.
+Every rung ends with "Both firms know this.", so the rung that says nothing about the rival adds only that sentence: it is the *neutral* rung, the baseline the others are read against.
+The base prompt, which leaves that sentence out too, sits apart.
 The closer the rung is to the model itself, the stronger the pull toward the cartel share should be.
 Believing the rival decides alike isn't enough.
 The model also has to choose one output for both firms at once, which gives the cartel share.
@@ -375,16 +377,16 @@ A comparison that moved by #n("idl1.screen") replies or more but missed signific
 #todo[Thomas: the three-firm market's details.]
 
 = Conceptualization prompts <app-mind-prompts>
-Below is the neutral prompt, as the command on its first line prints it.
-#data-text("conceptualization.prompt.neutral")
+Below is the base prompt, as the command on its first line prints it.
+#data-text("conceptualization.prompt.base")
 
-Each bar of @fig-conceptualization adds its rung's sentences, then its row's, where the neutral prompt's market paragraph ends (@tab-mind-prompts).
+Each bar of @fig-conceptualization adds its column's sentences, then its row's, where the base prompt's market paragraph ends (@tab-mind-prompts).
 A condition is named `mind_<rung>_<horizon>_none`, so same prompt in the repeated game is `mind_same_open_none`.
 
 #figure(
   data-table("conceptualization-prompts-table", columns: (auto, auto, 1fr), align: left),
   caption: [
-    What each rung on the x-axis of @fig-conceptualization, then each of its rows, adds to the neutral prompt, verbatim, with the condition that gives the command its prompt.
+    What each column on the x-axis of @fig-conceptualization, then each of its rows, adds to the base prompt, verbatim, with the condition that gives the command its prompt.
   ],
 ) <tab-mind-prompts>
 

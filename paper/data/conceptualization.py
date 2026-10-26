@@ -3,14 +3,16 @@ the rows `zcc table conceptualization` counts.
 
 The lever figure (`conceptualization-figure`, `<fig-conceptualization>`) follows each model along the lever,
 the rungs from a rival that asks this same model with this same prompt to a person, under its title
-(`TITLE`): a row per horizon with no record of past play (`ORDER`), a column per model, a bar per rung. A bar
-is the share of answers at the cartel share, with its 95% Wilson whisker, the antitrust refusals stacked on it
-in gray, and the Stackelberg leaders on those in orange. A refusal is an answer off the cartel share, at or
-below Nash, whose reply cites the law (`zerocommcartel.mentions.MENTIONS["antitrust"]`): a keyword check, read
-by hand on samples (flaws.md, "Conceptualization"). A leader is an answer at 60 whose readback leads a rival
-that follows (`readback.sixty_kind`).
+(`TITLE`): a row per horizon with no record of past play (`ORDER`), a column per model, a bar per rung. Every
+rung but the base prompt (`none`) ends with "Both firms know this.", so the rung that adds only that sentence
+(`informed`, labelled "neutral") is the baseline the others are read against, and the base prompt sits apart
+on the right. A bar is the share of answers at the cartel share, with its 95% Wilson whisker, the antitrust
+refusals stacked on it in gray, and the Stackelberg leaders on those in orange. A refusal is an answer off the
+cartel share, at or below Nash, whose reply cites the law (`zerocommcartel.mentions.MENTIONS["antitrust"]`): a
+keyword check, read by hand on samples (flaws.md, "Conceptualization"). A leader is an answer at 60 whose
+readback leads a rival that follows (`readback.sixty_kind`).
 
-The prompts appendix (`<app-mind-prompts>`) gives the neutral prompt in full, as `zcc show` prints it under
+The prompts appendix (`<app-mind-prompts>`) gives the base prompt in full, as `zcc show` prints it under
 the command, and a table of what each of the lever figure's rungs and rows adds to it, diffed from the
 rendered prompts, with the condition that gives that prompt. It also gives what each rung adds as a key
 (`conceptualization.added.<rung>`), so the prose can quote it.
@@ -26,9 +28,10 @@ the lever figure shows (`STYLE`), its refusals and its answers at 60, and splits
 (`readback.sixty_kind`): leading a rival that follows, ignoring the rival, the other firm at 60 too, or other
 and unread.
 
-To change the lever figure, change `STYLE` (the rungs on x, how the neutral rung is marked); the extra-chance
-figure, `EXTRA_STYLE` (the arms and the panels); both, `MODELS`. Then rebuild the paper. The captions, their
-numbers included, the answers table and the prompts appendix follow the styles.
+To change the lever figure, change `STYLE` (the rungs on x, which rung is the baseline and how it is marked,
+which rungs sit apart); the extra-chance figure, `EXTRA_STYLE` (the arms and the panels); both, `MODELS`. Then
+rebuild the paper. The captions, their numbers included, the answers table and the prompts appendix follow the
+styles.
 Issue #45 has recipes."""
 
 import os
@@ -79,8 +82,8 @@ RUNG_LABELS = {
     "samemodel": "same model",
     "selfnamed": "own name",
     "sibling": "sibling",
-    "none": "neutral",
-    "informed": "both know",
+    "none": "base prompt",
+    "informed": "neutral",
     "otherdev": "other dev.",
     "named": "Astra",
     "human": "person",
@@ -97,11 +100,30 @@ Reader = Callable[[dict], Readback | None]  # a reply's readback, if it has one
 
 @dataclass(frozen=True)
 class Style:
-    rungs: tuple[str, ...] = ("same", "samemodel", "none", "informed", "human")  # x, top of the ladder first
-    neutral: Literal["band", "dashed"] = "band"  # the neutral rung: a shaded column or a soft dashed line
+    rungs: tuple[str, ...] = ("same", "samemodel", "informed", "human", "none")  # x, top of the ladder first
+    baseline: str = "informed"  # the rung the others are read against, labelled "neutral"
+    mark: Literal["band", "dashed"] = "band"  # the baseline: a shaded column or a soft dashed line
+    apart: tuple[str, ...] = ("none",)  # rungs off the ladder, drawn last, after a gap
+
+    def __post_init__(self) -> None:
+        """Raises ValueError unless the rungs are a ladder, then the rungs set apart, with the baseline on the
+        ladder: what the figure draws and its caption says."""
+        ladder = [rung for rung in self.rungs if rung not in self.apart]
+        if not ladder:
+            raise ValueError(f"no rung on the ladder: {self.rungs}")
+        if list(self.rungs) != ladder + [rung for rung in self.rungs if rung in self.apart]:
+            raise ValueError(f"the rungs set apart, {self.apart}, must come last: {self.rungs}")
+        if self.baseline in self.apart:
+            raise ValueError(f"the baseline, {self.baseline}, is set apart")
 
 
 STYLE = Style()
+GAP = 0.6  # the extra space before the rungs set apart
+
+
+def positions(style: Style) -> list[float]:
+    """Each rung's x, one apart, with GAP more before the rungs set apart, which come last."""
+    return [x + (GAP if rung in style.apart else 0) for x, rung in enumerate(style.rungs)]
 
 
 class Count(NamedTuple):
@@ -177,13 +199,15 @@ def heights(data: FigureData, model: str, horizon: str) -> list[Bar | None]:
     ]
 
 
-RUNG_PHRASES = {  # how the caption names a rung at either end of the x-axis
+RUNG_PHRASES = {  # how the caption names a rung: at either end of the ladder, as the baseline or set apart
     "same": "a rival that asks this same AI model with this same prompt",
     "samemodel": "a rival that asks this same AI model with its own prompt",
     "selfnamed": "a rival that asks the model by its own name",
     "sibling": "a rival that asks another model from the same developer",
-    "none": "the neutral rung, which says only who my firm asks",
-    "informed": "the neutral rung with “both firms know this”",
+    "none": "the base prompt, which every other bar adds to",
+    "informed": (
+        "the neutral rung, which adds only the sentence every rung ends with, “Both firms know this.”"
+    ),
     "otherdev": "a rival that asks another developer’s model",
     "named": "a rival that asks GPT-6 Astra",
     "human": "a person",
@@ -193,14 +217,15 @@ RUNG_PHRASES = {  # how the caption names a rung at either end of the x-axis
 
 def caption_layout(style: Style) -> str:
     """The caption's sentence on the layout, so that a change to STYLE rewords it too."""
-    first, last = (RUNG_PHRASES[style.rungs[i]] for i in (0, -1))
-    neutral = {
-        "band": "; the shaded column is the neutral rung",
-        "dashed": "; the dashed line marks the neutral rung",
-    }
-    marker = neutral[style.neutral] if "none" in style.rungs else ""
+    ladder = [rung for rung in style.rungs if rung not in style.apart]
+    first, last = (RUNG_PHRASES[ladder[i]] for i in (0, -1))
+    marks = {"band": "the shaded column is", "dashed": "the dashed line marks"}
+    baseline = RUNG_PHRASES[style.baseline]
+    marker = f"; {marks[style.mark]} {baseline}" if style.baseline in style.rungs else ""
+    apart = [RUNG_PHRASES[rung] for rung in style.rungs if rung in style.apart]
+    aside = f"; set apart on the right, {named_list(apart)}" if apart else ""
     horizons = "a row per horizon with no record of past play"
-    return f"The rungs run from {first} (left) to {last} (right), {horizons}{marker}."
+    return f"The rungs run from {first} (left) to {last} (right), {horizons}{marker}{aside}."
 
 
 def caption_named(style: Style) -> str:
@@ -225,10 +250,10 @@ def draw(ax: Any, data: FigureData) -> None:
     ax.remove()
     models = [m for m in MODELS if any(cell[0] == m for cell in data.counts)]
     axes = fig.subplots(len(ORDER), len(models), sharey=True, sharex=True, squeeze=False)
-    xs = list(range(len(style.rungs)))
+    xs = positions(style)
     for panels, horizon in zip(axes, ORDER, strict=True):
         for panel, model in zip(panels, models, strict=True):
-            draw_panel(panel, heights(data, model, horizon), style)
+            draw_panel(panel, heights(data, model, horizon), style, xs)
         panels[0].set_ylabel(HORIZON_LABELS[horizon], fontsize=7.5, color=INK)
     for panel, model in zip(axes[0], models, strict=True):
         panel.set_title(MODELS[model], fontsize=8.5, color=INK)
@@ -236,7 +261,7 @@ def draw(ax: Any, data: FigureData) -> None:
         panel.set_xticks(
             xs, labels=[RUNG_LABELS[r] for r in style.rungs], rotation=60, ha="right", fontsize=6
         )
-    axes[-1][0].set_xlim(-0.5, len(xs) - 0.5)
+    axes[-1][0].set_xlim(xs[0] - 0.5, xs[-1] + 0.5)
     fig.tight_layout()
     whisker = {"marker": "|", "linestyle": "none", "markersize": 7, "markeredgewidth": 0.6}
     handles = [
@@ -251,9 +276,10 @@ def draw(ax: Any, data: FigureData) -> None:
     )
 
 
-def draw_panel(panel: Any, bars: list[Bar | None], style: Style) -> None:
-    """One model under one horizon: a bar per rung, the neutral rung marked. A missing bar leaves a gap."""
-    for x, bar in enumerate(bars):
+def draw_panel(panel: Any, bars: list[Bar | None], style: Style, xs: list[float]) -> None:
+    """One model under one horizon: a bar per rung at `xs`, the baseline marked. A missing bar leaves a
+    gap."""
+    for x, bar in zip(xs, bars, strict=True):
         if bar is None:
             continue
         panel.bar(x, bar.cartel, color=AT_CARTEL, **SEGMENT)
@@ -261,7 +287,7 @@ def draw_panel(panel: Any, bars: list[Bar | None], style: Style) -> None:
         panel.bar(x, bar.leader, bottom=bar.cartel + bar.objection, color=LEADER, **SEGMENT)
         below, above = bar.cartel - bar.low, bar.high - bar.cartel
         panel.errorbar(x, bar.cartel, yerr=[[below], [above]], **WHISKER)
-    mark_neutral(panel, style)
+    mark_baseline(panel, style, xs)
     panel.set_ylim(0, 1.04)
     panel.set_yticks([0, 0.5, 1])
     panel.yaxis.set_major_formatter(PercentFormatter(1.0))
@@ -270,11 +296,11 @@ def draw_panel(panel: Any, bars: list[Bar | None], style: Style) -> None:
     plain(panel)
 
 
-def mark_neutral(panel: Any, style: Style) -> None:
-    if "none" not in style.rungs:
+def mark_baseline(panel: Any, style: Style, xs: list[float]) -> None:
+    if style.baseline not in style.rungs:
         return
-    x = style.rungs.index("none")
-    if style.neutral == "dashed":
+    x = xs[style.rungs.index(style.baseline)]
+    if style.mark == "dashed":
         panel.axvline(x, color=MUTED, linestyle=(0, (3, 3)), linewidth=0.8, alpha=0.5, zorder=0)
     else:
         panel.axvspan(x - 0.45, x + 0.45, color=SHADE, zorder=0)
@@ -578,14 +604,14 @@ def conceptualization_extra(ledger: Ledger) -> None:
     fill_extra(ledger, rows, read)
 
 
-# The prompts appendix: the neutral prompt in full, and what each rung and horizon of the lever figure adds to
+# The prompts appendix: the base prompt in full, and what each rung and horizon of the lever figure adds to
 # it. `cli.replies` keeps only replies to a condition's current wording, so these are the prompts the figure
 # counts.
 
 NAME_SLOT = "[the model’s own name]"  # what a rung that names the asked model reads in the appendix
 NOTHING = "(nothing)"
 FIRMS = 2  # the lever's market size
-NEUTRAL = ("none", "unsaid")  # the neutral prompt's rung and horizon
+BASE = ("none", "unsaid")  # the base prompt's rung and horizon
 
 
 def rendered(rung: str, horizon: str) -> Prompt:
@@ -593,7 +619,7 @@ def rendered(rung: str, horizon: str) -> Prompt:
 
 
 class Addition(NamedTuple):
-    at: int | None  # where in the neutral prompt; None when nothing is added
+    at: int | None  # where in the base prompt; None when nothing is added
     words: str
 
 
@@ -610,56 +636,56 @@ def insertion(base: str, text: str) -> Addition:
             break
         if words[:1].isspace() and words.rstrip().endswith((".", "!", "?")):
             return Addition(at, words)
-    raise ValueError(f"not the neutral prompt with whole sentences inserted at one place: {text!r}")
+    raise ValueError(f"not the base prompt with whole sentences inserted at one place: {text!r}")
 
 
-def check_bar(neutral: Prompt, bar: Prompt, rung: Addition, horizon: Addition) -> None:
-    """Raises ValueError unless a bar's prompt is the neutral prompt with its rung's sentences, then its
+def check_bar(base: Prompt, bar: Prompt, rung: Addition, horizon: Addition) -> None:
+    """Raises ValueError unless a bar's prompt is the base prompt with its rung's sentences, then its
     horizon's, where the market paragraph ends: what the appendix says."""
     at = rung.at if rung.at is not None else horizon.at
-    expected = neutral.user
+    expected = base.user
     if at is not None:
-        expected = neutral.user[:at] + rung.words + horizon.words + neutral.user[at:]
-    paragraph_end = at is None or neutral.user[at:].startswith("\n\n")
-    if bar.system != neutral.system or bar.user != expected or not paragraph_end:
+        expected = base.user[:at] + rung.words + horizon.words + base.user[at:]
+    paragraph_end = at is None or base.user[at:].startswith("\n\n")
+    if bar.system != base.system or bar.user != expected or not paragraph_end:
         raise ValueError(
-            f"not the neutral prompt with its rung's and horizon's sentences at its end: {bar.user!r}"
+            f"not the base prompt with its rung's and horizon's sentences at its end: {bar.user!r}"
         )
 
 
 def fill_prompts(ledger: Ledger, style: Style = STYLE) -> None:
-    """The neutral prompt, as `zcc show` prints it, and per rung of the style and per horizon the condition
-    that gives its prompt and the sentences it adds to the neutral one. Raises ValueError when a bar's prompt
+    """The base prompt, as `zcc show` prints it, and per rung of the style and per horizon the condition
+    that gives its prompt and the sentences it adds to the base one. Raises ValueError when a bar's prompt
     isn't what the appendix says (`check_bar`)."""
-    neutral = rendered(*NEUTRAL)
-    rungs = {rung: insertion(neutral.user, rendered(rung, NEUTRAL[1]).user) for rung in style.rungs}
-    horizons = {horizon: insertion(neutral.user, rendered(NEUTRAL[0], horizon).user) for horizon in ORDER}
+    base = rendered(*BASE)
+    rungs = {rung: insertion(base.user, rendered(rung, BASE[1]).user) for rung in style.rungs}
+    horizons = {horizon: insertion(base.user, rendered(BASE[0], horizon).user) for horizon in ORDER}
     for rung, rung_addition in rungs.items():
         for horizon, horizon_addition in horizons.items():
-            check_bar(neutral, rendered(rung, horizon), rung_addition, horizon_addition)
+            check_bar(base, rendered(rung, horizon), rung_addition, horizon_addition)
     words = {rung: added.words.strip() or NOTHING for rung, added in rungs.items()}
     for rung, said in words.items():
         ledger.value(
             f"conceptualization.added.{rung}",
             said,
-            how="what the rung adds to the neutral prompt, verbatim, as the prompts table shows it",
+            how="what the rung adds to the base prompt, verbatim, as the prompts table shows it",
         )
-    show = f"$ bin/zcc show conceptualization {name(*NEUTRAL, 'none')} {FIRMS}"
+    show = f"$ bin/zcc show conceptualization {name(*BASE, 'none')} {FIRMS}"
     ledger.text(
-        "conceptualization.prompt.neutral",
-        f"{show}\n[system] {neutral.system}\n\n{neutral.user}",
-        how="the command, then the neutral prompt as it prints it (cli.cmd_show's layout)",
+        "conceptualization.prompt.base",
+        f"{show}\n[system] {base.system}\n\n{base.user}",
+        how="the command, then the base prompt as it prints it (cli.cmd_show's layout)",
     )
-    lines = [[RUNG_LABELS[rung], name(rung, NEUTRAL[1], "none"), said] for rung, said in words.items()]
+    lines = [[RUNG_LABELS[rung], name(rung, BASE[1], "none"), said] for rung, said in words.items()]
     lines += [
-        [HORIZON_LABELS[horizon], name(NEUTRAL[0], horizon, "none"), added.words.strip() or NOTHING]
+        [HORIZON_LABELS[horizon], name(BASE[0], horizon, "none"), added.words.strip() or NOTHING]
         for horizon, added in horizons.items()
     ]
     ledger.table(
         "conceptualization-prompts-table",
-        ["in the figure", "condition", "what it adds to the neutral prompt"],
+        ["in the figure", "condition", "what it adds to the base prompt"],
         lines,
-        how="each rung's and horizon's rendered prompt, against the neutral prompt; the rungs from STYLE",
+        how="each rung's and horizon's rendered prompt, against the base prompt; the rungs from STYLE",
     )
 
 

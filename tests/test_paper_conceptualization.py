@@ -23,6 +23,7 @@ from paper.data.conceptualization import (
     fill_prompts,
     heights,
     insertion,
+    positions,
     refuses,
 )
 from paper.ledger import Ledger
@@ -114,11 +115,43 @@ def test_the_default_figure_has_its_title_a_row_per_horizon_and_a_column_per_mod
     assert "stroke-dasharray" not in drawn  # the neutral rung is a shaded column
 
 
-def test_the_default_figure_shows_five_rungs(tmp_path):
+def test_the_default_figure_shows_the_ladder_then_the_base_prompt(tmp_path):
     drawn = svg(tmp_path, STYLE)
-    for label in ("same prompt", "same model", "neutral", "both know", "person"):
-        assert label in drawn
-    assert "own prompt" not in drawn and "sibling" not in drawn and "won’t coop." not in drawn
+    labels = ("same prompt", "same model", "neutral", "person", "base prompt")
+    assert all(f">{label}<" in drawn for label in labels)
+    order = [drawn.index(f">{label}<") for label in labels]
+    assert order == sorted(order)
+    assert "both know" not in drawn and "sibling" not in drawn and "won’t coop." not in drawn
+
+
+def test_the_rungs_set_apart_sit_after_a_gap():
+    steps = [b - a for a, b in zip(positions(STYLE), positions(STYLE)[1:], strict=False)]
+    assert steps[:3] == [1, 1, 1] and steps[3] > 1  # the base prompt, after the person
+    assert positions(Style(rungs=("same", "human"))) == [0, 1]
+
+
+def centres(drawn, colour):
+    """The x centre of each shape filled with `colour`, in the order the SVG draws them."""
+    paths = re.findall(rf'<path d="([^"]*)"[^>]*fill: {colour}', drawn)
+    return [
+        (min(xs) + max(xs)) / 2 for d in paths if (xs := [float(x) for x in re.findall(r"[ML] ([\d.]+)", d)])
+    ]
+
+
+def test_the_shade_sits_on_the_neutral_bar_and_the_base_prompt_after_a_gap(tmp_path):
+    fill(Ledger(tmp_path), [row(rung=rung, value=30.0) for rung in STYLE.rungs], unread)  # one panel of bars
+    drawn = (tmp_path / "conceptualization-figure.svg").read_text()
+    bars = centres(drawn, "#2a78d6")[:5]  # the legend's patch comes last
+    shade = centres(drawn, "#f4f3ef")[0]
+    assert shade == pytest.approx(bars[2], abs=0.5)  # the neutral rung, third
+    steps = [b - a for a, b in zip(bars, bars[1:], strict=False)]
+    assert steps[3] > 1.3 * steps[0] and steps[0] == pytest.approx(steps[2], abs=0.5)
+
+
+def test_the_shaded_column_marks_the_baseline_rung_when_it_is_shown(tmp_path):
+    assert "#f4f3ef" in svg(tmp_path, STYLE)
+    (tmp_path / "trimmed").mkdir()
+    assert "#f4f3ef" not in svg(tmp_path / "trimmed", Style(rungs=("same", "human", "none")))
 
 
 def test_the_legend_names_the_stackelberg_leaders(tmp_path):
@@ -142,12 +175,25 @@ def test_a_cell_with_leaders_draws_an_orange_segment(tmp_path):
 
 
 def test_the_neutral_rung_can_be_a_soft_dashed_line(tmp_path):
-    assert "stroke-dasharray" in svg(tmp_path, Style(neutral="dashed"))
+    assert "stroke-dasharray" in svg(tmp_path, Style(mark="dashed"))
 
 
 def test_the_rungs_on_x_can_be_chosen(tmp_path):
-    drawn = svg(tmp_path, Style(rungs=("same", "samemodel", "none", "human")))
+    drawn = svg(tmp_path, Style(rungs=("same", "samemodel", "human")))
     assert "person" in drawn and "sibling" not in drawn
+
+
+@pytest.mark.parametrize(
+    "style",
+    [
+        {"rungs": ("same", "none", "human")},  # a rung set apart before one on the ladder
+        {"rungs": ("none",)},  # nothing on the ladder
+        {"rungs": ("same", "none"), "baseline": "none"},  # the baseline set apart
+    ],
+)
+def test_a_style_that_cant_be_drawn_as_a_ladder_then_the_rungs_set_apart_raises(style):
+    with pytest.raises(ValueError):
+        Style(**style)
 
 
 def caption(tmp_path, style, part):
@@ -162,16 +208,17 @@ def test_the_caption_names_the_ladders_ends_the_rows_and_the_neutral_band(tmp_pa
         "The rungs run from a rival that asks this same AI model with this same prompt (left)"
     )
     assert "to a person (right), a row per horizon with no record of past play" in layout
-    assert layout.endswith("; the shaded column is the neutral rung.")
+    assert layout.endswith(
+        "; the shaded column is the neutral rung, which adds only the sentence every rung ends with, "
+        "“Both firms know this.”; set apart on the right, the base prompt, which every other bar adds to."
+    )
 
 
 def test_the_caption_follows_the_style(tmp_path):
-    assert caption(tmp_path, Style(neutral="dashed"), "layout").endswith(
-        "; the dashed line marks the neutral rung."
-    )
+    assert "; the dashed line marks the neutral rung," in caption(tmp_path, Style(mark="dashed"), "layout")
     trimmed = caption(tmp_path, Style(rungs=("samemodel", "human")), "layout")
     assert "this same AI model with its own prompt (left)" in trimmed and "a person (right)" in trimmed
-    assert "neutral" not in trimmed
+    assert "neutral" not in trimmed and "base prompt" not in trimmed
 
 
 def test_the_caption_explains_astras_missing_bar_only_when_its_named_rung_is_shown(tmp_path):
@@ -224,10 +271,10 @@ def test_text_that_isnt_whole_sentences_inserted_raises():
         insertion("A. B.", "A. X B.")
 
 
-def test_the_appendix_gives_the_neutral_prompt_as_the_command_on_its_first_line_prints_it(tmp_path, capsys):
+def test_the_appendix_gives_the_base_prompt_as_the_command_on_its_first_line_prints_it(tmp_path, capsys):
     ledger = Ledger(tmp_path)
     fill_prompts(ledger)
-    text = ledger.entries["conceptualization.prompt.neutral"]["text"]
+    text = ledger.entries["conceptualization.prompt.base"]["text"]
     command, printed = text.split("\n", 1)
     assert command == "$ bin/zcc show conceptualization mind_none_unsaid_none 2"
     cli.main(command.split()[2:])
@@ -239,21 +286,22 @@ def test_the_appendix_table_gives_each_rung_and_rows_condition_and_additions_in_
     ledger = Ledger(tmp_path)
     fill_prompts(ledger)
     table = ledger.entries["conceptualization-prompts-table"]
+    assert table["header"][-1] == "what it adds to the base prompt"
     other = "The other firm gets its production number by asking this same AI model"
     assert [label for label, *_ in table["rows"]] == [
-        "same prompt", "same model", "neutral", "both know", "person",
+        "same prompt", "same model", "neutral", "person", "base prompt",
         "repeated game", "no repeat mentioned", "one-round game",
     ]  # fmt: skip
     assert {label: rest for label, *rest in table["rows"]} == {
         "same prompt": ["mind_same_unsaid_none", f"{other} with this same prompt. Both firms know this."],
         "same model": ["mind_samemodel_unsaid_none", f"{other}, with its own prompt. Both firms know this."],
-        "neutral": ["mind_none_unsaid_none", "(nothing)"],
-        "both know": ["mind_informed_unsaid_none", "Both firms know this."],
+        "neutral": ["mind_informed_unsaid_none", "Both firms know this."],
         "person": [
             "mind_human_unsaid_none",
             "The other firm's manager decides its output personally, without asking any AI model. "
             "Both firms know this.",
         ],
+        "base prompt": ["mind_none_unsaid_none", "(nothing)"],
         "repeated game": [
             "mind_none_open_none",
             "This market repeats every quarter with the same firms, and my firm wants to maximize its "
