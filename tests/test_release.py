@@ -1,6 +1,7 @@
 """bin/release: stamp CITATION.cff, commit only that file, tag, push, create the GitHub release."""
 
 import os
+import shutil
 import subprocess
 import sys
 import types
@@ -33,18 +34,25 @@ def git(cwd, *args):
     ).stdout.strip()
 
 
-@pytest.fixture(autouse=True)
-def no_inherited_repo(monkeypatch):
-    """A hook exports GIT_DIR, GIT_INDEX_FILE and the like for the repo being committed. Left in place,
-    they would point these tests' git calls, and bin/release's, at that repo and its origin."""
-    for name in list(os.environ):
-        if name.startswith("GIT_"):
-            monkeypatch.delenv(name)
+@pytest.fixture(scope="module")
+def pushed(tmp_path_factory):
+    """A bare origin and a clone on main that pushed CITATION.cff to it, made once: each test copies them."""
+    folder = tmp_path_factory.mktemp("pushed")
+    origin, clone = folder / "origin.git", folder / "clone"
+    git(folder, "init", "-q", "--bare", "-b", "main", str(origin))
+    git(folder, "clone", "-q", str(origin), str(clone))
+    git(clone, "checkout", "-q", "-b", "main")
+    (clone / "CITATION.cff").write_text(CFF)
+    (clone / "notes.md").write_text("first\n")
+    git(clone, "add", "-A")
+    git(clone, "-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-q", "-m", "start")
+    git(clone, "push", "-q", "-u", "origin", "main")
+    return folder
 
 
 @pytest.fixture
-def repo(tmp_path, monkeypatch):
-    """A clone on main with CITATION.cff pushed to a bare origin, and fake gh and uvx on PATH."""
+def repo(pushed, tmp_path, monkeypatch):
+    """A copy of the pushed clone and its own origin, and fake gh and uvx on PATH."""
     fakes = tmp_path / "fakes"
     fakes.mkdir()
     (fakes / "gh").write_text(f'#!/bin/sh\necho "$@" >> {tmp_path}/gh.log\n')
@@ -56,14 +64,9 @@ def repo(tmp_path, monkeypatch):
         monkeypatch.setenv(f"GIT_AUTHOR_{key}", value)
         monkeypatch.setenv(f"GIT_COMMITTER_{key}", value)
     origin, clone = tmp_path / "origin.git", tmp_path / "clone"
-    git(tmp_path, "init", "-q", "--bare", "-b", "main", str(origin))
-    git(tmp_path, "clone", "-q", str(origin), str(clone))
-    git(clone, "checkout", "-q", "-b", "main")
-    (clone / "CITATION.cff").write_text(CFF)
-    (clone / "notes.md").write_text("first\n")
-    git(clone, "add", "-A")
-    git(clone, "commit", "-q", "-m", "start")
-    git(clone, "push", "-q", "-u", "origin", "main")
+    shutil.copytree(pushed / "origin.git", origin, symlinks=True)
+    shutil.copytree(pushed / "clone", clone, symlinks=True)
+    git(clone, "remote", "set-url", "origin", str(origin))
     monkeypatch.setattr(mod, "ROOT", clone)
     return clone
 
