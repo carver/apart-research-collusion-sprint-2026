@@ -6,7 +6,9 @@
 # used as it is (--no-sync). Pyright checks the zerocommcartel and paper packages; the pilot scripts
 # aren't type-checked. The environment is $UV_PROJECT_ENVIRONMENT when set, a relative path
 # counting from the repo as uv reads it, else .venv. reuse lint checks that REUSE.toml parses and
-# that LICENSES/ holds exactly the licenses it names.
+# that LICENSES/ holds exactly the licenses it names. reuse and pyright run while the tests do,
+# each into a log of its own that is shown once the tests end, so no two checks' output mixes. An
+# interrupted hook stops them too: a background job ignores Ctrl-C, and would outlive the hook.
 set -e
 repo=$(git rev-parse --show-toplevel)
 cd "$repo"
@@ -15,13 +17,26 @@ case $venv in /*) ;; *) venv="$repo/$venv" ;; esac
 uv lock --check -q
 uv sync --frozen -q
 tree=$(mktemp -d)
-trap 'rm -rf "$tree"' EXIT
+logs=$(mktemp -d)
+reuse= pyright=
+trap 'kill $reuse $pyright 2>/dev/null || :; rm -rf "$tree" "$logs"' EXIT
+trap 'exit 130' INT TERM HUP
 # Everything staged but the run logs, which the tests don't read.
 git ls-files -z -- . ':(exclude)logs' | git checkout-index -z --stdin --prefix="$tree/"
 cd "$tree"
 # The hook's git variables name the repo being committed; no test should reach it.
 unset GIT_DIR GIT_INDEX_FILE GIT_WORK_TREE GIT_OBJECT_DIRECTORY GIT_PREFIX
 export UV_PROJECT_ENVIRONMENT="$venv" PYTHONPATH="$tree"
-uv run --no-sync -q reuse lint -q
-uv run --no-sync -q pytest -q -p no:cacheprovider
-uv run --no-sync -q pyright
+uv run --no-sync -q reuse lint -q >"$logs/reuse" 2>&1 &
+reuse=$!
+uv run --no-sync -q pyright >"$logs/pyright" 2>&1 &
+pyright=$!
+failed=0
+uv run --no-sync -q pytest -q -p no:cacheprovider || failed=1
+wait $reuse || failed=1
+reuse=  # ended, so its pid may be another process's by the time the hook exits
+cat "$logs/reuse"
+wait $pyright || failed=1
+pyright=
+cat "$logs/pyright"
+exit $failed
