@@ -37,6 +37,7 @@ def repo(tmp_path):
     repo = tmp_path / "repo"
     (repo / "bin").mkdir(parents=True)
     shutil.copy(HOOK, repo / "bin" / "git-pre-commit")
+    shutil.copy(ROOT / "bin" / "pre-commit-run", repo / "bin" / "pre-commit-run")
     (repo / "bin" / "pilot-lock").write_text('#!/bin/sh\n[ -z "${PILOT_LOCKED:-}" ]\n')
     (repo / "bin" / "pilot-lock").chmod(0o755)
     fake = tmp_path / "fakebin"
@@ -73,8 +74,16 @@ def last_line(run):
     return run.stderr.rstrip().splitlines()[-1]
 
 
-def test_a_passing_pre_commit_prints_nothing(repo):
+def test_a_person_sees_pre_commits_checks(repo):
     done = commit(repo)
+
+    assert done.returncode == 0, done.stderr
+    assert "Passed" in done.stdout + done.stderr
+
+
+def test_an_agents_passing_pre_commit_prints_nothing(repo):
+    # AGENT_PRE_COMMIT set: the agent check, which this throwaway repo lacks, is skipped.
+    done = commit(repo, AI_AGENT="test-agent", AGENT_PRE_COMMIT="1")
 
     assert done.returncode == 0, done.stderr
     assert "Passed" not in done.stdout + done.stderr

@@ -74,6 +74,7 @@ extend-exclude = [
     "bin/issue-todo",
     "bin/openrouter-credits",
     "bin/paper",
+    "bin/pre-commit-run",
     "bin/rewrap",
     "bin/safeps",
     "bin/session-digest",

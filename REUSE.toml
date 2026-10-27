@@ -32,7 +32,8 @@ SPDX-License-Identifier = "MIT"
 [[annotations]]
 path = [
   "bin/apply-edits", "bin/bgrun", "bin/claude-fresh", "bin/edit-script-gate", "bin/issue-todo",
-  "bin/openrouter-credits", "bin/paper", "bin/rewrap", "bin/safeps", "bin/waitone", "lib/**",
+  "bin/openrouter-credits", "bin/paper", "bin/pre-commit-run", "bin/rewrap", "bin/safeps",
+  "bin/waitone", "lib/**",
 ]
 precedence = "override"
 SPDX-FileCopyrightText = "2026 Jason Carver"

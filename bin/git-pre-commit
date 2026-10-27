@@ -5,8 +5,9 @@
 # pre-commit runs through uvx rather than the project's .venv: the host and the sandbox share
 # this checkout, and the .venv's interpreter only exists in the sandbox.
 # Agents' commits ($AI_AGENT set) also run the slower agent-pre-commit, after ruff.
-# Every refusal ends with a COMMIT REFUSED line, and a pass prints nothing of pre-commit's: agents
-# filtered its noisy pass with greps, and the greps hid failed commits.
+# Every refusal ends with a COMMIT REFUSED line. bin/pre-commit-run (an llm-toolbox copy) runs
+# pre-commit: a person sees its checks as they run, an agent only when they fail, since agents
+# filtered the noisy pass with greps and the greps hid failed commits.
 
 refuse() {
   echo "COMMIT REFUSED: $1" >&2
@@ -15,14 +16,6 @@ refuse() {
 
 # The frozen pre-sprint pilot first: a refused commit shouldn't wait on the rest.
 "$(git rev-parse --show-toplevel)/bin/pilot-lock" || refuse "bin/pilot-lock"
-
-# pre-commit refuses to run while its config has unstaged changes, and says so in a line that a
-# series of commits scrolls past.
-if ! git diff --quiet -- .pre-commit-config.yaml; then
-  echo "pre-commit: .pre-commit-config.yaml has unstaged changes, which pre-commit won't run" \
-    "with; stage it or commit it first" >&2
-  refuse ".pre-commit-config.yaml is unstaged"
-fi
 
 # Format the staged Python files and stage the result first, so formatting alone never refuses
 # a commit, and name each file it changed. A file that also has unstaged changes is left alone,
@@ -42,10 +35,8 @@ if [ ${#files[@]} -gt 0 ]; then
 fi
 
 # Ruff's checks before the slow ones: a line too long for ruff format to fix shouldn't wait on the
-# tests and pyright.
-if ! output=$(uvx pre-commit@4.7.0 run 2>&1); then
-  printf '%s\n' "$output" >&2
-  refuse "pre-commit (ruff) failed"
-fi
+# tests and pyright. It refuses first when .pre-commit-config.yaml has unstaged changes, which
+# pre-commit won't run with.
+"$(git rev-parse --show-toplevel)/bin/pre-commit-run" || exit 1
 
 if [ -n "${AI_AGENT:-}" ] && [ -z "${AGENT_PRE_COMMIT:-}" ]; then if command -v agent-commit-gate >/dev/null; then AGENT_PRE_COMMIT=1 agent-commit-gate --run "$(dirname "$0")/agent-pre-commit" || exit; else AGENT_PRE_COMMIT=1 "$(dirname "$0")/agent-pre-commit" || { echo "COMMIT REFUSED: agent-pre-commit failed" >&2; exit 1; }; fi; fi
