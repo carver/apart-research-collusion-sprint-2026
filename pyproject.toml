@@ -53,8 +53,8 @@ required-version = ">=0.12.22"
 testpaths = ["tests"]
 pythonpath = ["."]  # the paper/ package, which isn't installed
 # A worker per core, at most 8: more were slower. -n0 runs one file or test without the ~4 s of
-# starting the workers.
-addopts = "-q -n auto --maxprocesses=8"
+# starting the workers. --tb=short: a failure shows its assertion and call site, not every frame's source.
+addopts = "-q -n auto --maxprocesses=8 --tb=short"
 
 [tool.pyright]
 include = ["zerocommcartel", "paper"]  # not tests/ or pilot/: tests poke at plain dicts, load pilot/ by path
