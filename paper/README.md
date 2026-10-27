@@ -102,5 +102,5 @@ Each draft page carries a DRAFT watermark and a footer with the commit and build
 | `apart.typ` | the Apart template's layout. Preexisting: copied from Jason's earlier run, then updated to the live template |
 | `requirements.md` | the sprint's rules for the report, fetched 2026-10-23 |
 | `data/` | the data sources |
-| `ledger.py`, `figures.py`, `build.py`, `typeset.py`, `checks.py`, `git.py`, `__main__.py` | the build |
+| `ledger.py`, `figures.py`, `build.py`, `lock.py`, `typeset.py`, `checks.py`, `git.py`, `__main__.py` | the build |
 | `build/` | the build's output, not committed |
